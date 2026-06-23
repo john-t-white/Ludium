@@ -62,7 +62,15 @@ Spawn a **coding agent** (using the Agent tool) with the following prompt, subst
 > 1. Read the relevant existing code to understand what's already in place before making any changes.
 > 2. Implement the task completely — make all necessary file edits, create any new files, and install any new dependencies.
 > 3. Follow the project's existing conventions: tabs for indentation, TypeScript (no plain `.js`), file-scoped namespaces in C#, nullable reference types enabled.
-> 4. When finished, report back with: (a) a summary of every file you created or changed and what you did, (b) any assumptions you made, and (c) anything specific the reviewer should look at closely.
+> 4. After implementing, verify the project builds successfully:
+>    - For .NET changes: run `dotnet build` from `src/api/`
+>    - For Next.js changes: run `npm run build` from `src/web/`
+>    - Fix any build errors before reporting back.
+> 5. Ensure the code is in a runnable state for anyone who checks out the branch:
+>    - All new dependencies must be committed (`.csproj` references, `package.json`, `package-lock.json`)
+>    - No hardcoded machine-specific paths or local-only configuration
+>    - If the task requires new environment variables or secrets, document the setup in `CLAUDE.md` or the relevant `README`
+> 6. When finished, report back with: (a) a summary of every file you created or changed and what you did, (b) the build command(s) you ran and whether they succeeded, (c) any assumptions you made, and (d) anything specific the reviewer should look at closely.
 
 Wait for the coding agent to finish and capture its report.
 
@@ -92,7 +100,7 @@ Use the task ID and a concise summary of what was implemented as the commit mess
 gh pr view feature/$ARGUMENTS-TXXX --repo john-t-white/Ludium --json number 2>/dev/null
 ```
 
-If no PR exists, create one:
+If no PR exists, create one using the coding agent's report to populate the body:
 
 ```bash
 gh pr create \
@@ -100,7 +108,19 @@ gh pr create \
   --head feature/$ARGUMENTS-TXXX \
   --base main \
   --title "[TXXX] task description" \
-  --body "Implements [TXXX] from issue #$ARGUMENTS."
+  --body "$(cat <<'EOF'
+Implements [TXXX] from issue #$ARGUMENTS.
+
+## Summary
+[1–3 sentence summary of what was done, drawn from the coding agent's report]
+
+## Changes
+[bullet list of files created or modified, with a one-line description of each, drawn from the coding agent's report]
+
+## Assumptions
+[bullet list of any assumptions the coding agent noted; omit this section if there were none]
+EOF
+)"
 ```
 
 Capture the PR number — it is required for all subsequent steps.
@@ -114,6 +134,7 @@ Spawn a **review agent** (using the Agent tool) with the following prompt:
 > **Issue:** [issue title]
 > **Task that was implemented:** [TXXX] [task description]
 > **PR number:** [PR number]
+> **Review context:** [one of: "Initial review — no changes have been requested yet." OR "Re-review after fixes — the following issues were previously raised and addressed: [list of resolved issues]"]
 >
 > **Coding agent's report:**
 > [paste the coding agent's report]
@@ -123,7 +144,12 @@ Spawn a **review agent** (using the Agent tool) with the following prompt:
 > 2. Read any new or modified files the coding agent mentioned.
 > 3. Verify the task is **fully and correctly** implemented — not just partially started.
 > 4. Check that code follows project conventions: tabs for indentation, TypeScript (no plain `.js`), file-scoped namespaces in C#, nullable reference types enabled, no unnecessary comments.
-> 5. Check for bugs, missing edge cases, or anything that would prevent the acceptance criteria for this task from being met.
+> 5. Verify the code is in a runnable state — someone should be able to check out this branch and run it without any extra steps beyond what is already documented:
+>    - Run the relevant build command (`dotnet build` from `src/api/` and/or `npm run build` from `src/web/`) and confirm it succeeds
+>    - Check that any new dependencies are committed (`.csproj` references, `package.json`, `package-lock.json`)
+>    - Check for hardcoded paths or machine-specific values that would break on another machine
+>    - If new environment variables or secrets are required, confirm they are documented
+> 6. Check for bugs, missing edge cases, or anything that would prevent the acceptance criteria for this task from being met.
 > 6. If you find issues, post each one as a **separate PR comment** before responding, like this:
 >    ```bash
 >    gh pr comment [PR number] --repo john-t-white/Ludium --body "**Review Issue N:** <description of the issue and what needs to change>"
@@ -135,7 +161,13 @@ Spawn a **review agent** (using the Agent tool) with the following prompt:
 >    (where N is the number of issues you posted)
 >
 > Respond with either:
-> - **APPROVED** — if the task is complete and the code is correct, followed by a one-sentence summary of what was done.
+> - **APPROVED** — if the task is complete and the code is correct. Before responding, post an approval comment on the PR. Use the review context to choose the message:
+>   - If this is the initial review: `✅ **Review approved** — no changes requested. [one-sentence summary of what was done]`
+>   - If this is a re-review after fixes: `✅ **Review approved** — all review issues resolved. [one-sentence summary of what was done]`
+>   ```bash
+>   gh pr comment [PR number] --repo john-t-white/Ludium --body "[chosen message]"
+>   ```
+>   Then respond with **APPROVED** followed by the same one-sentence summary.
 > - **CHANGES REQUIRED** — followed by a numbered list of the issues you posted, each including its PR comment ID (e.g., `Issue 1 (comment #123456789): description`).
 
 ### Step 4 — Fix Loop
@@ -172,7 +204,7 @@ EOF
 )"
 ```
 
-Then return to **Step 3** with the updated fix agent report.
+Then return to **Step 3** with the updated fix agent report. Set the review context to: `"Re-review after fixes — the following issues were previously raised and addressed: [list of resolved issues from the fix agent's report]"`.
 
 If after **3 fix attempts** the review agent still reports CHANGES REQUIRED, stop and surface the remaining issues to the user for guidance before continuing.
 
@@ -186,7 +218,7 @@ Fetch the current issue body:
 gh issue view $ARGUMENTS --repo john-t-white/Ludium --json body --jq '.body'
 ```
 
-Replace `- [ ] TXXX` with `- [x] TXXX` in the body and update the issue:
+Replace `- [ ] TXXX task description` with `- [x] TXXX task description ([PR #NNN](https://github.com/john-t-white/Ludium/pull/NNN))` in the body, where NNN is the PR number, and update the issue:
 
 ```bash
 gh issue edit $ARGUMENTS --repo john-t-white/Ludium --body "<updated body>"
