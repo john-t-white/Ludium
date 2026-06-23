@@ -63,16 +63,16 @@ Format each group as a GitHub-flavored markdown checklist:
 
 ```markdown
 ### Backend
-- [ ] Task description
-- [ ] Task description
+- [ ] T001 Task description
+- [ ] T002 Task description
 
 ### Frontend
-- [ ] Task description
-- [ ] Task description
+- [ ] T003 Task description
+- [ ] T004 Task description
 
 ### Tests
-- [ ] Task description
-- [ ] Task description
+- [ ] T005 Task description
+- [ ] T006 Task description
 ```
 
 Rules for tasks:
@@ -80,6 +80,7 @@ Rules for tasks:
 - Specific enough that a developer knows exactly what to do
 - Ordered logically (dependencies first)
 - No task should involve writing production code and tests in the same item — keep them separate
+- Each task must be prefixed with a sequential ID in the format `T001`, `T002`, etc., starting from T001 and incrementing across all groups (not resetting per group)
 
 Show the plan to the user and ask: **"Does this plan look right? Anything missing, wrong, or that should be broken down further?"**
 
