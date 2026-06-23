@@ -205,11 +205,33 @@ If the review agent responds with **CHANGES REQUIRED**, spawn a new **coding age
 >
 > Instructions:
 > 1. Fix each issue exactly as described. Do not make any other changes.
-> 2. For each issue you fix, edit the original inline review comment to mark it resolved and explain what you did:
+> 2. For each issue you fix, resolve the review thread and leave a reply explaining what you did. First, find the thread ID by querying the PR's review threads via GraphQL:
 >    ```bash
->    gh api repos/john-t-white/Ludium/pulls/comments/[comment_id] \
->      --method PATCH \
->      -f body="~~**Review Issue N:** original description~~\n\n✅ **Resolved:** <what you did to fix it>"
+>    gh api graphql -f query='{
+>      repository(owner: "john-t-white", name: "Ludium") {
+>        pullRequest(number: [PR number]) {
+>          reviewThreads(first: 100) {
+>            nodes {
+>              id
+>              comments(first: 1) {
+>                nodes { databaseId }
+>              }
+>            }
+>          }
+>        }
+>      }
+>    }'
+>    ```
+>    Match the thread whose first comment's `databaseId` equals the comment ID. Then reply to the thread:
+>    ```bash
+>    gh api repos/john-t-white/Ludium/pulls/[PR number]/comments \
+>      --method POST \
+>      -f body="✅ **Resolved:** <what you did to fix it>" \
+>      -f in_reply_to=[comment_id]
+>    ```
+>    Then resolve the thread using its GraphQL node ID:
+>    ```bash
+>    gh api graphql -f query='mutation { resolveReviewThread(input: {threadId: "[thread_id]"}) { thread { isResolved } } }'
 >    ```
 > 3. When done, report back summarising what you changed for each issue.
 
