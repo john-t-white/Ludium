@@ -34,11 +34,13 @@ Display the issue title and the list of incomplete tasks, then ask the user to c
 
 ## Phase 2 — Prepare the Branch
 
-Before implementing anything, ensure a feature branch exists and is checked out:
+Before implementing any task, ensure the feature branch exists and is checked out. Run:
 
 ```bash
 git checkout -b feature/$ARGUMENTS 2>/dev/null || git checkout feature/$ARGUMENTS
 ```
+
+Confirm the active branch is `feature/$ARGUMENTS` before proceeding. Do not implement anything on `main`.
 
 ---
 
@@ -105,9 +107,27 @@ Then return to **Step 2** with the updated report.
 
 If after **3 fix attempts** the review agent still reports CHANGES REQUIRED, stop and surface the remaining issues to the user for guidance before continuing.
 
-### Step 4 — Mark Task Complete
+### Step 4 — Commit, Mark Complete, and Advance
 
-Once the review agent responds with **APPROVED**, update the GitHub issue to check off the task. Fetch the current body:
+Once the review agent responds with **APPROVED**:
+
+**1. Commit the changes** — stage all modified and new files and create a commit:
+
+```bash
+git add -A
+git commit -m "$(cat <<'EOF'
+[TXXX] Brief description of what was done
+
+Implements task TXXX from issue #$ARGUMENTS.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+EOF
+)"
+```
+
+Use the task ID and a concise summary of what was implemented as the commit message subject. The body should reference the task ID and issue number.
+
+**2. Mark the task complete** — fetch the current issue body and check off the task:
 
 ```bash
 gh issue view $ARGUMENTS --repo john-t-white/Ludium --json body --jq '.body'
@@ -119,7 +139,7 @@ Replace `- [ ] TXXX` with `- [x] TXXX` in the body and update the issue:
 gh issue edit $ARGUMENTS --repo john-t-white/Ludium --body "<updated body>"
 ```
 
-Tell the user the task is complete and move to the next incomplete task.
+**3. Advance** — tell the user the task is committed and complete, then move to the next incomplete task.
 
 ---
 
