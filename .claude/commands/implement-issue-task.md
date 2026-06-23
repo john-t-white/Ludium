@@ -162,13 +162,22 @@ Spawn a **review agent** (using the Agent tool) with the following prompt:
 >    - Check for hardcoded paths or machine-specific values that would break on another machine
 >    - If new environment variables or secrets are required, confirm they are documented
 > 6. Check for bugs, missing edge cases, or anything that would prevent the acceptance criteria for this task from being met.
-> 6. If you find issues, post each one as a **separate PR comment** before responding, like this:
+> 6. If you find issues, post each one as a **separate inline PR review comment** anchored to the relevant file and line before responding. First, get the PR's latest commit SHA:
 >    ```bash
->    gh pr comment [PR number] --repo john-t-white/Ludium --body "**Review Issue N:** <description of the issue and what needs to change>"
+>    gh pr view [PR number] --repo john-t-white/Ludium --json headRefOid --jq '.headRefOid'
 >    ```
->    After posting, retrieve the comment IDs you just created:
+>    Then for each issue, identify the specific file path and the most relevant line number within the diff, and post an inline comment:
 >    ```bash
->    gh api repos/john-t-white/Ludium/issues/[PR number]/comments --jq '.[-N:] | .[] | {id, body}'
+>    gh api repos/john-t-white/Ludium/pulls/[PR number]/comments \
+>      --method POST \
+>      -f body="**Review Issue N:** <description of the issue and what needs to change>" \
+>      -f commit_id="<commit SHA>" \
+>      -f path="<file path relative to repo root>" \
+>      -F line=<line number>
+>    ```
+>    After posting all comments, retrieve the IDs you just created:
+>    ```bash
+>    gh api repos/john-t-white/Ludium/pulls/[PR number]/comments --jq '.[-N:] | .[] | {id, body}'
 >    ```
 >    (where N is the number of issues you posted)
 >
@@ -196,9 +205,9 @@ If the review agent responds with **CHANGES REQUIRED**, spawn a new **coding age
 >
 > Instructions:
 > 1. Fix each issue exactly as described. Do not make any other changes.
-> 2. For each issue you fix, edit the original PR comment to mark it resolved and explain what you did:
+> 2. For each issue you fix, edit the original inline review comment to mark it resolved and explain what you did:
 >    ```bash
->    gh api repos/john-t-white/Ludium/issues/comments/[comment_id] \
+>    gh api repos/john-t-white/Ludium/pulls/comments/[comment_id] \
 >      --method PATCH \
 >      -f body="~~**Review Issue N:** original description~~\n\n✅ **Resolved:** <what you did to fix it>"
 >    ```
