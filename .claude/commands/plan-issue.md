@@ -52,12 +52,11 @@ Only ask questions that are genuinely unresolved — skip anything already clear
 
 ## Phase 4 — Draft the Technical Plan
 
-Based on the issue, codebase review, and answers from Phase 3, produce a structured implementation plan as a task checklist. Organize tasks into logical groups, for example:
+Based on the issue, codebase review, and answers from Phase 3, produce a structured implementation plan as a task checklist.
 
-- **Backend** (new endpoints, services, data models, configuration)
-- **Frontend** (new pages, components, data fetching, UI states)
-- **Infrastructure** (environment variables, secrets, config changes)
-- **Tests** (integration tests for API, Playwright tests for frontend)
+**Tasks must be listed in the exact order they should be implemented.** T001 is the first thing a developer does; T002 comes next; and so on. A task's T-number must always be higher than any task it depends on. This ordering is what drives automated implementation, so it must be correct — not just roughly grouped.
+
+Organise tasks into logical groups for readability (e.g. Backend, Frontend, Infrastructure, Tests), but the groups themselves must also appear in implementation order, and tasks must not be moved into a group in a way that breaks their sequence. If a frontend task must come before a later backend task, number and list it before that backend task even if it means splitting a group.
 
 Format each group as a GitHub-flavored markdown checklist:
 
@@ -76,11 +75,10 @@ Format each group as a GitHub-flavored markdown checklist:
 ```
 
 Rules for tasks:
-- Each task should be a single, concrete unit of work
-- Specific enough that a developer knows exactly what to do
-- Ordered logically (dependencies first)
+- Each task is a single, concrete unit of work — specific enough that a developer knows exactly what to do
 - No task should involve writing production code and tests in the same item — keep them separate
-- Each task must be prefixed with a sequential ID in the format `T001`, `T002`, etc., starting from T001 and incrementing across all groups (not resetting per group)
+- Each task must be prefixed with a sequential ID in the format `T001`, `T002`, etc., starting from T001 and incrementing across all groups (never resetting per group)
+- The T-number sequence **is** the implementation order — do not number tasks by group and then sort; number them by when they must be done
 
 Show the plan to the user and ask: **"Does this plan look right? Anything missing, wrong, or that should be broken down further?"**
 
