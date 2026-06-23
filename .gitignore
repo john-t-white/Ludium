@@ -4,6 +4,11 @@
 # .NET build artifacts
 bin/
 obj/
+*.user
+
+# Next.js build artifacts
+.next/
+node_modules/
 
 # dotenv
 .env
