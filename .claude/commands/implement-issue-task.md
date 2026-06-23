@@ -38,14 +38,26 @@ Otherwise, display the issue title, the task you are about to implement, and the
 
 ### Step 0 — Create the Task Branch
 
-Create and check out a branch for this task:
+Before writing any code, ensure the working tree is clean and the feature branch is created from the latest `main`:
 
-```bash
-git checkout main && git pull origin main
-git checkout -b feature/$ARGUMENTS-TXXX
-```
+1. **Check for uncommitted changes** — if any exist, stop and ask the user how to handle them before proceeding:
+   ```bash
+   git status --short
+   ```
 
-Replace `TXXX` with the actual task ID (e.g., `T001`). Confirm the active branch is `feature/$ARGUMENTS-TXXX` before proceeding. Do not implement anything on `main`.
+2. **Update main** — check out `main` and pull the latest from the remote:
+   ```bash
+   git checkout main && git pull origin main
+   ```
+   If the pull fails, stop and surface the error to the user before proceeding.
+
+3. **Create the feature branch** — branch off the now-current `main`:
+   ```bash
+   git checkout -b feature/$ARGUMENTS-TXXX
+   ```
+   Replace `TXXX` with the actual task ID (e.g., `T001`).
+
+4. **Confirm the active branch** — verify the branch is `feature/$ARGUMENTS-TXXX` before proceeding. Do not implement anything on `main`.
 
 ### Step 1 — Coding Agent
 
