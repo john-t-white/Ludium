@@ -22,10 +22,6 @@ resource "azurerm_virtual_network" "main" {
   resource_group_name = data.azurerm_resource_group.shared.name
   address_space       = ["172.16.0.0/16"]
   tags                = local.tags
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "azurerm_subnet" "postgresql" {
@@ -45,10 +41,6 @@ resource "azurerm_subnet" "postgresql" {
         "Microsoft.Network/virtualNetworks/subnets/join/action",
       ]
     }
-  }
-
-  lifecycle {
-    prevent_destroy = true
   }
 }
 
@@ -75,10 +67,6 @@ resource "azurerm_private_dns_zone_virtual_network_link" "shared" {
   private_dns_zone_name = azurerm_private_dns_zone.postgresql.name
   virtual_network_id    = azurerm_virtual_network.main.id
   tags                  = local.tags
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 # ----------------------------------------------------------------------------
