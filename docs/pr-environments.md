@@ -69,7 +69,7 @@ The network topology is the same for PR environments and production:
 │   10.42.0.0/16              │       │                                      │
 │                             │       │  ┌─────────────────────────────────┐ │
 │  ┌───────────────────────┐  │◄─────►│  │ snet-postgresql (172.16.1.0/24) │ │
-│  │ snet-api (10.42.1.0)  │  │ peer  │  │ psql-ludium-shared              │ │
+│  │ snet-api (10.42.1.0)  │  │ peer  │  │ psql-ludium-pr-shared              │ │
 │  │ App Service (API+Web) │  │       │  └─────────────────────────────────┘ │
 │  └───────────────────────┘  │       └──────────────────────────────────────┘
 │                             │
@@ -83,7 +83,7 @@ The network topology is the same for PR environments and production:
 - The API connects to PostgreSQL via VNet peering — no public network access on the database
 - The API reads secrets from its per-PR Key Vault via a private endpoint
 - The API authenticates to PostgreSQL using its managed identity (Entra ID) — no password in config
-- DNS for `psql-ludium-shared.private.postgres.database.azure.com` resolves privately across the peering via a shared DNS zone VNet link
+- DNS for `psql-ludium-pr-shared.private.postgres.database.azure.com` resolves privately across the peering via a shared DNS zone VNet link
 
 ---
 
@@ -145,15 +145,15 @@ terraform apply \
 
 This provisions:
 - `vnet-ludium-shared` — the shared VNet that all PR VNets peer to
-- `psql-ludium-shared` — the PostgreSQL Flexible Server (one per project, shared across all PR environments)
-- `psql-ludium-shared.private.postgres.database.azure.com` — the private DNS zone for PostgreSQL
+- `psql-ludium-pr-shared` — the PostgreSQL Flexible Server (one per project, shared across all PR environments)
+- `psql-ludium-pr-shared.private.postgres.database.azure.com` — the private DNS zone for PostgreSQL
 
 After applying, note the outputs and set these GitHub repository variables:
 
 | Variable | Value |
 |---|---|
-| `AZURE_POSTGRESQL_SERVER_NAME` | `psql-ludium-shared` |
-| `AZURE_POSTGRESQL_SERVER_FQDN` | value from `terraform output server_fqdn` |
+| `AZURE_PR_POSTGRESQL_SERVER_NAME` | `psql-ludium-pr-shared` |
+| `AZURE_PR_POSTGRESQL_SERVER_FQDN` | value from `terraform output server_fqdn` |
 
 ### GitHub repository secrets and variables
 
@@ -174,9 +174,9 @@ These must be configured under **Repository → Settings → Secrets and variabl
 | `AZURE_TF_STATE_STORAGE_ACCOUNT` | `stludiumtfstate` |
 | `AZURE_TF_STATE_CONTAINER` | `tfstate` |
 | `AZURE_PR_RESOURCE_GROUP` | `rg-ludium-pr` |
-| `AZURE_SHARED_RESOURCE_GROUP` | `rg-ludium-pr-shared` |
-| `AZURE_POSTGRESQL_SERVER_NAME` | `psql-ludium-shared` |
-| `AZURE_POSTGRESQL_SERVER_FQDN` | `psql-ludium-shared.private.postgres.database.azure.com` |
+| `AZURE_PR_SHARED_RESOURCE_GROUP` | `rg-ludium-pr-shared` |
+| `AZURE_PR_POSTGRESQL_SERVER_NAME` | `psql-ludium-pr-shared` |
+| `AZURE_PR_POSTGRESQL_SERVER_FQDN` | `psql-ludium-pr-shared.private.postgres.database.azure.com` |
 
 ---
 
@@ -218,7 +218,7 @@ Wait 30–60 seconds for each to complete, then re-run the workflow.
 
 ### Provision failed — shared resources not found
 
-**Symptom:** Terraform fails with "Resource not found" for `vnet-ludium-shared`, `psql-ludium-shared`, or `psql-ludium-shared.private.postgres.database.azure.com`.
+**Symptom:** Terraform fails with "Resource not found" for `vnet-ludium-shared`, `psql-ludium-pr-shared`, or `psql-ludium-pr-shared.private.postgres.database.azure.com`.
 
 **Cause:** The one-time shared infrastructure has not been applied yet, or was applied to the wrong resource group.
 

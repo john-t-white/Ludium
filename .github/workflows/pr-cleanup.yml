@@ -22,8 +22,8 @@ jobs:
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_USE_OIDC: "true"
       TF_VAR_resource_group_name: ${{ vars.AZURE_PR_RESOURCE_GROUP }}
-      TF_VAR_postgresql_server_name: ${{ vars.AZURE_POSTGRESQL_SERVER_NAME }}
-      TF_VAR_postgresql_server_fqdn: ${{ vars.AZURE_POSTGRESQL_SERVER_FQDN }}
+      TF_VAR_postgresql_server_name: ${{ vars.AZURE_PR_POSTGRESQL_SERVER_NAME }}
+      TF_VAR_postgresql_server_fqdn: ${{ vars.AZURE_PR_POSTGRESQL_SERVER_FQDN }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -86,7 +86,7 @@ jobs:
               -backend-config="storage_account_name=${{ vars.AZURE_TF_STATE_STORAGE_ACCOUNT }}" \
               -backend-config="container_name=${{ vars.AZURE_TF_STATE_CONTAINER }}" \
               -backend-config="key=pr-${pr_number}.tfstate" \
-              -backend-config="resource_group_name=${{ vars.AZURE_SHARED_RESOURCE_GROUP }}" \
+              -backend-config="resource_group_name=${{ vars.AZURE_PR_SHARED_RESOURCE_GROUP }}" \
               -backend-config="use_oidc=true" \
               -reconfigure
 

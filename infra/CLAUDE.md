@@ -95,10 +95,10 @@ Variables (not sensitive — stored as repository variables):
 | `AZURE_TF_STATE_STORAGE_ACCOUNT` | `stludiumtfstate` |
 | `AZURE_TF_STATE_CONTAINER` | `tfstate` |
 | `AZURE_PR_RESOURCE_GROUP` | `rg-ludium-pr` |
-| `AZURE_SHARED_RESOURCE_GROUP` | `rg-ludium-pr-shared` |
+| `AZURE_PR_SHARED_RESOURCE_GROUP` | `rg-ludium-pr-shared` |
 | `AZURE_PRODUCTION_RESOURCE_GROUP` | `rg-ludium-production` |
-| `AZURE_POSTGRESQL_SERVER_NAME` | `psql-ludium-shared` |
-| `AZURE_POSTGRESQL_SERVER_FQDN` | `psql-ludium-shared.postgres.database.azure.com` |
+| `AZURE_PR_POSTGRESQL_SERVER_NAME` | `psql-ludium-pr-shared` |
+| `AZURE_PR_POSTGRESQL_SERVER_FQDN` | `psql-ludium-pr-shared.postgres.database.azure.com` |
 
 ## GitHub Actions Workflows
 

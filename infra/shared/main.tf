@@ -52,7 +52,7 @@ resource "azurerm_subnet" "postgresql" {
 # Per-PR VNets add their own VNet link to this zone (managed in infra/modules/network/).
 # ----------------------------------------------------------------------------
 resource "azurerm_private_dns_zone" "postgresql" {
-  name                = "psql-ludium-shared.private.postgres.database.azure.com"
+  name                = "psql-ludium-pr-shared.private.postgres.database.azure.com"
   resource_group_name = data.azurerm_resource_group.shared.name
   tags                = local.tags
 
@@ -104,7 +104,7 @@ resource "azurerm_private_dns_zone" "keyvault" {
 # is used only by Terraform and is never surfaced to application code.
 # ----------------------------------------------------------------------------
 resource "azurerm_postgresql_flexible_server" "main" {
-  name                          = "psql-ludium-shared"
+  name                          = "psql-ludium-pr-shared"
   resource_group_name           = data.azurerm_resource_group.shared.name
   location                      = var.location
   version                       = var.postgresql_version
