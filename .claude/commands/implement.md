@@ -28,6 +28,7 @@ Spawn only the agents relevant to the issue:
 - `postgresql-developer` — schema or migration changes
 - `terraform-engineer` — infrastructure or environment changes
 - `qa-engineer` — always include to plan test coverage
+- `security-engineer` — always include to flag security implications upfront
 
 ### 3. Clarification before planning
 After the planning agents return, collect all ambiguities and open questions they raised.
@@ -55,8 +56,37 @@ Present the full plan to the user and ask for approval. If further changes are r
   `git checkout main && git pull && git checkout -b feature/issue-<number>-<slug>`
 - Launch the implementation workflow, passing the issue number, branch name, and approved plan as args
 
+The workflow must include these phases in order:
+
+#### Phase 1 — Implement
+Spawn implementation agents in parallel (API, frontend, DB, etc.) and QA test agents. Each
+agent implements its part of the approved plan.
+
+#### Phase 2 — Security review
+Spawn the `security-engineer` agent to review ALL files changed in Phase 1. The agent returns
+a structured list of findings: severity (critical/high/medium/low/info), description, and
+recommended fix for each.
+
+#### Phase 3 — Fix security findings
+For each HIGH or MEDIUM finding, send it back to the relevant implementation agent to fix.
+CRITICAL findings must be fixed before any lower-severity work. LOW and INFO findings are
+included in the fix pass but may be deferred if the implementation agent judges them out of
+scope — they must explicitly acknowledge each one.
+
+Run fix agents in parallel where findings affect different domains (API vs frontend).
+
+#### Phase 4 — QA verification
+Spawn the `qa-engineer` agent to:
+- Verify the original acceptance criteria are still met after the security fixes
+- Confirm any test changes needed as a result of the security fixes are applied
+
+#### Phase 5 — Final security review
+Spawn the `security-engineer` agent again to re-review the same files. It must explicitly
+confirm each original finding as resolved or still open. Any remaining HIGH or CRITICAL
+findings block the workflow — surface them to the user before proceeding.
+
 ### 6. After the workflow completes
-- Present a summary of all changes made, QA results, and security findings
+- Present a summary of all changes made, QA results, and security findings (before and after)
 - Start the full application locally so the user can review the running changes:
   ```bash
   docker compose up -d db
@@ -64,7 +94,7 @@ Present the full plan to the user and ask for approval. If further changes are r
   cd src/web && npm run dev &
   ```
 - Inform the user that:
-  - The API is running at `http://localhost:5000` (Swagger UI at `/swagger`)
+  - The API is running at `http://localhost:5000` (Scalar API docs at `/scalar/v1`)
   - The web app is running at `http://localhost:3000`
 - Ask the user to review the running application and explicitly approve before proceeding
 - **Only after user approval**: commit all changes with a clear commit message referencing the issue number

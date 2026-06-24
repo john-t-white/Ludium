@@ -12,6 +12,13 @@ node_modules/
 # dotenv
 .env
 
+# Next.js local env files (may contain secrets)
+src/web/.env*.local
+
+# .NET local appsettings overrides (may contain secrets)
+src/api/appsettings.local.json
+src/api/appsettings.*.local.json
+
 # Temp files
 ~$*
 *~
