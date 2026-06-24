@@ -31,9 +31,70 @@ Terraform is called with an `environment` variable to fully isolate PR environme
 | `api_sku` | App Service plan SKU |
 | `db_sku` | PostgreSQL Flexible Server SKU |
 
+## Azure Resources
+
+### Identity
+
+GitHub Actions authenticates to Azure using OIDC federated identity — there are no long-lived passwords or client secrets to rotate.
+
+| Resource | Name |
+|---|---|
+| App Registration | `app-ludium-github-actions` |
+| Federated credential (PRs) | `ludium-github-pr` |
+| Federated credential (production) | `ludium-github-main` |
+
+### Resource Groups
+
+| Resource Group | Purpose |
+|---|---|
+| `rg-ludium-shared` | Shared infrastructure — Terraform state storage |
+| `rg-ludium-pr` | All PR environment resources |
+| `rg-ludium-production` | Production environment resources |
+
+The `app-ludium-github-actions` service principal has **Contributor** on `rg-ludium-shared` and `rg-ludium-pr` only. Production access is granted separately.
+
+### Region
+
+All resources are provisioned in **East US**.
+
 ## State Backend
 
-Terraform state is stored in Azure Blob Storage. State is namespaced per environment — each PR environment has its own state file. Never manually edit or delete state files.
+Terraform state is stored in Azure Blob Storage in `rg-ludium-shared`. State is namespaced per environment — each PR environment has its own state file. Never manually edit or delete state files.
+
+| Resource | Name |
+|---|---|
+| Storage account | `stludiumtfstate` |
+| Container | `tfstate` |
+
+State file naming convention:
+
+| Environment | State file key |
+|---|---|
+| PR #48 | `pr-48.tfstate` |
+| PR #51 | `pr-51.tfstate` |
+| Production | `production.tfstate` |
+
+## GitHub Secrets and Variables
+
+These are configured in **Repository → Settings → Secrets and variables → Actions**.
+
+Secrets (sensitive — stored as repository secrets):
+
+| Secret | Value |
+|---|---|
+| `AZURE_CLIENT_ID` | `app-ludium-github-actions` Application (client) ID |
+| `AZURE_TENANT_ID` | Entra ID Directory (tenant) ID |
+| `AZURE_SUBSCRIPTION_ID` | Azure subscription ID |
+
+Variables (not sensitive — stored as repository variables):
+
+| Variable | Value |
+|---|---|
+| `AZURE_TF_STATE_STORAGE_ACCOUNT` | `stludiumtfstate` |
+| `AZURE_TF_STATE_CONTAINER` | `tfstate` |
+| `AZURE_PR_RESOURCE_GROUP` | `rg-ludium-pr` |
+| `AZURE_SHARED_RESOURCE_GROUP` | `rg-ludium-shared` |
+| `AZURE_PRODUCTION_RESOURCE_GROUP` | `rg-ludium-production` |
 
 ## GitHub Actions Workflows
 
