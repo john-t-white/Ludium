@@ -29,7 +29,7 @@ variable "shared_vnet_name" {
 }
 
 variable "shared_resource_group_name" {
-  description = "Name of the shared resource group (rg-ludium-shared)"
+  description = "Name of the shared resource group (rg-ludium-pr-shared)"
   type        = string
 }
 

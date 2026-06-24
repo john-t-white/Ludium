@@ -7,7 +7,7 @@ variable "location" {
 variable "resource_group_name" {
   description = "Name of the shared resource group"
   type        = string
-  default     = "rg-ludium-shared"
+  default     = "rg-ludium-pr-shared"
 }
 
 variable "postgresql_version" {

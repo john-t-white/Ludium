@@ -47,11 +47,11 @@ GitHub Actions authenticates to Azure using OIDC federated identity — there ar
 
 | Resource Group | Purpose |
 |---|---|
-| `rg-ludium-shared` | Shared infrastructure — Terraform state storage |
+| `rg-ludium-pr-shared` | Shared infrastructure — Terraform state storage |
 | `rg-ludium-pr` | All PR environment resources |
 | `rg-ludium-production` | Production environment resources |
 
-The `app-ludium-github-actions` service principal has **Contributor** on `rg-ludium-shared` and `rg-ludium-pr` only. Production access is granted separately.
+The `app-ludium-github-actions` service principal has **Contributor** on `rg-ludium-pr-shared` and `rg-ludium-pr` only. Production access is granted separately.
 
 ### Region
 
@@ -59,7 +59,7 @@ All resources are provisioned in **East US 2**.
 
 ## State Backend
 
-Terraform state is stored in Azure Blob Storage in `rg-ludium-shared`. State is namespaced per environment — each PR environment has its own state file. Never manually edit or delete state files.
+Terraform state is stored in Azure Blob Storage in `rg-ludium-pr-shared`. State is namespaced per environment — each PR environment has its own state file. Never manually edit or delete state files.
 
 | Resource | Name |
 |---|---|
@@ -95,7 +95,7 @@ Variables (not sensitive — stored as repository variables):
 | `AZURE_TF_STATE_STORAGE_ACCOUNT` | `stludiumtfstate` |
 | `AZURE_TF_STATE_CONTAINER` | `tfstate` |
 | `AZURE_PR_RESOURCE_GROUP` | `rg-ludium-pr` |
-| `AZURE_SHARED_RESOURCE_GROUP` | `rg-ludium-shared` |
+| `AZURE_SHARED_RESOURCE_GROUP` | `rg-ludium-pr-shared` |
 | `AZURE_PRODUCTION_RESOURCE_GROUP` | `rg-ludium-production` |
 | `AZURE_POSTGRESQL_SERVER_NAME` | `psql-ludium-shared` |
 | `AZURE_POSTGRESQL_SERVER_FQDN` | `psql-ludium-shared.postgres.database.azure.com` |

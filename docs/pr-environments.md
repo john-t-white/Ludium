@@ -135,7 +135,7 @@ terraform init \
   -backend-config="storage_account_name=stludiumtfstate" \
   -backend-config="container_name=tfstate" \
   -backend-config="key=shared.tfstate" \
-  -backend-config="resource_group_name=rg-ludium-shared" \
+  -backend-config="resource_group_name=rg-ludium-pr-shared" \
   -backend-config="use_oidc=true"
 
 terraform apply \
@@ -174,7 +174,7 @@ These must be configured under **Repository → Settings → Secrets and variabl
 | `AZURE_TF_STATE_STORAGE_ACCOUNT` | `stludiumtfstate` |
 | `AZURE_TF_STATE_CONTAINER` | `tfstate` |
 | `AZURE_PR_RESOURCE_GROUP` | `rg-ludium-pr` |
-| `AZURE_SHARED_RESOURCE_GROUP` | `rg-ludium-shared` |
+| `AZURE_SHARED_RESOURCE_GROUP` | `rg-ludium-pr-shared` |
 | `AZURE_POSTGRESQL_SERVER_NAME` | `psql-ludium-shared` |
 | `AZURE_POSTGRESQL_SERVER_FQDN` | `psql-ludium-shared.private.postgres.database.azure.com` |
 

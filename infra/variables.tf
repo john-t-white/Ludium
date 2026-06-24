@@ -29,7 +29,7 @@ variable "api_sku" {
 variable "shared_resource_group_name" {
   description = "Name of the resource group holding shared infrastructure (PostgreSQL server, Key Vault)"
   type        = string
-  default     = "rg-ludium-shared"
+  default     = "rg-ludium-pr-shared"
 }
 
 variable "postgresql_server_name" {
