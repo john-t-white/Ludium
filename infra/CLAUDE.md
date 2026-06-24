@@ -66,6 +66,8 @@ Terraform state is stored in Azure Blob Storage in `rg-ludium-shared`. State is 
 | Storage account | `stludiumtfstate` |
 | Container | `tfstate` |
 
+**Security requirement:** `stludiumtfstate` must have `AllowBlobPublicAccess: false` and network access restricted to GitHub Actions (or managed identity) only. Terraform state files can contain sensitive resource data — public access must never be enabled on this account.
+
 State file naming convention:
 
 | Environment | State file key |
