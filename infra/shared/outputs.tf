@@ -8,18 +8,6 @@ output "server_name" {
   value       = azurerm_postgresql_flexible_server.main.name
 }
 
-output "keyvault_id" {
-  description = "Resource ID of the shared admin Key Vault"
-  value       = azurerm_key_vault.admin.id
-  sensitive   = true
-}
-
-output "keyvault_uri" {
-  description = "URI of the shared admin Key Vault"
-  value       = azurerm_key_vault.admin.vault_uri
-  sensitive   = true
-}
-
 output "vnet_id" {
   description = "Resource ID of the shared virtual network"
   value       = azurerm_virtual_network.main.id
