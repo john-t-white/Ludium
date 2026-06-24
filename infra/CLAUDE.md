@@ -97,6 +97,8 @@ Variables (not sensitive — stored as repository variables):
 | `AZURE_PR_RESOURCE_GROUP` | `rg-ludium-pr` |
 | `AZURE_SHARED_RESOURCE_GROUP` | `rg-ludium-shared` |
 | `AZURE_PRODUCTION_RESOURCE_GROUP` | `rg-ludium-production` |
+| `AZURE_POSTGRESQL_SERVER_NAME` | `psql-ludium-shared` |
+| `AZURE_POSTGRESQL_SERVER_FQDN` | `psql-ludium-shared.postgres.database.azure.com` |
 
 ## GitHub Actions Workflows
 

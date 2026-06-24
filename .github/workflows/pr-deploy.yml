@@ -1,0 +1,340 @@
+name: PR Deploy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+# Cancel any in-flight run for the same PR when a new push arrives.
+# Prevents simultaneous Terraform state lock conflicts and ensures only
+# the latest commit's environment is ever being provisioned.
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lint-typecheck:
+    name: Lint & Typecheck (web)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+  build-api:
+    name: Build API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25 # v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build
+        run: dotnet build src/api --configuration Release --no-incremental
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
+        with:
+          name: api-build-pr-${{ github.event.pull_request.number }}
+          path: src/api/bin/Release/net10.0/
+          retention-days: 1
+
+  build-web:
+    name: Build Web
+    needs: [provision]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          # NEXT_PUBLIC_* variables are baked into the JS bundle at build time.
+          # The API URL must be known before building — hence build-web depends on provision.
+          NEXT_PUBLIC_API_URL: ${{ needs.provision.outputs.api_url }}
+
+      - name: Assemble standalone artifact
+        # next build with output:'standalone' places the runnable server in .next/standalone/.
+        # Static assets and the public directory must be copied in before deployment.
+        run: |
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
+        with:
+          name: web-build-pr-${{ github.event.pull_request.number }}
+          path: src/web/.next/standalone/
+          retention-days: 1
+
+  test-unit-api:
+    name: Unit Tests (API)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25 # v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Run tests (or skip if no test project)
+        run: |
+          if [ -f src/api.tests/api.tests.csproj ]; then
+            dotnet test src/api.tests --configuration Release
+          else
+            echo "src/api.tests not found — skipping"
+          fi
+
+  test-unit-web:
+    name: Unit Tests (Web)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+  provision:
+    name: Provision Azure Environment
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      api_url: ${{ steps.tf-outputs.outputs.api_url }}
+      web_url: ${{ steps.tf-outputs.outputs.web_url }}
+      api_app_service_name: ${{ steps.tf-outputs.outputs.api_app_service_name }}
+      web_app_service_name: ${{ steps.tf-outputs.outputs.web_app_service_name }}
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: "true"
+      TF_VAR_environment: pr-${{ github.event.pull_request.number }}
+      TF_VAR_resource_group_name: ${{ vars.AZURE_PR_RESOURCE_GROUP }}
+      TF_VAR_postgresql_server_name: ${{ vars.AZURE_POSTGRESQL_SERVER_NAME }}
+      TF_VAR_postgresql_server_fqdn: ${{ vars.AZURE_POSTGRESQL_SERVER_FQDN }}
+      TF_VAR_vnet_cidr: "10.${{ github.event.pull_request.number }}.0.0/16"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef032 # v3
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb7411f9b8a12 # v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Init
+        working-directory: infra
+        run: |
+          terraform init \
+            -backend-config="storage_account_name=${{ vars.AZURE_TF_STATE_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ vars.AZURE_TF_STATE_CONTAINER }}" \
+            -backend-config="key=pr-${{ github.event.pull_request.number }}.tfstate" \
+            -backend-config="resource_group_name=${{ vars.AZURE_SHARED_RESOURCE_GROUP }}" \
+            -backend-config="use_oidc=true"
+
+      - name: Terraform Validate
+        working-directory: infra
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: infra
+        # -replace forces the database to be dropped and recreated on every run,
+        # giving E2E tests a clean schema each time. Fast (seconds) since only
+        # the database object is recreated, not the shared Flexible Server.
+        # Replace this with an application-level reset/seed endpoint once the
+        # API has one — that approach is faster and doesn't require a Terraform cycle.
+        run: terraform plan -out=tfplan -replace=module.database.azurerm_postgresql_flexible_server_database.main
+
+      - name: Terraform Apply
+        working-directory: infra
+        run: terraform apply -auto-approve tfplan
+
+      - name: Capture Terraform Outputs
+        id: tf-outputs
+        working-directory: infra
+        run: |
+          api_url=$(terraform output -raw api_url)
+          web_url=$(terraform output -raw web_url)
+          api_app_service_name=$(terraform output -raw api_app_service_name)
+          web_app_service_name=$(terraform output -raw web_app_service_name)
+          echo "api_url=${api_url}" >> "$GITHUB_OUTPUT"
+          echo "web_url=${web_url}" >> "$GITHUB_OUTPUT"
+          echo "api_app_service_name=${api_app_service_name}" >> "$GITHUB_OUTPUT"
+          echo "web_app_service_name=${web_app_service_name}" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy to Azure
+    needs: [build-api, build-web, provision]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Download API artifact
+        uses: actions/download-artifact@fa0a91b85d4f404e444306234f2eb0ec9b7c6c43 # v4
+        with:
+          name: api-build-pr-${{ github.event.pull_request.number }}
+          path: ./api-build
+
+      - name: Download web artifact
+        uses: actions/download-artifact@fa0a91b85d4f404e444306234f2eb0ec9b7c6c43 # v4
+        with:
+          name: web-build-pr-${{ github.event.pull_request.number }}
+          path: ./web-build
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb7411f9b8a12 # v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create API zip
+        run: zip -r api-build.zip ./api-build
+
+      - name: Deploy API
+        run: |
+          az webapp deploy \
+            --resource-group ${{ vars.AZURE_PR_RESOURCE_GROUP }} \
+            --name ${{ needs.provision.outputs.api_app_service_name }} \
+            --src-path api-build.zip \
+            --type zip
+
+      - name: Set web app settings
+        run: |
+          az webapp config appsettings set \
+            --resource-group ${{ vars.AZURE_PR_RESOURCE_GROUP }} \
+            --name ${{ needs.provision.outputs.web_app_service_name }} \
+            --settings "NEXT_PUBLIC_API_URL=${{ needs.provision.outputs.api_url }}"
+
+      - name: Create web zip
+        run: zip -r web-build.zip ./web-build
+
+      - name: Deploy Web
+        run: |
+          az webapp deploy \
+            --resource-group ${{ vars.AZURE_PR_RESOURCE_GROUP }} \
+            --name ${{ needs.provision.outputs.web_app_service_name }} \
+            --src-path web-build.zip \
+            --type zip
+
+      - name: Write environment summary
+        run: |
+          echo "### Environment URLs" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Service | URL |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| API | ${{ needs.provision.outputs.api_url }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Web | ${{ needs.provision.outputs.web_url }} |" >> "$GITHUB_STEP_SUMMARY"
+
+  e2e:
+    name: Playwright E2E Tests
+    needs: [deploy, provision]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+    defaults:
+      run:
+        working-directory: src/web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ needs.provision.outputs.web_url }}
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
+        with:
+          name: playwright-report-pr-${{ github.event.pull_request.number }}
+          path: src/web/playwright-report/
+          retention-days: 30
+
+      - name: Publish JUnit test results
+        if: always()
+        uses: mikepenz/action-junit-report@1ee80bdf39e3bbbeb3d8a51f3a832f6f4864113c # main (2025-06)
+        with:
+          report_paths: src/web/test-results/**/*.xml
+          check_name: Playwright E2E
+          fail_on_failure: true
