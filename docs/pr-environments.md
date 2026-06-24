@@ -120,7 +120,7 @@ The following resource providers must be registered in the Azure subscription be
 | Provider | Used for |
 |---|---|
 | `Microsoft.Network` | VNet, subnets, VNet peering, private endpoints |
-| `Microsoft.KeyVault` | Key Vault (shared admin vault and per-PR vaults) |
+| `Microsoft.KeyVault` | Key Vault (per-PR vaults) |
 | `Microsoft.DBforPostgreSQL` | PostgreSQL Flexible Server |
 | `Microsoft.Web` | App Service plan and App Services |
 | `Microsoft.ManagedIdentity` | System-assigned managed identities on App Services |
@@ -146,7 +146,6 @@ terraform apply \
 This provisions:
 - `vnet-ludium-shared` — the shared VNet that all PR VNets peer to
 - `psql-ludium-shared` — the PostgreSQL Flexible Server (one per project, shared across all PR environments)
-- `kv-ludium-shared-admin` — Key Vault holding the PostgreSQL admin credential
 - `psql-ludium-shared.private.postgres.database.azure.com` — the private DNS zone for PostgreSQL
 
 After applying, note the outputs and set these GitHub repository variables:
