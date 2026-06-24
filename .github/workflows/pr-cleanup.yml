@@ -1,0 +1,101 @@
+name: PR Environment Cleanup
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit-and-cleanup:
+    name: Audit and Destroy Orphaned PR Environments
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: "true"
+      TF_VAR_resource_group_name: ${{ vars.AZURE_PR_RESOURCE_GROUP }}
+      TF_VAR_postgresql_server_name: ${{ vars.AZURE_POSTGRESQL_SERVER_NAME }}
+      TF_VAR_postgresql_server_fqdn: ${{ vars.AZURE_POSTGRESQL_SERVER_FQDN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb7411f9b8a12 # v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef032 # v3
+
+      - name: Audit and destroy orphaned environments
+        run: |
+          set -euo pipefail
+
+          echo "Listing PR state files in blob storage..."
+          blobs=$(az storage blob list \
+            --account-name "${{ vars.AZURE_TF_STATE_STORAGE_ACCOUNT }}" \
+            --container-name "${{ vars.AZURE_TF_STATE_CONTAINER }}" \
+            --query "[?starts_with(name, 'pr-') && ends_with(name, '.tfstate')].name" \
+            --auth-mode login \
+            -o tsv)
+
+          if [ -z "$blobs" ]; then
+            echo "No PR state files found — nothing to audit."
+            exit 0
+          fi
+
+          for blob in $blobs; do
+            # Extract PR number from filename: pr-42.tfstate -> 42
+            pr_number="${blob#pr-}"
+            pr_number="${pr_number%.tfstate}"
+
+            # Validate that the extracted value is a pure integer before using
+            # it in any shell command. Rejects crafted blob names that could
+            # contain spaces, glob characters, or shell metacharacters.
+            if ! [[ "${pr_number}" =~ ^[0-9]+$ ]]; then
+              echo "Skipping unexpected blob name: ${blob}"
+              continue
+            fi
+
+            echo "Checking PR #${pr_number}..."
+
+            pr_state=$(gh pr view "${pr_number}" \
+              --repo "${{ github.repository }}" \
+              --json state \
+              -q .state 2>/dev/null || echo "NOT_FOUND")
+
+            if [ "$pr_state" = "OPEN" ]; then
+              echo "PR #${pr_number} is OPEN — skipping."
+              continue
+            fi
+
+            echo "PR #${pr_number} state is '${pr_state}' — destroying environment..."
+
+            terraform -chdir=infra init \
+              -backend-config="storage_account_name=${{ vars.AZURE_TF_STATE_STORAGE_ACCOUNT }}" \
+              -backend-config="container_name=${{ vars.AZURE_TF_STATE_CONTAINER }}" \
+              -backend-config="key=pr-${pr_number}.tfstate" \
+              -backend-config="resource_group_name=${{ vars.AZURE_SHARED_RESOURCE_GROUP }}" \
+              -backend-config="use_oidc=true" \
+              -reconfigure
+
+            terraform -chdir=infra destroy -auto-approve \
+              -var="environment=pr-${pr_number}" \
+              -var="resource_group_name=${{ vars.AZURE_PR_RESOURCE_GROUP }}" \
+              -var="vnet_cidr=10.${pr_number}.0.0/16"
+
+            echo "Environment for PR #${pr_number} destroyed."
+          done
+
+          echo "Audit complete."
