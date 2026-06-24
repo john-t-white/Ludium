@@ -105,6 +105,26 @@ If you push two commits in quick succession, only the workflow for the latest co
 
 The following must exist before the first PR workflow can succeed. These are provisioned once and never torn down.
 
+### Azure resource providers
+
+The following resource providers must be registered in the Azure subscription before Terraform can create any resources. For an active Azure account these are usually already registered, but worth confirming before the first apply.
+
+**To check and register in the portal:**
+
+1. Go to [portal.azure.com](https://portal.azure.com)
+2. Search for **Subscriptions** and open your subscription
+3. In the left menu, click **Resource providers**
+4. Search for each provider below and check the **Status** column
+5. If any show **NotRegistered**, click the row and click **Register** at the top — registration completes in 30–60 seconds
+
+| Provider | Used for |
+|---|---|
+| `Microsoft.Network` | VNet, subnets, VNet peering, private endpoints |
+| `Microsoft.KeyVault` | Key Vault (shared admin vault and per-PR vaults) |
+| `Microsoft.DBforPostgreSQL` | PostgreSQL Flexible Server |
+| `Microsoft.Web` | App Service plan and App Services |
+| `Microsoft.ManagedIdentity` | System-assigned managed identities on App Services |
+
 ### Azure resources (provisioned by `infra/shared/`)
 
 Run this once from a machine with Azure credentials:
@@ -162,6 +182,24 @@ These must be configured under **Repository → Settings → Secrets and variabl
 ---
 
 ## Diagnosing Failures
+
+### Provision failed — resource provider not registered
+
+**Symptom:** Terraform plan fails with a large block of 403 errors mentioning `register/action` and `AuthorizationFailed`.
+
+**Cause:** One or more Azure resource providers are not registered in the subscription. This is a one-time setup step — see the prerequisites section above.
+
+**Fix:** Register the missing providers in the Azure Portal (Subscription → Resource providers) or via Cloud Shell:
+
+```bash
+az provider register --namespace Microsoft.Network
+az provider register --namespace Microsoft.KeyVault
+az provider register --namespace Microsoft.DBforPostgreSQL
+az provider register --namespace Microsoft.Web
+az provider register --namespace Microsoft.ManagedIdentity
+```
+
+Wait 30–60 seconds for each to complete, then re-run the workflow.
 
 ### Provision failed — Terraform state lock
 
