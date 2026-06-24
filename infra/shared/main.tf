@@ -82,7 +82,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "shared" {
 }
 
 # ----------------------------------------------------------------------------
-# Admin credential — stored in Key Vault, in Terraform state.
+# Admin credential — stored in Terraform state only.
 # State is locked down to private access only (see infra/CLAUDE.md).
 # The admin password is used only by Terraform to provision the server;
 # application workloads authenticate via Entra ID managed identity — no password.
@@ -91,47 +91,6 @@ resource "random_password" "postgresql_admin" {
   length           = 32
   special          = true
   override_special = "!#$%&*()-_=+[]{}<>:?"
-}
-
-# ----------------------------------------------------------------------------
-# Admin Key Vault — holds the PostgreSQL admin credential.
-# This vault is in the shared resource group and is long-lived.
-# ----------------------------------------------------------------------------
-resource "azurerm_key_vault" "admin" {
-  name                          = "kv-ludium-shared-admin"
-  location                      = var.location
-  resource_group_name           = data.azurerm_resource_group.shared.name
-  tenant_id                     = data.azurerm_client_config.current.tenant_id
-  sku_name                      = "standard"
-  soft_delete_retention_days    = 90
-  purge_protection_enabled      = true
-  rbac_authorization_enabled    = true
-  public_network_access_enabled = false
-  tags                          = local.tags
-
-  lifecycle {
-    prevent_destroy = true
-  }
-}
-
-# Grant the Terraform service principal Key Vault Administrator so it can write secrets.
-resource "azurerm_role_assignment" "terraform_kv_admin" {
-  scope                = azurerm_key_vault.admin.id
-  role_definition_name = "Key Vault Administrator"
-  principal_id         = data.azurerm_client_config.current.object_id
-}
-
-resource "azurerm_key_vault_secret" "postgresql_admin_password" {
-  name         = "postgresql-admin-password"
-  value        = random_password.postgresql_admin.result
-  key_vault_id = azurerm_key_vault.admin.id
-  tags         = local.tags
-
-  depends_on = [azurerm_role_assignment.terraform_kv_admin]
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 # ----------------------------------------------------------------------------

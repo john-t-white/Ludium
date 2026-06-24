@@ -55,7 +55,7 @@ The `app-ludium-github-actions` service principal has **Contributor** on `rg-lud
 
 ### Region
 
-All resources are provisioned in **East US**.
+All resources are provisioned in **East US 2**.
 
 ## State Backend
 
