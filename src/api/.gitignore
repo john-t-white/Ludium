@@ -1,0 +1,5 @@
+# Visual Studio user-specific files
+*.user
+
+# Local appsettings overrides (may contain secrets)
+appsettings.*.local.json

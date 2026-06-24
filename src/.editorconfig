@@ -1,0 +1,4 @@
+# Common settings for frontend (TypeScript) and backend (C#)
+[*.{cs,ts,tsx,js,jsx}]
+indent_style = tab
+indent_size = 4
