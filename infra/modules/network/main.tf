@@ -87,7 +87,7 @@ resource "azurerm_subnet_network_security_group_association" "private_endpoints"
 # ----------------------------------------------------------------------------
 # VNet peering — PR VNet <-> shared VNet.
 # Both directions are required for peered connectivity to function.
-# The shared_to_pr peer is created in rg-ludium-pr-shared; the service principal
+# The shared_to_pr peer is created in rg-ludium-pr-infra; the service principal
 # has Contributor on that resource group so this is permitted.
 # ----------------------------------------------------------------------------
 resource "azurerm_virtual_network_peering" "pr_to_shared" {
@@ -116,7 +116,7 @@ resource "azurerm_virtual_network_peering" "shared_to_pr" {
 # PostgreSQL private DNS zone VNet link.
 # Links the shared DNS zone (ludium.postgres.database.azure.com) to this PR's
 # VNet so that the API can resolve the PostgreSQL FQDN via private DNS.
-# The link is created in rg-ludium-pr-shared alongside the DNS zone itself.
+# The link is created in rg-ludium-pr-infra alongside the DNS zone itself.
 # ----------------------------------------------------------------------------
 resource "azurerm_private_dns_zone_virtual_network_link" "postgresql_pr" {
   name                  = "link-postgresql-${var.environment}"

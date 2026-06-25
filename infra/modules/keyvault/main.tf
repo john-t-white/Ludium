@@ -1,7 +1,7 @@
 data "azurerm_client_config" "current" {}
 
 # Look up the shared private DNS zone for Key Vault.
-# This zone is provisioned once in rg-ludium-pr-shared and shared across all environments.
+# This zone is provisioned once in rg-ludium-pr-infra and shared across all environments.
 # Each environment links its own VNet to this zone rather than creating a new zone
 # (Azure enforces one zone per name per resource group, and all PRs share rg-ludium-pr).
 data "azurerm_private_dns_zone" "keyvault" {

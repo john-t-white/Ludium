@@ -26,7 +26,7 @@ variable "vnet_id" {
 variable "shared_resource_group_name" {
   description = "Name of the shared resource group where the private DNS zone for Key Vault is managed"
   type        = string
-  default     = "rg-ludium-pr-shared"
+  default     = "rg-ludium-pr-infra"
 }
 
 variable "tags" {

@@ -25,7 +25,7 @@ data "azurerm_virtual_network" "shared" {
 }
 
 data "azurerm_private_dns_zone" "postgresql" {
-  name                = "psql-ludium-pr-shared.private.postgres.database.azure.com"
+  name                = "psql-ludium-pr-infra.private.postgres.database.azure.com"
   resource_group_name = data.azurerm_resource_group.shared.name
 }
 
