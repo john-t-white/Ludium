@@ -9,7 +9,7 @@ namespace Ludium.Api.Tests.Infrastructure;
 public class IntegrationTestFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder()
-        .WithImage("postgres:16-alpine")
+        .WithImage("postgres:17-alpine")
         .WithDatabase("ludium_test")
         .WithUsername("ludium")
         .WithPassword("ludium_test_pw")

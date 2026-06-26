@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>12</LangVersion>
     <RootNamespace>Ludium.Api</RootNamespace>
+    <UserSecretsId>0bca68da-493d-4e06-89da-53fcabdfccb4</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
