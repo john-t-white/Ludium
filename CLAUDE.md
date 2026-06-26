@@ -107,7 +107,7 @@ All teammates use the leader's model. No teammate may edit files outside their o
 
 ### Workflow
 
-Every request that involves code changes follows four phases in order. Do not skip or reorder phases.
+Every request that involves code changes follows four phases in order. Do not skip or reorder phases. **Phases 1 and 2 are mandatory even when the requirements appear clear from the issue or request — never rationalize skipping them.**
 
 #### Phase 1 — Requirements Analysis
 
@@ -127,7 +127,7 @@ Every request that involves code changes follows four phases in order. Do not sk
    - What will change and why
    - Which team members are involved and what they will do
    - Any risks or trade-offs flagged by the QA Team
-5. **User must explicitly approve the plan before implementation begins.** Do not proceed without approval.
+5. **User must explicitly approve the plan before implementation begins. Do not proceed without approval — no exceptions.**
 
 #### Phase 3 — Implementation
 
