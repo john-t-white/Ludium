@@ -149,7 +149,7 @@ Implementation review runs in two passes to prevent secrets from ever reaching g
 
 **Pass 2 — Full review (post-push)**
 
-5. Once security clears, lead runs all available local tests (`dotnet test src/api.unit-tests`, `dotnet test src/api.integration-tests`, `npm test` in `src/web/` if applicable) and captures the results. Lead pushes the branch and opens the pull request with a **Test Results** section in the PR body summarising pass/fail counts for each suite.
+5. Once security clears, lead pushes the branch and opens the pull request.
 6. Lead spawns the remaining QA reviewers (quality, test, performance, ac) with the PR number (see QA Team — Post-Push Review below).
 7. Reviewers post every finding as an inline PR comment on the specific line, attributed to the reviewer agent name.
 8. Lead routes blocking findings to the responsible Dev Team member, who fixes and pushes.
