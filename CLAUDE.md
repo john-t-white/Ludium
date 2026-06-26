@@ -149,7 +149,7 @@ Implementation review runs in two passes to prevent secrets from ever reaching g
 
 **Pass 2 — Full review (post-push)**
 
-5. Once security clears, lead pushes the branch and opens the pull request.
+5. Once security clears, lead runs all available local tests (`dotnet test src/api.unit-tests`, `dotnet test src/api.integration-tests`, `npm test` in `src/web/` if applicable) and captures the results. Lead pushes the branch and opens the pull request with a **Test Results** section in the PR body summarising pass/fail counts for each suite.
 6. Lead spawns the remaining QA reviewers (quality, test, performance, ac) with the PR number (see QA Team — Post-Push Review below).
 7. Reviewers post every finding as an inline PR comment on the specific line, attributed to the reviewer agent name.
 8. Lead routes blocking findings to the responsible Dev Team member, who fixes and pushes.
@@ -236,7 +236,7 @@ Any real secret found in Steps 1 or 2 is BLOCKING and must be removed before pus
 ```text
 Spawn the QA Team to review all changes implemented by the Dev Team (PR #{number}):
 - quality-reviewer to review for bugs, logic errors, and code correctness; verify all unit tests written by frontend-dev and backend-dev pass and that code coverage is adequate for the changes made
-- test-reviewer using the qa-engineer agent type to review test coverage and test quality
+- test-reviewer using the qa-engineer agent type to review test coverage and test quality; run all available local tests (`dotnet test src/api.unit-tests`, `dotnet test src/api.integration-tests`, `npm test` in `src/web/` if applicable) and post a pass/fail summary as a PR comment
 - performance-reviewer to review for bottlenecks, inefficiencies, and scalability concerns
 - ac-reviewer to verify all acceptance criteria and requirements are met by the implementation
 Reviewers may read any file but must not modify code. All teammates use the leader's model.
