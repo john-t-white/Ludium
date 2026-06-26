@@ -81,10 +81,6 @@ Bring the database schema up to date:
 dotnet ef database update --project src/db
 ```
 
-> **Note:** If `src/db` has no `.csproj` file yet, skip this step — the migrations project has not
-> been scaffolded. The `ludium` database is created automatically by the container; migrations will
-> be added as features are built.
-
 ## 7. Run the API
 
 ```bash
