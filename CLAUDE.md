@@ -138,10 +138,24 @@ Every request that involves code changes follows four phases in order. Do not sk
 
 #### Phase 4 — Implementation Review
 
+Implementation review runs in two passes to prevent secrets from ever reaching git history.
+
+**Pass 1 — Security review (pre-push)**
+
 1. Dev Team signals completion to the lead.
-2. Lead automatically spawns the QA Team to review the implemented changes (see QA Team — Implementation Review below).
-3. Lead collects all findings, routes any blocking issues back to the responsible Dev Team member for fixes.
-4. Once all blocking findings are resolved, lead opens the pull request.
+2. Lead spawns `security-reviewer` to review the local branch diff before anything is pushed (see QA Team — Security Pre-Push Review below).
+3. `security-reviewer` reads `git diff main..HEAD` and all changed files; reports findings directly to the lead. No PR exists yet — no inline comments.
+4. If there are blocking findings: lead routes them to the responsible Dev Team member, who fixes and re-commits locally. `security-reviewer` re-reviews. Repeat until security clears.
+
+**Pass 2 — Full review (post-push)**
+
+5. Once security clears, lead pushes the branch and opens the pull request.
+6. Lead spawns the remaining QA reviewers (quality, test, performance, ac) with the PR number (see QA Team — Post-Push Review below).
+7. Reviewers post every finding as an inline PR comment on the specific line, attributed to the reviewer agent name.
+8. Lead routes blocking findings to the responsible Dev Team member, who fixes and pushes.
+9. The original reviewing agent re-reads the changed code, verifies the fix, and resolves the GitHub review thread (see QA Team — Posting and Resolving PR Comments below).
+10. Steps 8–9 repeat until all blocking threads are resolved.
+11. PR is ready to merge.
 
 ---
 
@@ -165,6 +179,9 @@ The QA Team is involved twice in every change: once to review the **plan** and o
 - **Direct communication**: reviewers message each other by name when a finding spans multiple lenses.
 - **Blocking findings**: the lead must resolve all blocking findings before proceeding to the next phase.
 - **Non-blocking findings**: recorded and included in the PR description but do not delay progress.
+- **Security reviews pre-push**: `security-reviewer` always runs against the local branch before the branch is pushed. It reads `git diff main..HEAD` and changed files directly — no PR exists yet, so findings go to the lead only, never as PR comments.
+- **Inline PR comments**: quality, test, performance, and ac reviewers run post-push and post every finding as an inline comment on the specific line in the open PR. Each comment must begin with `**[agent-name] BLOCKING:**` or `**[agent-name] NON-BLOCKING:**` followed by the finding description. See Posting and Resolving PR Comments below.
+- **Thread resolution**: after a blocking finding is fixed, the original reviewing agent must re-read the changed code, verify the fix, and resolve the GitHub review thread. Do not resolve a thread without re-reading the code.
 
 ### Plan Review
 
@@ -180,16 +197,85 @@ Spawn the QA Team to review the implementation plan:
 Reviewers may read any file but must not modify code. All teammates use the leader's model.
 ```
 
-### Implementation Review
+### Security Pre-Push Review
 
-**Automatically spawned by the lead after Dev Team Phase 3 completes.** Reviewers assess the actual changes made.
+**Spawned by the lead at the start of Phase 4, before the branch is pushed.** Security-reviewer inspects the local branch diff for secrets and vulnerabilities before they can enter git history.
 
 ```text
-Spawn the QA Team to review all changes implemented by the Dev Team:
-- security-reviewer using the security-engineer agent type to review for vulnerabilities, auth issues, secrets, and OWASP top 10
+Spawn security-reviewer using the security-engineer agent type to review the local branch
+before it is pushed. Run `git diff main..HEAD` to see all changes, then read each changed
+file directly. Review for hardcoded secrets, credentials, API keys, connection strings,
+tokens, vulnerabilities, auth issues, and OWASP top 10. The branch has NOT been pushed —
+do not post PR comments. Report all findings directly to the lead.
+Reviewers may read any file but must not modify code.
+```
+
+### Post-Push Review
+
+**Spawned by the lead after the branch is pushed and the PR is opened.** The lead must provide the PR number. Security has already cleared the branch — these reviewers focus on correctness, coverage, and acceptance criteria.
+
+```text
+Spawn the QA Team to review all changes implemented by the Dev Team (PR #{number}):
 - quality-reviewer to review for bugs, logic errors, and code correctness; verify all unit tests written by frontend-dev and backend-dev pass and that code coverage is adequate for the changes made
 - test-reviewer using the qa-engineer agent type to review test coverage and test quality
 - performance-reviewer to review for bottlenecks, inefficiencies, and scalability concerns
 - ac-reviewer to verify all acceptance criteria and requirements are met by the implementation
 Reviewers may read any file but must not modify code. All teammates use the leader's model.
+Post every finding (blocking and non-blocking) as an inline PR comment on the specific line using the instructions in the "Posting and Resolving PR Comments" section of CLAUDE.md.
+```
+
+### Posting and Resolving PR Comments
+
+#### Posting an inline comment
+
+```bash
+# Capture repo and head commit SHA
+REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
+COMMIT_SHA=$(gh pr view {PR_NUMBER} --json headRefOid --jq '.headRefOid')
+
+gh api repos/$REPO/pulls/{PR_NUMBER}/comments \
+  --method POST \
+  --field body="**[{agent-name}] {BLOCKING|NON-BLOCKING}:** {finding description}" \
+  --field commit_id="$COMMIT_SHA" \
+  --field path="{relative/path/to/file}" \
+  --field line={line_number} \
+  --field side="RIGHT"
+```
+
+Use `side="RIGHT"` for added/unchanged lines (the "after" side). Use `side="LEFT"` only for lines removed in the diff.
+
+#### Resolving a thread after a fix is verified
+
+After the Dev Team member pushes a fix, the original reviewing agent re-reads the changed file, confirms the issue is resolved, then:
+
+```bash
+REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
+OWNER=$(echo $REPO | cut -d/ -f1)
+REPO_NAME=$(echo $REPO | cut -d/ -f2)
+
+# 1. List open threads and find the matching one by path/body
+gh api graphql -f query='
+query($owner: String!, $repo: String!, $pr: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $pr) {
+      reviewThreads(first: 100) {
+        nodes {
+          id
+          isResolved
+          comments(first: 1) {
+            nodes { body path line }
+          }
+        }
+      }
+    }
+  }
+}' -f owner="$OWNER" -f repo="$REPO_NAME" -F pr={PR_NUMBER}
+
+# 2. Resolve the thread using the node ID returned above
+gh api graphql -f query='
+mutation($threadId: ID!) {
+  resolveReviewThread(input: { threadId: $threadId }) {
+    thread { isResolved }
+  }
+}' -f threadId="{THREAD_NODE_ID}"
 ```
