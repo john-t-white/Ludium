@@ -35,8 +35,12 @@ Copy the example environment file and use it as-is for local development:
 cp .env.example .env
 ```
 
-The default value `POSTGRES_PASSWORD=ludium` is ready to use for local dev. `.env` is gitignored,
-so your local values are never committed.
+Set `POSTGRES_PASSWORD` to any value you choose — this will be the password for your local
+PostgreSQL container. `.env` is gitignored, so your local values are never committed.
+
+> **Note:** If your password contains a `$`, escape it as `$$` in the `.env` file — Docker Compose
+> interpolates `$` as a variable reference. For example, a password of `$ecret` must be written
+> as `POSTGRES_PASSWORD=$$ecret`. Passwords without `$` do not need escaping.
 
 ## 4. Start PostgreSQL
 
