@@ -38,7 +38,8 @@ src/api/
 
 ```bash
 dotnet build src/api                                              # build
-dotnet test src/api.tests                                         # unit + integration tests
+dotnet test src/api.unit-tests                                     # unit tests (backend-dev owned)
+dotnet test src/api.integration-tests                              # integration tests (test-dev owned)
 dotnet user-secrets init --project src/api                        # first-time secrets setup
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "..." --project src/api
 ```
