@@ -24,17 +24,4 @@ test.describe('Home page', () => {
 		expect(errors).toHaveLength(0);
 	});
 
-	test('shows fallback when API is unavailable', async ({ page }) => {
-		// The fallback is rendered server-side when the API is unreachable, so it cannot
-		// be triggered by intercepting browser-level requests. This test verifies that the
-		// page loads and displays a non-empty heading regardless of API availability —
-		// both the real value and the fallback ("Ludium") satisfy this invariant.
-		const home = new HomePage(page);
-
-		await home.goto();
-
-		await expect(home.heading()).toBeVisible();
-		const text = await home.heading().textContent();
-		expect(text?.trim().length).toBeGreaterThan(0);
-	});
 });

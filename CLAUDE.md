@@ -107,7 +107,7 @@ All teammates use the leader's model. No teammate may edit files outside their o
 
 ### Workflow
 
-Every request that involves code changes follows four phases in order. Do not skip or reorder phases.
+Every request that involves code changes follows four phases in order. Do not skip or reorder phases. **Phases 1 and 2 are mandatory even when the requirements appear clear from the issue or request — never rationalize skipping them.**
 
 #### Phase 1 — Requirements Analysis
 
@@ -127,7 +127,7 @@ Every request that involves code changes follows four phases in order. Do not sk
    - What will change and why
    - Which team members are involved and what they will do
    - Any risks or trade-offs flagged by the QA Team
-5. **User must explicitly approve the plan before implementation begins.** Do not proceed without approval.
+5. **User must explicitly approve the plan before implementation begins. Do not proceed without approval — no exceptions.**
 
 #### Phase 3 — Implementation
 
@@ -236,7 +236,7 @@ Any real secret found in Steps 1 or 2 is BLOCKING and must be removed before pus
 ```text
 Spawn the QA Team to review all changes implemented by the Dev Team (PR #{number}):
 - quality-reviewer to review for bugs, logic errors, and code correctness; verify all unit tests written by frontend-dev and backend-dev pass and that code coverage is adequate for the changes made
-- test-reviewer using the qa-engineer agent type to review test coverage and test quality
+- test-reviewer using the qa-engineer agent type to review test coverage and test quality; run all available local tests (`dotnet test src/api.unit-tests`, `dotnet test src/api.integration-tests`, `npm test` in `src/web/` if applicable) and post a pass/fail summary as a PR comment
 - performance-reviewer to review for bottlenecks, inefficiencies, and scalability concerns
 - ac-reviewer to verify all acceptance criteria and requirements are met by the implementation
 Reviewers may read any file but must not modify code. All teammates use the leader's model.
