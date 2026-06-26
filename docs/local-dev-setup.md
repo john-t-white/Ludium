@@ -64,11 +64,10 @@ Initialize user-secrets for the API project and set the connection string:
 
 ```bash
 dotnet user-secrets init --project src/api
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=ludium;Username=ludium;Password=ludium" --project src/api
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=ludium;Username=ludium;Password=<your_password>" --project src/api
 ```
 
-> **Note:** The password in the connection string must match `POSTGRES_PASSWORD` in your `.env` file.
-> Both default to `ludium`.
+> **Note:** Replace `<your_password>` with the value you set for `POSTGRES_PASSWORD` in your `.env` file.
 
 ## 6. Apply database migrations
 
