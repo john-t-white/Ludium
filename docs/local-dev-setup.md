@@ -87,7 +87,7 @@ dotnet ef database update --project src/db
 dotnet run --project src/api
 ```
 
-The API runs at <http://localhost:5000>, with Swagger UI available at <http://localhost:5000/swagger>.
+The API runs at <http://localhost:5000>, with the Scalar API reference available at <http://localhost:5000/scalar/v1>.
 
 ## 8. Configure and run the web app
 
