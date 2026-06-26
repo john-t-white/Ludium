@@ -7,6 +7,7 @@ test.describe('Home page', () => {
 
 		await home.goto();
 
+		await expect(page).toHaveTitle('Ludium');
 		await expect(home.heading()).toBeVisible();
 		const text = await home.heading().textContent();
 		expect(text?.trim().length).toBeGreaterThan(0);
