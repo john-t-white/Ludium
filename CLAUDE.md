@@ -203,11 +203,30 @@ Reviewers may read any file but must not modify code. All teammates use the lead
 
 ```text
 Spawn security-reviewer using the security-engineer agent type to review the local branch
-before it is pushed. Run `git diff main..HEAD` to see all changes, then read each changed
-file directly. Review for hardcoded secrets, credentials, API keys, connection strings,
-tokens, vulnerabilities, auth issues, and OWASP top 10. The branch has NOT been pushed —
-do not post PR comments. Report all findings directly to the lead.
-Reviewers may read any file but must not modify code.
+before it is pushed. The branch has NOT been pushed — do not post PR comments. Report all
+findings directly to the lead. May read any file but must not modify code.
+
+Step 1 — Scan the diff for secret patterns.
+Run the following and inspect every match in context:
+
+  git diff main..HEAD | grep -inE \
+    "password\s*=|passwd\s*=|secret\s*=|api_key\s*=|apikey\s*=|access_key\s*=|auth_token\s*=|bearer\s+[a-z0-9]{8,}|token\s*=|private_key\s*=|-----BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY|AKIA[0-9A-Z]{16}|eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}"
+
+Any match that is a real credential (not a placeholder like "your-secret-here", an env var
+reference like $SECRET, or a test fixture) is an automatic BLOCKING finding.
+
+Step 2 — Inspect high-risk file types added or modified in the diff.
+Run `git diff main..HEAD --name-only` and read the full content of any file matching:
+  .env, .env.*, *.pem, *.key, *.p12, *.pfx, *.jks,
+  appsettings*.json, secrets.json, *credentials*, *secret*
+
+For each: confirm all sensitive fields are env var references or placeholders, not real values.
+
+Step 3 — Full security review.
+Read each changed file (git diff main..HEAD --name-only) in full and review for
+vulnerabilities, auth issues, and OWASP top 10 beyond secrets.
+
+Any real secret found in Steps 1 or 2 is BLOCKING and must be removed before push.
 ```
 
 ### Post-Push Review
