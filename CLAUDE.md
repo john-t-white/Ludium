@@ -43,6 +43,7 @@ Deployed automatically on merge to `main`. The PR environment is torn down as pa
 - Feature branches for all enhancement work
 - No direct commits to `main`
 - All changes merge to `main` via pull request
+- **Always start from the latest `main`**: before creating a feature branch, fetch and pull the latest `main` unless the user explicitly specifies a different base branch or starting point
 
 ## Security
 
@@ -130,9 +131,10 @@ Every request that involves code changes follows four phases in order. Do not sk
 
 #### Phase 3 — Implementation
 
-1. On user approval, Dev Team members claim their tasks and implement within their owned areas.
-2. Teammates communicate directly when a change in one area requires a coordinating change in another.
-3. Lead monitors progress and resolves blockers.
+1. Lead runs `git fetch origin && git checkout main && git pull origin main` to ensure the local `main` is up to date, then creates and checks out the feature branch from that point (unless the user specified a different base).
+2. On user approval, Dev Team members claim their tasks and implement within their owned areas.
+3. Teammates communicate directly when a change in one area requires a coordinating change in another.
+4. Lead monitors progress and resolves blockers.
 
 #### Phase 4 — Implementation Review
 
