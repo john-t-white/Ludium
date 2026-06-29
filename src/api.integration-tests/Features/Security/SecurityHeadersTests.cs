@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Ludium.Api.Tests.Infrastructure;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
