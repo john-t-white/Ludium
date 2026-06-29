@@ -7,7 +7,7 @@ export type ApiFetchOptions = {
  * Fetches from the API. Each call site must declare its own caching intent via `options`.
  * For dynamic or user-specific data, pass `{ cache: 'no-store' }` explicitly.
  */
-export async function apiFetch<T>(path: string, options?: ApiFetchOptions): Promise<T> {
+export async function apiFetch<T>(path: string, options: ApiFetchOptions): Promise<T> {
 	const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
 	if (!baseUrl) {

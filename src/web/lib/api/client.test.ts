@@ -41,13 +41,13 @@ describe('apiFetch', () => {
 		expect(fetchMock).toHaveBeenCalledWith(BASE_URL + '/path', options);
 	});
 
-	it('ApiFetch_GivenNoOptions_ExpectFetchCalledWithUndefinedOptions', async () => {
+	it('ApiFetch_GivenEmptyOptions_ExpectFetchCalledWithEmptyOptions', async () => {
 		const fetchMock = vi.fn().mockResolvedValue(mockFetchResponse({ value: 1 }));
 		vi.stubGlobal('fetch', fetchMock);
 
-		await apiFetch('/path');
+		await apiFetch<unknown>('/path', {});
 
-		expect(fetchMock).toHaveBeenCalledWith(BASE_URL + '/path', undefined);
+		expect(fetchMock).toHaveBeenCalledWith(BASE_URL + '/path', {});
 	});
 
 	it('ApiFetch_GivenMissingApiUrl_ExpectThrowsAndFetchNeverCalled', async () => {
@@ -55,7 +55,7 @@ describe('apiFetch', () => {
 		const fetchMock = vi.fn().mockResolvedValue(mockFetchResponse({ value: 1 }));
 		vi.stubGlobal('fetch', fetchMock);
 
-		await expect(apiFetch('/path')).rejects.toThrow('NEXT_PUBLIC_API_URL is not configured');
+		await expect(apiFetch('/path', {})).rejects.toThrow('NEXT_PUBLIC_API_URL is not configured');
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
@@ -63,7 +63,7 @@ describe('apiFetch', () => {
 		const fetchMock = vi.fn().mockResolvedValue(mockFetchResponse(null, false, 500));
 		vi.stubGlobal('fetch', fetchMock);
 
-		await expect(apiFetch('/path')).rejects.toThrow('API request failed with status 500');
+		await expect(apiFetch('/path', {})).rejects.toThrow('API request failed with status 500');
 	});
 
 	it('ApiFetch_GivenOkResponse_ExpectReturnsParsedJson', async () => {
@@ -71,7 +71,7 @@ describe('apiFetch', () => {
 		const fetchMock = vi.fn().mockResolvedValue(mockFetchResponse(body));
 		vi.stubGlobal('fetch', fetchMock);
 
-		const result = await apiFetch<{ appName: string }>('/path');
+		const result = await apiFetch<{ appName: string }>('/path', {});
 
 		expect(result).toEqual(body);
 	});
