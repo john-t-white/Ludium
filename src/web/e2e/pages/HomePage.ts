@@ -7,7 +7,11 @@ export class HomePage {
 		await this.page.goto('/');
 	}
 
-	heading() {
-		return this.page.getByRole('heading', { level: 1 });
+	logo() {
+		return this.page.getByRole('img', { name: /ludium/i });
+	}
+
+	wordmark() {
+		return this.page.getByText('LUDIUM');
 	}
 }
