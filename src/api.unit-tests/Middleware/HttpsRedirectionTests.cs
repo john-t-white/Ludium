@@ -27,6 +27,25 @@ public class HttpsRedirectionTests
     }
 
     [Fact]
+    public async Task HttpRequest_GivenHttpScheme_RedirectResponseIncludesSecurityHeaders()
+    {
+        using var factory = CreateFactory();
+        var client = factory.CreateClient(NoRedirectOptions());
+
+        var response = await client.GetAsync("/");
+
+        response.StatusCode.Should().Be(HttpStatusCode.TemporaryRedirect);
+        response.Headers.GetValues("X-Content-Type-Options").Should().Contain("nosniff");
+        response.Headers.GetValues("X-Frame-Options").Should().Contain("DENY");
+        response.Headers.GetValues("Referrer-Policy").Should().Contain("strict-origin-when-cross-origin");
+        response.Headers.GetValues("X-Permitted-Cross-Domain-Policies").Should().Contain("none");
+    }
+
+    // Relies on TestServer setting RemoteIpAddress to 127.0.0.1 so the default KnownNetworks
+    // (127.0.0.0/8, ::1) causes UseForwardedHeaders to trust X-Forwarded-Proto: https. If that
+    // transport behaviour ever changed, a loopback RemoteIpAddress would need to be set explicitly
+    // via IStartupFilter, as the untrusted-proxy test already does for the non-loopback case.
+    [Fact]
     public async Task HttpRequest_GivenXForwardedProtoHttps_DoesNotRedirect()
     {
         using var factory = CreateFactory();
