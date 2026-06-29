@@ -10,9 +10,9 @@ export function Logo({ className }: LogoProps) {
 			<svg
 				role="img"
 				aria-label="Ludium"
-				viewBox="0 0 42 59"
-				width="42"
-				height="59"
+				viewBox="8 21 26 30"
+				width="26"
+				height="30"
 				xmlns="http://www.w3.org/2000/svg"
 			>
 				<polygon points="8,29 21,21 34,29 21,36" fill="#f59e0b" opacity="0.20" />
