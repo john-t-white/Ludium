@@ -54,7 +54,7 @@ public class HttpsRedirectionTests
 
         var response = await client.GetAsync("/api/v1/app-info");
 
-        ((int)response.StatusCode).Should().NotBeInRange(300, 399);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
