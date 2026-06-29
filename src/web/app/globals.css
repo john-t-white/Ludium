@@ -13,7 +13,7 @@
   --font-poppins: var(--font-poppins-var);
 }
 
-@utility logo-gap {
+.logo-gap {
   gap: 10px;
 }
 
