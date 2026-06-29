@@ -13,6 +13,10 @@
   --font-poppins: var(--font-poppins-var);
 }
 
+@utility logo-gap {
+  gap: 10px;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;

@@ -5,8 +5,7 @@ type LogoProps = {
 export function Logo({ className }: LogoProps) {
 	return (
 		<span
-			className={`inline-flex items-center${className ? ` ${className}` : ""}`}
-			style={{ gap: "10px" }}
+			className={`inline-flex items-center logo-gap${className ? ` ${className}` : ""}`}
 		>
 			<svg
 				role="img"
