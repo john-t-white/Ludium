@@ -1,4 +1,3 @@
-using System.Net;
 using FluentValidation;
 using Ludium.Api.Data;
 using Ludium.Api.Features.AppInfo;
@@ -46,13 +45,10 @@ var trustedNetworks = app.Configuration
     .Get<string[]>() ?? [];
 foreach (var cidr in trustedNetworks)
 {
-    var parts = cidr.Split('/');
-    if (parts.Length == 2
-        && IPAddress.TryParse(parts[0], out var ip)
-        && int.TryParse(parts[1], out var prefix))
-    {
-        forwardedHeadersOptions.KnownIPNetworks.Add(new System.Net.IPNetwork(ip, prefix));
-    }
+    if (System.Net.IPNetwork.TryParse(cidr, out var network))
+        forwardedHeadersOptions.KnownIPNetworks.Add(network);
+    else
+        app.Logger.LogWarning("ForwardedHeaders:TrustedNetworks entry '{Cidr}' is not a valid CIDR — skipped.", cidr);
 }
 
 app.UseForwardedHeaders(forwardedHeadersOptions);
