@@ -2,20 +2,41 @@
 
 Every request that involves code changes follows four phases in order. **All four phases are mandatory — do not skip, reorder, or rationalize skipping any phase, even when the requirements appear clear or the change seems small.**
 
+## Tier Definitions
+
+Before any phase begins, the lead classifies the change into one of three tiers. The tier governs which agents are spawned and which review steps apply. **Default to Standard when the tier is unclear. Escalate to Full if a Full-tier condition is discovered during analysis.**
+
+| Tier | Conditions (all must hold for Micro/Standard; any one triggers Full) |
+|---|---|
+| **Micro** | Single area affected; no API contract changes; no schema changes; no infra changes; ~200 lines or fewer |
+| **Standard** | ≤2 areas affected; additive-only API changes (no breaking changes); no schema changes; no infra changes |
+| **Full** | 3+ areas; schema changes; infra changes; breaking API changes; or security-sensitive changes (auth, permissions, secrets) |
+
+| Tier | Dev Team spawned | Plan QA (Phase 2) | Implementation QA (Phase 4 Pass 2) |
+|---|---|---|---|
+| **Micro** | Affected area(s) + test-dev | None | quality-reviewer + ac-reviewer |
+| **Standard** | Affected area(s) + test-dev | security-reviewer + quality-reviewer | quality-reviewer + test-reviewer + ac-reviewer |
+| **Full** | All affected area(s) + test-dev | All 5 reviewers | All 4 reviewers |
+
 ## Phase 1 — Requirements Analysis
 
 1. Lead runs `git fetch origin && git checkout main && git pull origin main` to ensure the team is analysing the latest code.
-2. Lead receives a feature or bug request and spawns the Dev Team:
+2. Lead determines the **tier** (Micro / Standard / Full) based on the request, then spawns only the Dev Team members whose owned area is affected. Refer to the Tier Definitions table and `dev-team.md` for scoping guidance. Always include `test-dev` when `frontend-dev` or `backend-dev` is spawned.
 
    ```text
-   Spawn the Dev Team:
+   Spawn only the affected Dev Team members (see tier and area assessment above).
+   Example for a frontend-only change:
+   - frontend-dev using the nextjs-frontend agent type to own src/web/
+   - test-dev using the qa-engineer agent type to own src/api.integration-tests/ and src/web/e2e/
+   
+   Example for a full-stack feature with schema change:
    - frontend-dev using the nextjs-frontend agent type to own src/web/
    - backend-dev using the dotnet-api agent type to own src/api/
    - db-dev using the postgresql-developer agent type to own src/db/
-   - infra-dev using the terraform-engineer agent type to own infra/
-   - ci-dev using the github-actions-engineer agent type to own .github/
    - test-dev using the qa-engineer agent type to own src/api.integration-tests/ and src/web/e2e/
+   
    All teammates use the leader's model. No teammate may edit files outside their owned area.
+   Any teammate whose area has no affected files must send "[name]: Area unaffected — no action needed." immediately and stop.
    ```
 
 3. Each Dev Team member reads the requirements and the relevant areas of the codebase from their perspective.
@@ -27,16 +48,27 @@ Every request that involves code changes follows four phases in order. **All fou
 ## Phase 2 — Planning
 
 1. Dev Team creates a detailed implementation plan based on the clarified requirements: which files change, what the change is, and the order of operations with cross-area dependencies mapped.
-2. Lead spawns the QA Team to review the plan:
+2. Lead spawns QA reviewers based on the tier:
 
+   **Micro tier — skip QA plan review entirely.** Proceed directly to user approval.
+
+   **Standard tier:**
    ```text
    Spawn the QA Team to review the implementation plan:
-   - security-reviewer using the security-engineer agent type to identify security risks in the proposed approach
-   - quality-reviewer using the quality-reviewer agent type to flag correctness issues, logic gaps, missing edge case handling, and whether the plan includes unit tests for all frontend and backend code
-   - test-reviewer using the qa-engineer agent type to assess whether the plan includes sufficient test coverage
-   - performance-reviewer using the performance-reviewer agent type to identify performance or scalability risks in the proposed design
-   - ac-reviewer using the ac-reviewer agent type to verify the plan fully addresses all acceptance criteria and requirements
-   Reviewers may read any file but must not modify code. All teammates use the leader's model.
+   - security-reviewer using the security-engineer agent type (Sonnet) to identify security risks in the proposed approach
+   - quality-reviewer using the quality-reviewer agent type (haiku model) to flag correctness issues, logic gaps, missing edge case handling, and whether the plan includes unit tests for all frontend and backend code
+   Reviewers may read any file but must not modify code.
+   ```
+
+   **Full tier:**
+   ```text
+   Spawn the QA Team to review the implementation plan:
+   - security-reviewer using the security-engineer agent type (Sonnet) to identify security risks in the proposed approach
+   - quality-reviewer using the quality-reviewer agent type (haiku model) to flag correctness issues, logic gaps, missing edge case handling, and whether the plan includes unit tests for all frontend and backend code
+   - test-reviewer using the qa-engineer agent type (haiku model) to assess whether the plan includes sufficient test coverage
+   - performance-reviewer using the performance-reviewer agent type (Sonnet) to identify performance or scalability risks in the proposed design
+   - ac-reviewer using the ac-reviewer agent type (haiku model) to verify the plan fully addresses all acceptance criteria and requirements
+   Reviewers may read any file but must not modify code.
    ```
 
 4. QA Team returns plan findings to the lead.
@@ -68,7 +100,7 @@ Implementation review runs in two passes to prevent secrets from ever reaching g
    findings directly to the lead. May read any file but must not modify code.
 
    Step 1 — Scan the diff for secret patterns.
-   Run the following and inspect every match in context:
+   Run the following using the Bash tool (NOT PowerShell — grep requires Git Bash) and inspect every match in context:
 
      git diff main..HEAD | grep -inE \
        "password\s*=|passwd\s*=|secret\s*=|api_key\s*=|apikey\s*=|access_key\s*=|auth_token\s*=|bearer\s+[a-z0-9]{8,}|token\s*=|private_key\s*=|-----BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY|AKIA[0-9A-Z]{16}|eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}"
@@ -96,15 +128,35 @@ Implementation review runs in two passes to prevent secrets from ever reaching g
 ### Pass 2 — Full review (post-push)
 
 5. Once security clears, lead pushes the branch and opens the pull request.
-6. Lead spawns the remaining QA reviewers with the PR number:
+6. Lead spawns QA reviewers based on the tier:
 
+   **Micro tier:**
+   ```text
+   Spawn the QA Team to review all changes implemented by the Dev Team (PR #{number}):
+   - quality-reviewer using the quality-reviewer agent type to review for bugs, logic errors, and code correctness; verify all unit tests written by frontend-dev and backend-dev pass and that code coverage is adequate for the changes made
+   - ac-reviewer using the ac-reviewer agent type (haiku model) to verify all acceptance criteria and requirements are met by the implementation
+   Reviewers may read any file but must not modify code.
+   Post every finding (blocking and non-blocking) as an inline PR comment on the specific line using the instructions in the Posting and Resolving PR Comments section of .claude/workflow.md.
+   ```
+
+   **Standard tier:**
+   ```text
+   Spawn the QA Team to review all changes implemented by the Dev Team (PR #{number}):
+   - quality-reviewer using the quality-reviewer agent type to review for bugs, logic errors, and code correctness; verify all unit tests written by frontend-dev and backend-dev pass and that code coverage is adequate for the changes made
+   - test-reviewer using the qa-engineer agent type to review test coverage and test quality; run all available local tests (`dotnet test src/api.unit-tests`, `dotnet test src/api.integration-tests`, `npm test` in `src/web/` if applicable) and post a pass/fail summary as a PR comment
+   - ac-reviewer using the ac-reviewer agent type (haiku model) to verify all acceptance criteria and requirements are met by the implementation
+   Reviewers may read any file but must not modify code.
+   Post every finding (blocking and non-blocking) as an inline PR comment on the specific line using the instructions in the Posting and Resolving PR Comments section of .claude/workflow.md.
+   ```
+
+   **Full tier:**
    ```text
    Spawn the QA Team to review all changes implemented by the Dev Team (PR #{number}):
    - quality-reviewer using the quality-reviewer agent type to review for bugs, logic errors, and code correctness; verify all unit tests written by frontend-dev and backend-dev pass and that code coverage is adequate for the changes made
    - test-reviewer using the qa-engineer agent type to review test coverage and test quality; run all available local tests (`dotnet test src/api.unit-tests`, `dotnet test src/api.integration-tests`, `npm test` in `src/web/` if applicable) and post a pass/fail summary as a PR comment
    - performance-reviewer using the performance-reviewer agent type to review for bottlenecks, inefficiencies, and scalability concerns
-   - ac-reviewer using the ac-reviewer agent type to verify all acceptance criteria and requirements are met by the implementation
-   Reviewers may read any file but must not modify code. All teammates use the leader's model.
+   - ac-reviewer using the ac-reviewer agent type (haiku model) to verify all acceptance criteria and requirements are met by the implementation
+   Reviewers may read any file but must not modify code.
    Post every finding (blocking and non-blocking) as an inline PR comment on the specific line using the instructions in the Posting and Resolving PR Comments section of .claude/workflow.md.
    ```
 

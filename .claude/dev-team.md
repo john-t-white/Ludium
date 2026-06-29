@@ -14,9 +14,19 @@ Agent teams require the experimental flag in `.claude/settings.json`:
 }
 ```
 
-## Automatic Activation
+## Activation
 
-**Whenever any code change is required, always spawn the full Dev Team automatically — do not ask the user, do not implement directly.** This applies to all feature work, bug fixes, refactors, schema changes, infrastructure changes, and CI/CD updates. See `.claude/workflow.md` for the full workflow.
+**Whenever any code change is required, spawn the Dev Team — do not implement directly.** Spawn only the members whose owned area is affected by the change. See `.claude/workflow.md` for the full workflow and tier definitions.
+
+**How to scope the team:** Before spawning, assess which directories will have changed files. Spawn only those members. Always include `test-dev` whenever `frontend-dev` or `backend-dev` is spawned. Only spawn `infra-dev` and `ci-dev` when the change explicitly touches `infra/` or `.github/`.
+
+| Typical change | Spawn |
+|---|---|
+| Frontend-only (UI, styles, components) | `frontend-dev`, `test-dev` |
+| Backend-only (API endpoints, business logic) | `backend-dev`, `test-dev` |
+| Full-stack feature (frontend + API) | `frontend-dev`, `backend-dev`, `test-dev` |
+| Full-stack with schema change | `frontend-dev`, `backend-dev`, `db-dev`, `test-dev` |
+| Cross-cutting / infra / CI change | All relevant members |
 
 ## Team Members
 
@@ -37,5 +47,6 @@ Agent teams require the experimental flag in `.claude/settings.json`:
 - **Lead coordinates, does not implement**: the team lead creates tasks, resolves blockers, and synthesizes results but does not write code.
 - **All changes via the team**: requests to modify code are routed to the responsible teammate, not implemented directly by the lead.
 - **Always report before going idle**: every teammate must send a summary message to the lead before going idle — never go idle without reporting status, findings, or completion. If the lead follows up after an idle notification with no prior report, respond immediately.
+- **Idle no-op**: if you are spawned but your owned area has no files affected by the change, send exactly one message — `"[your-name]: Area unaffected — no action needed."` — and stop immediately. Do not wait for further instructions or read requirements in detail.
 - **Unit tests required**: `frontend-dev` and `backend-dev` must write unit tests for every piece of code they implement. Tests are part of the implementation task, not optional follow-up work. Unit tests live inside each developer's owned directory — `frontend-dev` co-locates tests alongside source files in `src/web/` (e.g. `*.test.tsx`); `backend-dev` writes tests in `src/api.unit-tests/`. Neither developer writes into `src/api.integration-tests/` or `src/web/e2e/`, which are owned exclusively by `test-dev`.
 - **Integration and E2E tests**: `test-dev` is responsible for all Playwright E2E tests (`src/web/e2e/`) and .NET integration tests (`src/api.integration-tests/`). When `frontend-dev` or `backend-dev` complete their implementation, they must notify `test-dev` with sufficient context so it can write the corresponding integration and E2E tests.

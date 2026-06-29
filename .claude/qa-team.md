@@ -4,13 +4,17 @@ The QA Team is involved twice in every change: once to review the **plan** and o
 
 ## Team Members
 
-| Name | Agent Type | Review Lens | Can Write Code |
-|---|---|---|---|
-| `security-reviewer` | `security-engineer` | Vulnerabilities, auth, secrets, OWASP top 10 | No |
-| `quality-reviewer` | `quality-reviewer` | Bugs, logic errors, edge cases, correctness; unit tests pass and code coverage is adequate | No |
-| `test-reviewer` | `qa-engineer` | Test coverage, test quality, missing cases | No |
-| `performance-reviewer` | `performance-reviewer` | Bottlenecks, inefficiencies, scalability | No |
-| `ac-reviewer` | `ac-reviewer` | Acceptance criteria and requirements validation | No |
+| Name | Agent Type | Review Lens | Model | Can Write Code |
+|---|---|---|---|---|
+| `security-reviewer` | `security-engineer` | Vulnerabilities, auth, secrets, OWASP top 10 | Sonnet | No |
+| `quality-reviewer` | `quality-reviewer` | Bugs, logic errors, edge cases, correctness; unit tests pass and code coverage is adequate | Sonnet | No |
+| `test-reviewer` | `qa-engineer` | Test coverage, test quality, missing cases | Sonnet | No |
+| `performance-reviewer` | `performance-reviewer` | Bottlenecks, inefficiencies, scalability | Sonnet | No |
+| `ac-reviewer` | `ac-reviewer` | Acceptance criteria and requirements validation | Haiku | No |
+
+**Plan-review passes (Phase 2)** are checklist-style: reviewers assess a proposed plan, not actual code. Use `haiku` for `quality-reviewer`, `test-reviewer`, and `ac-reviewer` in Phase 2 to reduce cost. Always use Sonnet for `security-reviewer` and `performance-reviewer` regardless of phase.
+
+**Tier-based activation** — which reviewers to spawn is determined by the change tier (see `workflow.md`). Not all reviewers run on every change.
 
 ## Rules
 
