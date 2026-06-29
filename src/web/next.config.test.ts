@@ -39,4 +39,35 @@ describe('next.config security headers', () => {
 			value: CONFIRMED_CSP,
 		});
 	});
+
+	it('NextConfig_Headers_ExpectAllSecurityHeadersAppliedToAllRoutes', async () => {
+		if (typeof nextConfig.headers !== 'function') {
+			throw new Error('nextConfig.headers is not defined');
+		}
+
+		const headerGroups = await nextConfig.headers();
+		const allRoutes = headerGroups.find((group) => group.source === '/(.*)');
+
+		expect(allRoutes).toBeDefined();
+		expect(allRoutes?.headers).toContainEqual({
+			key: 'X-Content-Type-Options',
+			value: 'nosniff',
+		});
+		expect(allRoutes?.headers).toContainEqual({
+			key: 'X-Frame-Options',
+			value: 'DENY',
+		});
+		expect(allRoutes?.headers).toContainEqual({
+			key: 'Referrer-Policy',
+			value: 'strict-origin-when-cross-origin',
+		});
+		expect(allRoutes?.headers).toContainEqual({
+			key: 'X-Permitted-Cross-Domain-Policies',
+			value: 'none',
+		});
+		expect(allRoutes?.headers).toContainEqual({
+			key: 'Content-Security-Policy',
+			value: CONFIRMED_CSP,
+		});
+	});
 });
