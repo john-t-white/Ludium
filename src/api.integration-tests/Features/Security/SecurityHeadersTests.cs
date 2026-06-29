@@ -1,7 +1,9 @@
 using FluentAssertions;
 using Ludium.Api.Tests.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Ludium.Api.Tests.Features.Security;
@@ -51,9 +53,15 @@ public class SecurityHeadersTests(IntegrationTestFactory factory)
     public async Task SecurityHeaders_WhenProductionEnvironment_IncludesStrictTransportSecurity()
     {
         var client = factory.WithWebHostBuilder(builder =>
-            builder.UseEnvironment("Production")).CreateClient();
+        {
+            builder.UseEnvironment("Production");
+            builder.ConfigureServices(services =>
+                services.Configure<HstsOptions>(options => options.ExcludedHosts.Clear()));
+        }).CreateClient();
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/app-info");
+        request.Headers.Add("X-Forwarded-Proto", "https");
 
-        var response = await client.GetAsync("/api/v1/app-info");
+        var response = await client.SendAsync(request);
 
         response.Headers.GetValues("Strict-Transport-Security").Should().ContainSingle()
             .Which.Should().Be("max-age=31536000; includeSubDomains");
@@ -64,6 +72,23 @@ public class SecurityHeadersTests(IntegrationTestFactory factory)
     {
         var client = factory.WithWebHostBuilder(builder =>
             builder.UseEnvironment("Development")).CreateClient();
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/app-info");
+        request.Headers.Add("X-Forwarded-Proto", "https");
+
+        var response = await client.SendAsync(request);
+
+        response.Headers.Contains("Strict-Transport-Security").Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SecurityHeaders_WhenProductionEnvironmentOverPlainHttp_DoesNotIncludeStrictTransportSecurity()
+    {
+        var client = factory.WithWebHostBuilder(builder =>
+        {
+            builder.UseEnvironment("Production");
+            builder.ConfigureServices(services =>
+                services.Configure<HstsOptions>(options => options.ExcludedHosts.Clear()));
+        }).CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var response = await client.GetAsync("/api/v1/app-info");
 
