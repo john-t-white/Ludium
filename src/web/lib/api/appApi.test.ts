@@ -30,6 +30,14 @@ describe('getAppName', () => {
 		expect(result).toBe('MyApp');
 	});
 
+	it('getAppName_WhenApiFetchResolvesWithMissingAppName_ReturnsFallback', async () => {
+		apiFetchMock.mockResolvedValue({} as { appName: string });
+
+		const result = await getAppName();
+
+		expect(result).toBe('Ludium');
+	});
+
 	it('GetAppName_WhenCalled_ExpectApiFetchCalledWithPathAndRevalidate', async () => {
 		apiFetchMock.mockResolvedValue({ appName: 'MyApp' });
 
