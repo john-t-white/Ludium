@@ -109,8 +109,21 @@ Implementation review runs in two passes to prevent secrets from ever reaching g
    ```
 
 7. Reviewers post every finding as an inline PR comment on the specific line, attributed to the reviewer agent name.
-8. Lead routes blocking findings to the responsible Dev Team member, who fixes and pushes.
-9. The original reviewing agent re-reads the changed code. If the fix is satisfactory, it resolves the thread. If the fix introduces a new issue or is incomplete, the reviewer posts a new blocking comment on the relevant line and the cycle continues.
+8. Lead routes blocking findings to the responsible Dev Team member, who fixes and pushes. After pushing, the Dev Team member posts a general PR comment describing what was changed to address the finding:
+   ```bash
+   REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
+   gh api repos/$REPO/issues/{PR_NUMBER}/comments \
+     --method POST \
+     --field body="**[{agent-name}] Fix for [{agent-name}] finding on {path}:{line}:** {brief description of what was changed and why}"
+   ```
+9. The original reviewing agent re-reads the changed code. If the fix is satisfactory, it resolves the thread and posts a general PR comment confirming the fix:
+   ```bash
+   REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
+   gh api repos/$REPO/issues/{PR_NUMBER}/comments \
+     --method POST \
+     --field body="**[{agent-name}] Verified:** {brief confirmation that the fix addresses the finding} — thread resolved."
+   ```
+   If the fix introduces a new issue or is incomplete, the reviewer posts a new blocking comment on the relevant line and the cycle continues.
 10. Steps 8–9 repeat until all blocking threads are resolved.
 11. If any reviewer identifies a new blocking issue at any point during the fix cycle — including while verifying another finding — they post a new inline comment and it enters the same loop.
 12. If a reviewer spots an issue that was not introduced by the current changes or falls outside the acceptance criteria, they do not post a blocking comment. Instead, they report it to the lead, who asks the user: should this be tracked as a new GitHub issue or handled in this PR? The user's answer determines whether a new issue is created or the finding enters the blocking loop.
@@ -135,12 +148,17 @@ Use `side="RIGHT"` for added/unchanged lines (the "after" side). Use `side="LEFT
 
 ### Resolving a thread after a fix is verified
 
-After the Dev Team member pushes a fix, the original reviewing agent re-reads the changed file, confirms the issue is resolved, then:
+After the Dev Team member pushes a fix, the original reviewing agent re-reads the changed file, confirms the issue is resolved, posts a general PR comment confirming the fix, then resolves the thread:
 
 ```bash
 REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
 OWNER=$(echo $REPO | cut -d/ -f1)
 REPO_NAME=$(echo $REPO | cut -d/ -f2)
+
+# 0. Post a general comment confirming the fix
+gh api repos/$REPO/issues/{PR_NUMBER}/comments \
+  --method POST \
+  --field body="**[{agent-name}] Verified:** {brief confirmation that the fix addresses the finding} — thread resolved."
 
 # 1. List open threads and find the matching one by path/body
 gh api graphql -f query='
