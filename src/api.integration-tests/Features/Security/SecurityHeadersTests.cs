@@ -1,3 +1,4 @@
+using System.Net;
 using FluentAssertions;
 using Ludium.Api.Tests.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
@@ -68,5 +69,27 @@ public class SecurityHeadersTests(IntegrationTestFactory factory)
         var response = await client.GetAsync("/api/v1/app-info");
 
         response.Headers.Contains("Strict-Transport-Security").Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SecurityHeaders_WhenResponseReturned_IncludesContentSecurityPolicy()
+    {
+        var response = await _client.GetAsync("/api/v1/app-info");
+
+        response.Headers.GetValues("Content-Security-Policy").Should().ContainSingle()
+            .Which.Should().Be("default-src 'none'; frame-ancestors 'none'");
+    }
+
+    [Fact]
+    public async Task ApiDocs_WhenScalarAndOpenApiRemoved_ReturnsNotFound()
+    {
+        var client = factory.WithWebHostBuilder(builder =>
+            builder.UseEnvironment("Development")).CreateClient();
+
+        var openApiResponse = await client.GetAsync("/openapi/v1.json");
+        var scalarResponse = await client.GetAsync("/scalar/v1");
+
+        openApiResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        scalarResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }
