@@ -1,6 +1,7 @@
 using FluentValidation;
 using Ludium.Api.Data;
 using Ludium.Api.Features.AppInfo;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -33,6 +34,25 @@ builder.Services.AddScoped<AppInfoService>();
 
 var app = builder.Build();
 
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto
+};
+
+// Loopback defaults are retained; only the configured proxy CIDRs are added as trusted.
+var trustedNetworks = app.Configuration
+    .GetSection("ForwardedHeaders:TrustedNetworks")
+    .Get<string[]>() ?? [];
+foreach (var cidr in trustedNetworks)
+{
+    if (System.Net.IPNetwork.TryParse(cidr, out var network))
+        forwardedHeadersOptions.KnownIPNetworks.Add(network);
+    else
+        app.Logger.LogWarning("ForwardedHeaders:TrustedNetworks entry '{Cidr}' is not a valid CIDR — skipped.", cidr);
+}
+
+app.UseForwardedHeaders(forwardedHeadersOptions);
+
 app.Use(async (context, next) =>
 {
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
@@ -45,6 +65,8 @@ app.Use(async (context, next) =>
     }
     await next();
 });
+
+app.UseHttpsRedirection();
 
 app.UseCors("AllowFrontend");
 

@@ -109,19 +109,21 @@ Implementation review runs in two passes to prevent secrets from ever reaching g
    ```
 
 7. Reviewers post every finding as an inline PR comment on the specific line, attributed to the reviewer agent name.
-8. Lead routes blocking findings to the responsible Dev Team member, who fixes and pushes. After pushing, the Dev Team member posts a general PR comment describing what was changed to address the finding:
+8. Lead routes blocking findings to the responsible Dev Team member, who fixes and pushes. After pushing, the Dev Team member posts an in-thread reply on the finding's review thread describing what was changed:
    ```bash
    REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
-   gh api repos/$REPO/issues/{PR_NUMBER}/comments \
+   gh api repos/$REPO/pulls/{PR_NUMBER}/comments \
      --method POST \
-     --field body="**[{agent-name}] Fix for [{agent-name}] finding on {path}:{line}:** {brief description of what was changed and why}"
+     --field body="**[{agent-name}] Fix for [{agent-name}] finding on {path}:{line}:** {brief description of what was changed and why}" \
+     --field in_reply_to={original_finding_comment_id}
    ```
-9. The original reviewing agent re-reads the changed code. If the fix is satisfactory, it resolves the thread and posts a general PR comment confirming the fix:
+9. The original reviewing agent re-reads the changed code. If the fix is satisfactory, it resolves the thread and posts an in-thread reply confirming the fix:
    ```bash
    REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
-   gh api repos/$REPO/issues/{PR_NUMBER}/comments \
+   gh api repos/$REPO/pulls/{PR_NUMBER}/comments \
      --method POST \
-     --field body="**[{agent-name}] Verified:** {brief confirmation that the fix addresses the finding} — thread resolved."
+     --field body="**[{agent-name}] Verified:** {brief confirmation that the fix addresses the finding} — thread resolved." \
+     --field in_reply_to={original_finding_comment_id}
    ```
    If the fix introduces a new issue or is incomplete, the reviewer posts a new blocking comment on the relevant line and the cycle continues.
 10. Steps 8–9 repeat until all blocking threads are resolved.
@@ -148,17 +150,14 @@ Use `side="RIGHT"` for added/unchanged lines (the "after" side). Use `side="LEFT
 
 ### Resolving a thread after a fix is verified
 
-After the Dev Team member pushes a fix, the original reviewing agent re-reads the changed file, confirms the issue is resolved, posts a general PR comment confirming the fix, then resolves the thread:
+After the Dev Team member pushes a fix, the original reviewing agent re-reads the changed file, confirms the issue is resolved, posts an in-thread reply confirming the fix (step 9 above), then resolves the thread:
 
 ```bash
 REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
 OWNER=$(echo $REPO | cut -d/ -f1)
 REPO_NAME=$(echo $REPO | cut -d/ -f2)
 
-# 0. Post a general comment confirming the fix
-gh api repos/$REPO/issues/{PR_NUMBER}/comments \
-  --method POST \
-  --field body="**[{agent-name}] Verified:** {brief confirmation that the fix addresses the finding} — thread resolved."
+# 0. Post in-thread reply confirming the fix (see step 9 above)
 
 # 1. List open threads and find the matching one by path/body
 gh api graphql -f query='
