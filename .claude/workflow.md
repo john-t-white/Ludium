@@ -4,7 +4,8 @@ Every request that involves code changes follows four phases in order. **All fou
 
 ## Phase 1 — Requirements Analysis
 
-1. Lead receives a feature or bug request and spawns the Dev Team:
+1. Lead runs `git fetch origin && git checkout main && git pull origin main` to ensure the team is analysing the latest code.
+2. Lead receives a feature or bug request and spawns the Dev Team:
 
    ```text
    Spawn the Dev Team:
@@ -17,16 +18,15 @@ Every request that involves code changes follows four phases in order. **All fou
    All teammates use the leader's model. No teammate may edit files outside their owned area.
    ```
 
-2. Each Dev Team member reads the requirements and the relevant areas of the codebase from their perspective.
-3. Dev Team members communicate with each other to identify gaps, ambiguities, and cross-area dependencies.
-4. Dev Team formulates clarifying questions. **Every question must include a suggested answer or default.** Do not assume and proceed — present suggestions and wait for user confirmation.
-5. Lead consolidates all clarifying questions and suggestions and presents them to the user in a single grouped list.
-6. User confirms, adjusts, or overrides the suggestions.
+3. Each Dev Team member reads the requirements and the relevant areas of the codebase from their perspective.
+4. Dev Team members communicate with each other to identify gaps, ambiguities, and cross-area dependencies.
+5. Dev Team formulates clarifying questions. **Every question must include a suggested answer or default.** Do not assume and proceed — present suggestions and wait for user confirmation.
+6. Lead consolidates all clarifying questions and suggestions and presents them to the user in a single grouped list.
+7. User confirms, adjusts, or overrides the suggestions.
 
 ## Phase 2 — Planning
 
-1. Lead runs `git fetch origin && git checkout main && git pull origin main` to ensure the team is planning against the latest code.
-2. Dev Team creates a detailed implementation plan based on the clarified requirements: which files change, what the change is, and the order of operations with cross-area dependencies mapped.
+1. Dev Team creates a detailed implementation plan based on the clarified requirements: which files change, what the change is, and the order of operations with cross-area dependencies mapped.
 3. Lead spawns the QA Team to review the plan:
 
    ```text
