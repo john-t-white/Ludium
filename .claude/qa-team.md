@@ -15,6 +15,7 @@ The QA Team is involved twice in every change: once to review the **plan** and o
 ## Rules
 
 - **Read-only**: no QA Team member may edit or create files. Findings are reported to the lead only.
+- **Always report before going idle**: every reviewer must send a summary message to the lead before going idle — never go idle without reporting findings. If the lead follows up after an idle notification with no prior report, respond immediately.
 - **Direct communication**: reviewers message each other by name when a finding spans multiple lenses.
 - **Blocking findings**: the lead must resolve all blocking findings before proceeding to the next phase.
 - **Non-blocking findings**: recorded and included in the PR description but do not delay progress.
