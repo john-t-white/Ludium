@@ -8,7 +8,6 @@ test.describe('Home page', () => {
 		await home.goto();
 
 		await expect(page).toHaveTitle('Ludium');
-		await expect(home.logo()).toBeVisible();
 		await expect(home.wordmark()).toBeVisible();
 	});
 
@@ -19,7 +18,7 @@ test.describe('Home page', () => {
 
 		await home.goto();
 
-		await expect(home.logo()).toBeVisible();
+		await expect(home.wordmark()).toBeVisible();
 		expect(errors).toHaveLength(0);
 	});
 });
