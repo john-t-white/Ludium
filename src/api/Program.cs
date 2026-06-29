@@ -3,7 +3,6 @@ using Ludium.Api.Data;
 using Ludium.Api.Features.AppInfo;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
-using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,7 +26,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString);
 });
 
-builder.Services.AddOpenApi();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddScoped<AppInfoService>();
@@ -59,6 +57,7 @@ app.Use(async (context, next) =>
     context.Response.Headers["X-Frame-Options"] = "DENY";
     context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
     context.Response.Headers["X-Permitted-Cross-Domain-Policies"] = "none";
+    context.Response.Headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'";
     if (!app.Environment.IsDevelopment())
     {
         context.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
@@ -69,12 +68,6 @@ app.Use(async (context, next) =>
 app.UseHttpsRedirection();
 
 app.UseCors("AllowFrontend");
-
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference();
-}
 
 app.MapAppInfoEndpoints();
 

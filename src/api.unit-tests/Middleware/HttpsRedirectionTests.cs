@@ -39,6 +39,22 @@ public class HttpsRedirectionTests
         response.Headers.GetValues("X-Frame-Options").Should().Contain("DENY");
         response.Headers.GetValues("Referrer-Policy").Should().Contain("strict-origin-when-cross-origin");
         response.Headers.GetValues("X-Permitted-Cross-Domain-Policies").Should().Contain("none");
+        response.Headers.GetValues("Content-Security-Policy")
+            .Should().Contain("default-src 'none'; frame-ancestors 'none'");
+    }
+
+    [Fact]
+    public async Task NormalResponse_GivenXForwardedProtoHttps_IncludesContentSecurityPolicy()
+    {
+        using var factory = CreateFactory();
+        var client = factory.CreateClient(NoRedirectOptions());
+        client.DefaultRequestHeaders.Add("X-Forwarded-Proto", "https");
+
+        var response = await client.GetAsync("/api/v1/app-info");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Headers.GetValues("Content-Security-Policy")
+            .Should().Contain("default-src 'none'; frame-ancestors 'none'");
     }
 
     // Relies on TestServer setting RemoteIpAddress to 127.0.0.1 so the default KnownNetworks
