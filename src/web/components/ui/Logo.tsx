@@ -8,8 +8,7 @@ export function Logo({ className }: LogoProps) {
 			className={`inline-flex items-center logo-gap${className ? ` ${className}` : ""}`}
 		>
 			<svg
-				role="img"
-				aria-label="Ludium"
+				aria-hidden="true"
 				viewBox="8 21 26 30"
 				width="26"
 				height="30"

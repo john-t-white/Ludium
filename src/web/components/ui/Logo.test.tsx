@@ -9,10 +9,11 @@ describe("Logo", () => {
 		expect(screen.getByText("LUDIUM")).toBeInTheDocument();
 	});
 
-	it("Logo_WhenRendered_ExpectAccessibleImageNamedLudium", () => {
-		render(<Logo />);
+	it("Logo_WhenRendered_ExpectSvgIsDecorativeAndHiddenFromAccessibilityTree", () => {
+		const { container } = render(<Logo />);
+		const svg = container.querySelector("svg");
 
-		expect(screen.getByRole("img", { name: "Ludium" })).toBeInTheDocument();
+		expect(svg).toHaveAttribute("aria-hidden", "true");
 	});
 
 	it("Logo_GivenClassName_ExpectClassMergedOntoRoot", () => {
