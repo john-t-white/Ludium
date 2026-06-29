@@ -45,4 +45,27 @@ public class SecurityHeadersTests(IntegrationTestFactory factory)
         response.Headers.GetValues("X-Permitted-Cross-Domain-Policies").Should().ContainSingle()
             .Which.Should().Be("none");
     }
+
+    [Fact]
+    public async Task SecurityHeaders_WhenProductionEnvironment_IncludesStrictTransportSecurity()
+    {
+        var client = factory.WithWebHostBuilder(builder =>
+            builder.UseEnvironment("Production")).CreateClient();
+
+        var response = await client.GetAsync("/api/v1/app-info");
+
+        response.Headers.GetValues("Strict-Transport-Security").Should().ContainSingle()
+            .Which.Should().Be("max-age=31536000; includeSubDomains");
+    }
+
+    [Fact]
+    public async Task SecurityHeaders_WhenDevelopmentEnvironment_DoesNotIncludeStrictTransportSecurity()
+    {
+        var client = factory.WithWebHostBuilder(builder =>
+            builder.UseEnvironment("Development")).CreateClient();
+
+        var response = await client.GetAsync("/api/v1/app-info");
+
+        response.Headers.Contains("Strict-Transport-Security").Should().BeFalse();
+    }
 }
