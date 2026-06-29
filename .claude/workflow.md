@@ -27,7 +27,7 @@ Every request that involves code changes follows four phases in order. **All fou
 ## Phase 2 — Planning
 
 1. Dev Team creates a detailed implementation plan based on the clarified requirements: which files change, what the change is, and the order of operations with cross-area dependencies mapped.
-3. Lead spawns the QA Team to review the plan:
+2. Lead spawns the QA Team to review the plan:
 
    ```text
    Spawn the QA Team to review the implementation plan:
