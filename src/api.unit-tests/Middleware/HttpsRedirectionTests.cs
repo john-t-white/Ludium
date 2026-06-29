@@ -149,13 +149,14 @@ public class HttpsRedirectionTests
 
         var response = await client.GetAsync("/api/v1/app-info");
 
+        response.StatusCode.Should().Be(HttpStatusCode.TemporaryRedirect);
         response.Headers.Contains("Strict-Transport-Security").Should().BeFalse();
     }
 
     [Fact]
     public async Task StrictTransportSecurity_GivenDevelopmentAndHttps_IsAbsent()
     {
-        using var factory = CreateFactory();
+        using var factory = CreateFactory(environment: "Development");
         var client = factory.CreateClient(NoRedirectOptions());
         client.DefaultRequestHeaders.Add("X-Forwarded-Proto", "https");
 

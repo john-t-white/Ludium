@@ -1,3 +1,4 @@
+using System.Net;
 using FluentAssertions;
 using Ludium.Api.Tests.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
@@ -92,6 +93,7 @@ public class SecurityHeadersTests(IntegrationTestFactory factory)
 
         var response = await client.GetAsync("/api/v1/app-info");
 
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Headers.Contains("Strict-Transport-Security").Should().BeFalse();
     }
 
