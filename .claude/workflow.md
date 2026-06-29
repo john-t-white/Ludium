@@ -110,9 +110,10 @@ Implementation review runs in two passes to prevent secrets from ever reaching g
 
 7. Reviewers post every finding as an inline PR comment on the specific line, attributed to the reviewer agent name.
 8. Lead routes blocking findings to the responsible Dev Team member, who fixes and pushes.
-9. The original reviewing agent re-reads the changed code, verifies the fix, and resolves the GitHub review thread.
+9. The original reviewing agent re-reads the changed code. If the fix is satisfactory, it resolves the thread. If the fix introduces a new issue or is incomplete, the reviewer posts a new blocking comment on the relevant line and the cycle continues.
 10. Steps 8–9 repeat until all blocking threads are resolved.
-11. PR is ready to merge.
+11. If any reviewer identifies a new blocking issue at any point during the fix cycle — including while verifying another finding — they post a new inline comment and it enters the same loop.
+12. PR is ready to merge only when there are no open blocking threads.
 
 ### Posting an inline PR comment
 
