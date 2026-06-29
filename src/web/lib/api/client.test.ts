@@ -31,6 +31,16 @@ describe('apiFetch', () => {
 		expect(fetchMock).toHaveBeenCalledWith(BASE_URL + '/path', options);
 	});
 
+	it('ApiFetch_GivenCacheOption_ExpectFetchCalledWithCacheOption', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(mockFetchResponse({ value: 1 }));
+		vi.stubGlobal('fetch', fetchMock);
+
+		const options = { cache: 'force-cache' as const };
+		await apiFetch('/path', options);
+
+		expect(fetchMock).toHaveBeenCalledWith(BASE_URL + '/path', options);
+	});
+
 	it('ApiFetch_GivenNoOptions_ExpectFetchCalledWithUndefinedOptions', async () => {
 		const fetchMock = vi.fn().mockResolvedValue(mockFetchResponse({ value: 1 }));
 		vi.stubGlobal('fetch', fetchMock);
