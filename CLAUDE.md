@@ -38,6 +38,10 @@ A scheduled GitHub Action runs daily to audit for any PR environments whose PR i
 ### Production
 Deployed automatically on merge to `main`. The PR environment is torn down as part of the same pipeline.
 
+## GitHub Account
+
+All GitHub CLI (`gh`) operations must use the account associated with `GH_TOKEN`. The `GH_TOKEN` environment variable is forwarded to all subagents via `.claude/settings.json` and its actual value is stored in `.claude/settings.local.json` (gitignored). Always pass `GH_TOKEN` explicitly when invoking `gh` if there is any ambiguity about which account is active — never rely on the keyring fallback.
+
 ## Git Workflow
 
 - Feature branches for all enhancement work
