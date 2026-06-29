@@ -2,6 +2,7 @@ using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -121,6 +122,50 @@ public class HttpsRedirectionTests
         response.StatusCode.Should().Be(HttpStatusCode.TemporaryRedirect);
     }
 
+    [Fact]
+    public async Task StrictTransportSecurity_GivenProductionAndHttps_EmitsExactHeader()
+    {
+        using var factory = CreateFactory(environment: "Production")
+            .WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+                services.Configure<HstsOptions>(o => o.ExcludedHosts.Clear())));
+        var client = factory.CreateClient(NoRedirectOptions());
+        client.DefaultRequestHeaders.Add("X-Forwarded-Proto", "https");
+
+        var response = await client.GetAsync("/api/v1/app-info");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Headers.GetValues("Strict-Transport-Security")
+            .Should().ContainSingle()
+            .Which.Should().Be("max-age=31536000; includeSubDomains");
+    }
+
+    [Fact]
+    public async Task StrictTransportSecurity_GivenProductionAndPlainHttp_IsAbsent()
+    {
+        using var factory = CreateFactory(environment: "Production")
+            .WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+                services.Configure<HstsOptions>(o => o.ExcludedHosts.Clear())));
+        var client = factory.CreateClient(NoRedirectOptions());
+
+        var response = await client.GetAsync("/api/v1/app-info");
+
+        response.StatusCode.Should().Be(HttpStatusCode.TemporaryRedirect);
+        response.Headers.Contains("Strict-Transport-Security").Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task StrictTransportSecurity_GivenDevelopmentAndHttps_IsAbsent()
+    {
+        using var factory = CreateFactory(environment: "Development");
+        var client = factory.CreateClient(NoRedirectOptions());
+        client.DefaultRequestHeaders.Add("X-Forwarded-Proto", "https");
+
+        var response = await client.GetAsync("/api/v1/app-info");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Headers.Contains("Strict-Transport-Security").Should().BeFalse();
+    }
+
     private static WebApplicationFactoryClientOptions NoRedirectOptions() => new()
     {
         AllowAutoRedirect = false,
@@ -130,17 +175,24 @@ public class HttpsRedirectionTests
     private static RedirectionFactory CreateFactory(
         TestLogCollector? logs = null,
         string[]? trustedNetworks = null,
-        IPAddress? untrustedRemoteIp = null)
-        => new(logs, trustedNetworks ?? [], untrustedRemoteIp);
+        IPAddress? untrustedRemoteIp = null,
+        string? environment = null)
+        => new(logs, trustedNetworks ?? [], untrustedRemoteIp, environment);
 
     private sealed class RedirectionFactory(
         TestLogCollector? logs,
         string[] trustedNetworks,
-        IPAddress? untrustedRemoteIp)
+        IPAddress? untrustedRemoteIp,
+        string? environment)
         : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            if (environment is not null)
+            {
+                builder.UseEnvironment(environment);
+            }
+
             var config = new Dictionary<string, string?>
             {
                 // Redirect short-circuits before any endpoint, so the DB is never opened.

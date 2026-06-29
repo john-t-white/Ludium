@@ -30,6 +30,13 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddScoped<AppInfoService>();
 
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = true;
+    options.Preload = false;
+});
+
 var app = builder.Build();
 
 var forwardedHeadersOptions = new ForwardedHeadersOptions
@@ -58,14 +65,15 @@ app.Use(async (context, next) =>
     context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
     context.Response.Headers["X-Permitted-Cross-Domain-Policies"] = "none";
     context.Response.Headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'";
-    if (!app.Environment.IsDevelopment())
-    {
-        context.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
-    }
     await next();
 });
 
 app.UseHttpsRedirection();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
 
 app.UseCors("AllowFrontend");
 
