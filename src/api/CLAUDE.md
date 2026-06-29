@@ -10,7 +10,7 @@ docker compose up -d db
 dotnet run --project src/api
 ```
 
-API runs at `http://localhost:5000`. Swagger UI at `/swagger`.
+API runs at `http://localhost:5000`.
 
 ## Project Structure
 

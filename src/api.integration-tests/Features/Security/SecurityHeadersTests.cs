@@ -69,4 +69,13 @@ public class SecurityHeadersTests(IntegrationTestFactory factory)
 
         response.Headers.Contains("Strict-Transport-Security").Should().BeFalse();
     }
+
+    [Fact]
+    public async Task SecurityHeaders_WhenResponseReturned_IncludesContentSecurityPolicy()
+    {
+        var response = await _client.GetAsync("/api/v1/app-info");
+
+        response.Headers.GetValues("Content-Security-Policy").Should().ContainSingle()
+            .Which.Should().Be("default-src 'none'; frame-ancestors 'none'");
+    }
 }
