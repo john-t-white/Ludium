@@ -3,6 +3,7 @@ import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import { getToken } from 'next-auth/jwt';
 import { headers } from 'next/headers';
+import { readAppTokenExpMs, resolveSessionUser } from '@/lib/session';
 
 // Aligned to the API's app-JWT lifetime (60 min). With the default `updateAge`
 // (24h) exceeding this, the session never slides — expiry is absolute from login,
@@ -49,25 +50,6 @@ async function postJson(path: string, body: unknown): Promise<LoginResponse> {
 		throw new Error(`${path} failed with status ${response.status}`);
 	}
 	return (await response.json()) as LoginResponse;
-}
-
-// Reads the `exp` claim (seconds since epoch) from the API's app JWT so the
-// Auth.js session's absolute expiry stays in lockstep with the token even if the
-// API changes its lifetime. The signature is verified by the API on every
-// request — we only need the timing here, never trust, so we don't verify it.
-function readAppTokenExpMs(appToken: string): number | undefined {
-	const payloadSegment = appToken.split('.')[1];
-	if (!payloadSegment) {
-		return undefined;
-	}
-	try {
-		const payload = JSON.parse(
-			Buffer.from(payloadSegment, 'base64url').toString('utf8'),
-		) as { exp?: unknown };
-		return typeof payload.exp === 'number' ? payload.exp * 1000 : undefined;
-	} catch {
-		return undefined;
-	}
 }
 
 const providers: NextAuthConfig['providers'] = [
@@ -133,18 +115,12 @@ const config: NextAuthConfig = {
 		},
 		async session({ session, token }) {
 			// Belt-and-braces alongside the absolute `maxAge`: once past the app
-			// token's own expiry, present the session as signed-out so the UI stops
-			// showing a signed-in state backed by a dead API token.
-			const expired =
-				typeof token.appTokenExpMs === 'number' &&
-				Date.now() >= token.appTokenExpMs;
-			if (expired) {
-				session.user.id = '';
-				session.user.name = null;
-				return session;
-			}
-			session.user.id = typeof token.userId === 'string' ? token.userId : '';
-			session.user.name = typeof token.name === 'string' ? token.name : null;
+			// token's own expiry, `resolveSessionUser` presents the session as
+			// signed-out so the UI stops showing a signed-in state backed by a
+			// dead API token.
+			const user = resolveSessionUser(token, Date.now());
+			session.user.id = user.id;
+			session.user.name = user.name;
 			return session;
 		},
 	},
