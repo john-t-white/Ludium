@@ -8,6 +8,8 @@ export class HomePage {
 	}
 
 	wordmark() {
-		return this.page.getByText('LUDIUM');
+		// Scoped to main content: the header also renders a "LUDIUM" brand logo,
+		// so an unscoped lookup would match two elements.
+		return this.page.getByRole('main').getByText('LUDIUM');
 	}
 }

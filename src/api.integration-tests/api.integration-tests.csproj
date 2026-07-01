@@ -25,6 +25,8 @@
 
   <ItemGroup>
     <ProjectReference Include="../api/Ludium.Api.csproj" />
+    <!-- Referenced so the EF migrations assembly is available to apply the real schema in tests. -->
+    <ProjectReference Include="../db/Ludium.Db.csproj" />
   </ItemGroup>
 
 </Project>
