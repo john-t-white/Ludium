@@ -63,6 +63,7 @@ jobs:
           name: API Unit Tests
           path: test-results/*.trx
           reporter: dotnet-trx
+          use-actions-summary: 'false'
 
   web:
     name: Web (build + unit tests)
@@ -104,3 +105,4 @@ jobs:
           name: Web Unit Tests
           path: src/web/vitest-junit.xml
           reporter: jest-junit
+          use-actions-summary: 'false'
