@@ -73,7 +73,43 @@ dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Po
 
 > **Note:** Replace `<your_password>` with the value you set for `POSTGRES_PASSWORD` in your `.env` file.
 
-## 6. Apply database migrations
+## 6. Configure authentication secrets
+
+The API signs its own session JWT and will **fail to start** without a signing key. Set one via
+user-secrets (any random string of at least 32 characters):
+
+```bash
+dotnet user-secrets set "Jwt:SigningKey" "some-random-string-at-least-32-characters-long" --project src/api
+```
+
+You then have two options for exercising Google sign-in locally:
+
+**Option A — test-login bypass (recommended for local dev, no Google account needed).**
+This is the same mechanism the automated test suites use. It mints a real signed-in session for a
+fixture user without contacting Google, and is structurally impossible to enable in a production
+environment. Enable it with:
+
+```bash
+dotnet user-secrets set "Auth:EnableTestLogin" "true" --project src/api
+```
+
+(You'll also set `AUTH_ENABLE_TEST_LOGIN=true` for the web app in step 8.)
+
+**Option B — real Google OAuth.** Requires creating your own Google Cloud OAuth Client, since no
+shared credentials exist for local development:
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create a project, configure the
+   OAuth consent screen, and create an OAuth Client ID (type: Web application).
+2. Add `http://localhost:3000/api/auth/callback/google` as an authorized redirect URI.
+3. Set the client ID in the API's user-secrets:
+
+   ```bash
+   dotnet user-secrets set "Google:ClientId" "<your_google_client_id>" --project src/api
+   ```
+
+4. You'll set the client ID and secret for the web app in step 8.
+
+## 7. Apply database migrations
 
 Bring the database schema up to date:
 
@@ -81,7 +117,7 @@ Bring the database schema up to date:
 dotnet ef database update --project src/db
 ```
 
-## 7. Run the API
+## 8. Run the API
 
 ```bash
 dotnet run --project src/api
@@ -89,19 +125,36 @@ dotnet run --project src/api
 
 The API runs at <http://localhost:5000>.
 
-## 8. Configure and run the web app
+## 9. Configure and run the web app
 
-In a separate terminal, configure the web app's environment and start the dev server:
+In a separate terminal, configure the web app's environment:
 
 ```bash
 cp src/web/.env.example src/web/.env.local
-# Edit src/web/.env.local and set: NEXT_PUBLIC_API_URL=http://localhost:5000
+```
+
+Edit `src/web/.env.local` and set:
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:5000
+AUTH_SECRET=<any random string, e.g. output of `npx auth secret`>
+```
+
+Then, depending on which option you chose in step 6:
+
+- **Option A (test-login bypass):** also set `AUTH_ENABLE_TEST_LOGIN=true`.
+- **Option B (real Google OAuth):** also set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the
+  values from your Google Cloud OAuth Client.
+
+Start the dev server:
+
+```bash
 cd src/web && npm install && npm run dev
 ```
 
 The web app runs at <http://localhost:3000>.
 
-## 9. Run tests locally
+## 10. Run tests locally
 
 - **Integration tests** (.NET) — requires the Docker daemon to be running; Testcontainers spins up its
   own PostgreSQL container, so you do not need the `docker compose` database for these:
@@ -118,7 +171,7 @@ The web app runs at <http://localhost:3000>.
 
   (from `src/web/`)
 
-## 10. Teardown
+## 11. Teardown
 
 - Stop and remove the containers, **preserving** the data volume:
 
