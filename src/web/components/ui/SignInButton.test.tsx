@@ -5,7 +5,6 @@ import { signIn } from 'next-auth/react';
 import { SignInButton } from './SignInButton';
 
 vi.mock('next-auth/react', () => ({ signIn: vi.fn() }));
-vi.mock('next/navigation', () => ({ usePathname: () => '/games' }));
 
 const signInMock = signIn as unknown as Mock;
 
@@ -22,7 +21,21 @@ describe('SignInButton', () => {
 		).toBeInTheDocument();
 	});
 
-	it('SignInButton_WhenClicked_ExpectSignInWithGoogleAndCurrentPathCallback', () => {
+	it('SignInButton_WhenClicked_ExpectCallbackPreservesPathAndQueryString', () => {
+		window.history.pushState({}, '', '/games?filter=coop&page=2');
+		render(<SignInButton />);
+
+		fireEvent.click(
+			screen.getByRole('button', { name: /sign in with google/i }),
+		);
+
+		expect(signInMock).toHaveBeenCalledWith('google', {
+			callbackUrl: '/games?filter=coop&page=2',
+		});
+	});
+
+	it('SignInButton_WhenClickedWithoutQuery_ExpectCallbackIsPathOnly', () => {
+		window.history.pushState({}, '', '/games');
 		render(<SignInButton />);
 
 		fireEvent.click(
