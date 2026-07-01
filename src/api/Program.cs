@@ -6,8 +6,10 @@ using Ludium.Api.Features.Auth;
 using Ludium.Api.Features.AppInfo;
 using Ludium.Api.Features.Users;
 using Ludium.Api.Infrastructure.Auth;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -38,40 +40,40 @@ builder.Services.AddScoped<AppInfoService>();
 
 builder.Services.Configure<GoogleAuthOptions>(
     builder.Configuration.GetSection(GoogleAuthOptions.SectionName));
-builder.Services.Configure<JwtOptions>(
-    builder.Configuration.GetSection(JwtOptions.SectionName));
+
+// Fail fast at startup: an HS256 signing key must be present and at least 256 bits (32 bytes).
+// The real key is supplied via user-secrets locally and Key Vault in deployed environments.
+// Bound and validated lazily so configuration overrides (including tests) are honored.
+builder.Services.AddOptions<JwtOptions>()
+    .Bind(builder.Configuration.GetSection(JwtOptions.SectionName))
+    .Validate(
+        options => Encoding.UTF8.GetByteCount(options.SigningKey) >= 32,
+        "Jwt:SigningKey is missing or shorter than 32 bytes. Configure a 256-bit signing key via user-secrets or Key Vault.")
+    .ValidateOnStart();
 
 builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();
 builder.Services.AddSingleton<IJwtIssuer, JwtIssuer>();
 builder.Services.AddScoped<AuthService>();
 
-var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+builder.Services.AddAuthentication().AddJwtBearer();
 
-// Fail fast: an HS256 signing key must be present and at least 256 bits (32 bytes).
-// The real key is supplied via user-secrets locally and Key Vault in deployed environments.
-if (Encoding.UTF8.GetByteCount(jwtOptions.SigningKey) < 32)
-{
-    throw new InvalidOperationException(
-        "Jwt:SigningKey is missing or shorter than 32 bytes. Configure a 256-bit signing key via user-secrets or Key Vault.");
-}
-
-var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey));
-
-builder.Services.AddAuthentication().AddJwtBearer(options =>
-{
-    options.MapInboundClaims = false;
-    options.TokenValidationParameters = new TokenValidationParameters
+builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IOptions<JwtOptions>>((bearer, jwt) =>
     {
-        ValidateIssuer = true,
-        ValidIssuer = jwtOptions.Issuer,
-        ValidateAudience = true,
-        ValidAudience = jwtOptions.Audience,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = signingKey,
-        ClockSkew = TimeSpan.FromSeconds(30),
-    };
-});
+        var jwtOptions = jwt.Value;
+        bearer.MapInboundClaims = false;
+        bearer.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtOptions.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwtOptions.Audience,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
+            ClockSkew = TimeSpan.FromSeconds(30),
+        };
+    });
 
 builder.Services.AddAuthorization();
 
