@@ -200,7 +200,9 @@ public class HttpsRedirectionTests
                     "Host=localhost;Database=unit;Username=u;Password=p",
                 // Deterministic target port so UseHttpsRedirection emits a redirect
                 // instead of no-opping on an undetermined HTTPS port.
-                ["https_port"] = "443"
+                ["https_port"] = "443",
+                // The app fails fast at startup without a >=32-byte JWT signing key.
+                ["Jwt:SigningKey"] = "unit-test-signing-key-that-is-long-enough-1234567890"
             };
             for (var i = 0; i < trustedNetworks.Length; i++)
             {
