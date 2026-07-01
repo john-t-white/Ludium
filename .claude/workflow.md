@@ -21,20 +21,13 @@ Before any phase begins, the lead classifies the change into one of three tiers.
 ## Phase 1 — Requirements Analysis
 
 1. Lead runs `git fetch origin && git checkout main && git pull origin main` to ensure the team is analysing the latest code.
-2. Lead determines the **tier** (Micro / Standard / Full) based on the request, then spawns only the Dev Team members whose owned area is affected. Refer to the Tier Definitions table and `dev-team.md` for scoping guidance. Always include `test-dev` when `frontend-dev` or `backend-dev` is spawned.
+2. Lead determines the **tier** (Micro / Standard / Full) based on the request, then spawns only the Dev Team members whose owned area is affected, per `dev-team.md`'s "Typical change → spawn" table. Refer to the Tier Definitions table above for scoping guidance. Always include `test-dev` when `frontend-dev` or `backend-dev` is spawned.
 
    ```text
-   Spawn only the affected Dev Team members (see tier and area assessment above).
-   Example for a frontend-only change:
-   - frontend-dev using the nextjs-frontend agent type to own src/web/
-   - test-dev using the qa-engineer agent type to own src/api.integration-tests/ and src/web/e2e/
-   
-   Example for a full-stack feature with schema change:
-   - frontend-dev using the nextjs-frontend agent type to own src/web/
-   - backend-dev using the dotnet-api agent type to own src/api/
-   - db-dev using the postgresql-developer agent type to own src/db/
-   - test-dev using the qa-engineer agent type to own src/api.integration-tests/ and src/web/e2e/
-   
+   Spawn only the affected Dev Team members per dev-team.md's "Typical change → spawn" table.
+   Example for a frontend-only change: frontend-dev (nextjs-frontend, owns src/web/) +
+   test-dev (qa-engineer, owns src/api.integration-tests/ and src/web/e2e/).
+
    All teammates use the leader's model. No teammate may edit files outside their owned area.
    Any teammate whose area has no affected files must send "[name]: Area unaffected — no action needed." immediately and stop.
    ```
@@ -52,22 +45,12 @@ Before any phase begins, the lead classifies the change into one of three tiers.
 
    **Micro tier — skip QA plan review entirely.** Proceed directly to user approval.
 
-   **Standard tier:**
+   **Standard and Full tiers:**
    ```text
-   Spawn the QA Team to review the implementation plan:
-   - security-reviewer using the security-engineer agent type (Sonnet) to identify security risks in the proposed approach
-   - quality-reviewer using the quality-reviewer agent type (haiku model) to flag correctness issues, logic gaps, missing edge case handling, and whether the plan includes unit tests for all frontend and backend code
-   Reviewers may read any file but must not modify code.
-   ```
-
-   **Full tier:**
-   ```text
-   Spawn the QA Team to review the implementation plan:
-   - security-reviewer using the security-engineer agent type (Sonnet) to identify security risks in the proposed approach
-   - quality-reviewer using the quality-reviewer agent type (haiku model) to flag correctness issues, logic gaps, missing edge case handling, and whether the plan includes unit tests for all frontend and backend code
-   - test-reviewer using the qa-engineer agent type (haiku model) to assess whether the plan includes sufficient test coverage
-   - performance-reviewer using the performance-reviewer agent type (Sonnet) to identify performance or scalability risks in the proposed design
-   - ac-reviewer using the ac-reviewer agent type (haiku model) to verify the plan fully addresses all acceptance criteria and requirements
+   Spawn the QA Team to review the implementation plan: for this tier, spawn each reviewer
+   listed in the "Plan QA" column of the Tier Definitions table above, using the agent type
+   and model from qa-team.md's Team Members table. Each reviewer assesses the plan (not code)
+   through its lens from that table and reports findings to the lead.
    Reviewers may read any file but must not modify code.
    ```
 
@@ -99,27 +82,12 @@ Implementation review runs in two passes to prevent secrets from ever reaching g
    before it is pushed. The branch has NOT been pushed — do not post PR comments. Report all
    findings directly to the lead. May read any file but must not modify code.
 
-   Step 1 — Scan the diff for secret patterns.
-   Run the following using the Bash tool (NOT PowerShell — grep requires Git Bash) and inspect every match in context:
+   Scope: this pass checks ONLY for secrets that would reach git history. Do not perform a
+   general vulnerability/OWASP review here — that happens post-push in Pass 2.
 
-     git diff main..HEAD | grep -inE \
-       "password\s*=|passwd\s*=|secret\s*=|api_key\s*=|apikey\s*=|access_key\s*=|auth_token\s*=|bearer\s+[a-z0-9]{8,}|token\s*=|private_key\s*=|-----BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY|AKIA[0-9A-Z]{16}|eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}"
-
-   Any match that is a real credential (not a placeholder like "your-secret-here", an env var
-   reference like $SECRET, or a test fixture) is an automatic BLOCKING finding.
-
-   Step 2 — Inspect high-risk file types added or modified in the diff.
-   Run `git diff main..HEAD --name-only` and read the full content of any file matching:
-     .env, .env.*, *.pem, *.key, *.p12, *.pfx, *.jks,
-     appsettings*.json, secrets.json, *credentials*, *secret*
-
-   For each: confirm all sensitive fields are env var references or placeholders, not real values.
-
-   Step 3 — Full security review.
-   Read each changed file (git diff main..HEAD --name-only) in full and review for
-   vulnerabilities, auth issues, and OWASP top 10 beyond secrets.
-
-   Any real secret found in Steps 1 or 2 is BLOCKING and must be removed before push.
+   Invoke the `scan-secrets` skill and inspect every match in context. Any real credential
+   (not a placeholder, an env var reference like $SECRET, or a test fixture) is BLOCKING and
+   must be removed before push.
    ```
 
 3. `security-reviewer` reports findings directly to the lead. No PR exists yet — no inline comments.
@@ -130,110 +98,30 @@ Implementation review runs in two passes to prevent secrets from ever reaching g
 5. Once security clears, lead pushes the branch and opens the pull request.
 6. Lead spawns QA reviewers based on the tier:
 
-   **Micro tier:**
    ```text
    Spawn the QA Team to review all changes implemented by the Dev Team (PR #{number}):
-   - quality-reviewer using the quality-reviewer agent type to review for bugs, logic errors, and code correctness; verify all unit tests written by frontend-dev and backend-dev pass and that code coverage is adequate for the changes made
-   - ac-reviewer using the ac-reviewer agent type (haiku model) to verify all acceptance criteria and requirements are met by the implementation
+   spawn each reviewer listed in the "Implementation QA" column of the Tier Definitions table
+   above, using the agent type from qa-team.md's Team Members table. Each reviewer assesses the
+   pushed PR through its lens from that table. quality-reviewer additionally verifies all unit
+   tests written by frontend-dev and backend-dev pass and that code coverage is adequate.
+   test-reviewer additionally invokes the `run-tests` skill and posts the summary via
+   `post-pr-summary`.
    Reviewers may read any file but must not modify code.
-   Post every finding (blocking and non-blocking) as an inline PR comment on the specific line using the instructions in the Posting and Resolving PR Comments section of .claude/workflow.md.
+   Post every finding (blocking and non-blocking) as an inline PR comment using the
+   `post-review-finding` skill.
    ```
 
-   **Standard tier:**
-   ```text
-   Spawn the QA Team to review all changes implemented by the Dev Team (PR #{number}):
-   - quality-reviewer using the quality-reviewer agent type to review for bugs, logic errors, and code correctness; verify all unit tests written by frontend-dev and backend-dev pass and that code coverage is adequate for the changes made
-   - test-reviewer using the qa-engineer agent type to review test coverage and test quality; run all available local tests (`dotnet test src/api.unit-tests`, `dotnet test src/api.integration-tests`, `npm test` in `src/web/` if applicable) and post a pass/fail summary as a PR comment
-   - ac-reviewer using the ac-reviewer agent type (haiku model) to verify all acceptance criteria and requirements are met by the implementation
-   Reviewers may read any file but must not modify code.
-   Post every finding (blocking and non-blocking) as an inline PR comment on the specific line using the instructions in the Posting and Resolving PR Comments section of .claude/workflow.md.
-   ```
-
-   **Full tier:**
-   ```text
-   Spawn the QA Team to review all changes implemented by the Dev Team (PR #{number}):
-   - quality-reviewer using the quality-reviewer agent type to review for bugs, logic errors, and code correctness; verify all unit tests written by frontend-dev and backend-dev pass and that code coverage is adequate for the changes made
-   - test-reviewer using the qa-engineer agent type to review test coverage and test quality; run all available local tests (`dotnet test src/api.unit-tests`, `dotnet test src/api.integration-tests`, `npm test` in `src/web/` if applicable) and post a pass/fail summary as a PR comment
-   - performance-reviewer using the performance-reviewer agent type to review for bottlenecks, inefficiencies, and scalability concerns
-   - ac-reviewer using the ac-reviewer agent type (haiku model) to verify all acceptance criteria and requirements are met by the implementation
-   Reviewers may read any file but must not modify code.
-   Post every finding (blocking and non-blocking) as an inline PR comment on the specific line using the instructions in the Posting and Resolving PR Comments section of .claude/workflow.md.
-   ```
-
-7. Reviewers post every finding as an inline PR comment on the specific line, attributed to the reviewer agent name.
-8. Lead routes blocking findings to the responsible Dev Team member, who fixes and pushes. After pushing, the Dev Team member posts an in-thread reply on the finding's review thread describing what was changed:
-   ```bash
-   REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
-   gh api repos/$REPO/pulls/{PR_NUMBER}/comments \
-     --method POST \
-     --field body="**[{agent-name}] Fix for [{agent-name}] finding on {path}:{line}:** {brief description of what was changed and why}" \
-     --field in_reply_to={original_finding_comment_id}
-   ```
-9. The original reviewing agent re-reads the changed code. If the fix is satisfactory, it resolves the thread and posts an in-thread reply confirming the fix:
-   ```bash
-   REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
-   gh api repos/$REPO/pulls/{PR_NUMBER}/comments \
-     --method POST \
-     --field body="**[{agent-name}] Verified:** {brief confirmation that the fix addresses the finding} — thread resolved." \
-     --field in_reply_to={original_finding_comment_id}
-   ```
-   If the fix introduces a new issue or is incomplete, the reviewer posts a new blocking comment on the relevant line and the cycle continues.
+7. Reviewers post every finding as an inline PR comment using the `post-review-finding` skill, attributed to the reviewer agent name.
+8. Lead routes blocking findings to the responsible Dev Team member, who fixes and pushes. After pushing, the Dev Team member posts an in-thread reply on the finding's review thread describing what was changed, using the `post-fix-reply` skill.
+9. The original reviewing agent re-reads the changed code. If the fix is satisfactory, it posts an in-thread reply confirming the fix using the `post-verified-reply` skill, then resolves the thread using `pr-thread-list` (to find the thread's node ID) followed by `pr-thread-resolve`.
+   If the fix introduces a new issue or is incomplete, the reviewer posts a new blocking comment on the relevant line (`post-review-finding`) and the cycle continues.
 10. Steps 8–9 repeat until all blocking threads are resolved.
 11. If any reviewer identifies a new blocking issue at any point during the fix cycle — including while verifying another finding — they post a new inline comment and it enters the same loop.
 12. If a reviewer spots an issue that was not introduced by the current changes or falls outside the acceptance criteria, they do not post a blocking comment. Instead, they report it to the lead, who asks the user: should this be tracked as a new GitHub issue or handled in this PR? The user's answer determines whether a new issue is created or the finding enters the blocking loop.
 13. PR is ready to merge only when there are no open blocking threads.
 
-### Posting an inline PR comment
+### PR comment and thread mechanics
 
-```bash
-REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
-COMMIT_SHA=$(gh pr view {PR_NUMBER} --json headRefOid --jq '.headRefOid')
-
-gh api repos/$REPO/pulls/{PR_NUMBER}/comments \
-  --method POST \
-  --field body="**[{agent-name}] {BLOCKING|NON-BLOCKING}:** {finding description}" \
-  --field commit_id="$COMMIT_SHA" \
-  --field path="{relative/path/to/file}" \
-  --field line={line_number} \
-  --field side="RIGHT"
-```
-
-Use `side="RIGHT"` for added/unchanged lines (the "after" side). Use `side="LEFT"` only for lines removed in the diff.
-
-### Resolving a thread after a fix is verified
-
-After the Dev Team member pushes a fix, the original reviewing agent re-reads the changed file, confirms the issue is resolved, posts an in-thread reply confirming the fix (step 9 above), then resolves the thread:
-
-```bash
-REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
-OWNER=$(echo $REPO | cut -d/ -f1)
-REPO_NAME=$(echo $REPO | cut -d/ -f2)
-
-# 0. Post in-thread reply confirming the fix (see step 9 above)
-
-# 1. List open threads and find the matching one by path/body
-gh api graphql -f query='
-query($owner: String!, $repo: String!, $pr: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $pr) {
-      reviewThreads(first: 100) {
-        nodes {
-          id
-          isResolved
-          comments(first: 1) {
-            nodes { body path line }
-          }
-        }
-      }
-    }
-  }
-}' -f owner="$OWNER" -f repo="$REPO_NAME" -F pr={PR_NUMBER}
-
-# 2. Resolve the thread using the node ID returned above
-gh api graphql -f query='
-mutation($threadId: ID!) {
-  resolveReviewThread(input: { threadId: $threadId }) {
-    thread { isResolved }
-  }
-}' -f threadId="{THREAD_NODE_ID}"
-```
+The exact commands for posting findings, fix replies, verified replies, and resolving threads
+live in `.claude/skills/`: `post-review-finding`, `post-fix-reply`, `post-verified-reply`,
+`pr-thread-list`, `pr-thread-resolve`.
