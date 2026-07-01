@@ -1,0 +1,106 @@
+# CI — build and test on every PR.
+#
+# Scope: this workflow builds and runs UNIT tests only.
+# Integration tests (src/api.integration-tests/) and E2E tests (src/web/e2e/) are
+# intentionally NOT run here — they are deferred to the future Terraform/Azure
+# PR-environment pipeline, which provisions the live dependencies they require.
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API (build + unit tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '10.0.x'
+          cache: true
+          cache-dependency-path: |
+            src/api/packages.lock.json
+            src/api.unit-tests/packages.lock.json
+
+      - name: Restore API
+        run: dotnet restore src/api/Ludium.Api.csproj --locked-mode
+
+      - name: Restore unit tests
+        run: dotnet restore src/api.unit-tests/api.unit-tests.csproj --locked-mode
+
+      - name: Build API
+        run: dotnet build src/api/Ludium.Api.csproj --configuration Release --no-restore
+
+      - name: Build unit tests
+        run: dotnet build src/api.unit-tests/api.unit-tests.csproj --configuration Release --no-restore
+
+      - name: Unit tests
+        run: >
+          dotnet test src/api.unit-tests/api.unit-tests.csproj
+          --configuration Release --no-build
+          --logger "trx;LogFileName=api-unit-tests.trx"
+          --results-directory ${{ github.workspace }}/test-results
+
+      - name: Publish API test report
+        uses: dorny/test-reporter@31a54ee7ebcacc03a09ea97a7e5465a47b84aea5 # v1.9.1
+        if: always()
+        with:
+          name: API Unit Tests
+          path: test-results/*.trx
+          reporter: dotnet-trx
+
+  web:
+    name: Web (build + unit tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: src/web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: src/web/.nvmrc
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit tests
+        run: npx vitest run --reporter=junit --outputFile=vitest-junit.xml
+
+      - name: Publish web test report
+        uses: dorny/test-reporter@31a54ee7ebcacc03a09ea97a7e5465a47b84aea5 # v1.9.1
+        if: always()
+        with:
+          name: Web Unit Tests
+          path: src/web/vitest-junit.xml
+          reporter: jest-junit
