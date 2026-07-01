@@ -64,9 +64,10 @@ Before any phase begins, the lead classifies the change into one of three tiers.
 ## Phase 3 — Implementation
 
 1. Lead creates and checks out the feature branch from `main` (unless the user specified a different base).
-2. Dev Team members claim their tasks and implement within their owned areas.
-3. Teammates communicate directly when a change in one area requires a coordinating change in another.
-4. Lead monitors progress and resolves blockers.
+2. **Lead dispatches implementation work only to Dev Team members who identified concrete work for their owned area in the Phase 2 plan.** A member who reported "Area unaffected — no action needed" (or otherwise had no planned changes) is not re-dispatched — there is nothing for them to implement, so don't spawn or message them again in this phase.
+3. Dispatched Dev Team members claim their tasks and implement within their owned areas.
+4. Teammates communicate directly when a change in one area requires a coordinating change in another.
+5. Lead monitors progress and resolves blockers.
 
 ## Phase 4 — Implementation Review
 
