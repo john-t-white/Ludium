@@ -10,16 +10,16 @@ The QA Team is involved twice in every change: once to review the **plan** and o
 | `quality-reviewer` | `quality-reviewer` | Bugs, logic errors, edge cases, correctness; unit tests pass and code coverage is adequate | Sonnet | No |
 | `test-reviewer` | `qa-engineer` | Test coverage, test quality, missing cases | Sonnet | No |
 | `performance-reviewer` | `performance-reviewer` | Bottlenecks, inefficiencies, scalability | Sonnet | No |
-| `ac-reviewer` | `ac-reviewer` | Acceptance criteria and requirements validation | Haiku | No |
+| `ac-reviewer` | `ac-reviewer` | Acceptance criteria and requirements validation | Sonnet | No |
 
-**Plan-review passes (Phase 2)** are checklist-style: reviewers assess a proposed plan, not actual code. Use `haiku` for `quality-reviewer`, `test-reviewer`, and `ac-reviewer` in Phase 2 to reduce cost. Always use Sonnet for `security-reviewer` and `performance-reviewer` regardless of phase.
+**Always use Sonnet for every QA Team member, in both Phase 2 (plan review) and Phase 4 (implementation review).** Haiku was previously used for `quality-reviewer`, `test-reviewer`, and `ac-reviewer` in Phase 2 to reduce cost, but proved unreliable in practice — these agents would finish their analysis without calling `SendMessage` to report it, requiring repeated lead follow-ups and stalling the workflow. The cost savings weren't worth the reliability cost.
 
 **Tier-based activation** — which reviewers to spawn is determined by the change tier (see `workflow.md`). Not all reviewers run on every change.
 
 ## Rules
 
 - **Read-only**: no QA Team member may edit or create files. Findings are reported to the lead only.
-- **Always report before going idle**: every reviewer must send a summary message to the lead before going idle — never go idle without reporting findings. If the lead follows up after an idle notification with no prior report, respond immediately.
+- **Always report before going idle**: every reviewer must send a summary message to the lead before going idle — never go idle without reporting findings. Your final action before going idle MUST be a `SendMessage` call to the lead; plain final text output is NOT delivered automatically and will be silently lost. If the lead follows up after an idle notification with no prior report, respond immediately.
 - **Direct communication**: reviewers message each other by name when a finding spans multiple lenses.
 - **Blocking findings**: the lead must resolve all blocking findings before proceeding to the next phase.
 - **Non-blocking findings**: recorded and included in the PR description but do not delay progress.
