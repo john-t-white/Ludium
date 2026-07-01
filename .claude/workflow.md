@@ -64,9 +64,10 @@ Before any phase begins, the lead classifies the change into one of three tiers.
 ## Phase 3 — Implementation
 
 1. Lead creates and checks out the feature branch from `main` (unless the user specified a different base).
-2. Dev Team members claim their tasks and implement within their owned areas.
-3. Teammates communicate directly when a change in one area requires a coordinating change in another.
-4. Lead monitors progress and resolves blockers.
+2. **Lead dispatches implementation work only to Dev Team members who identified concrete work for their owned area in the Phase 2 plan.** A member who reported "Area unaffected — no action needed" (or otherwise had no planned changes) is not re-dispatched — there is nothing for them to implement, so don't spawn or message them again in this phase.
+3. Dispatched Dev Team members claim their tasks and implement within their owned areas.
+4. Teammates communicate directly when a change in one area requires a coordinating change in another.
+5. Lead monitors progress and resolves blockers.
 
 ## Phase 4 — Implementation Review
 
@@ -112,13 +113,14 @@ Implementation review runs in two passes to prevent secrets from ever reaching g
    ```
 
 7. Reviewers post every finding as an inline PR comment using the `post-review-finding` skill, attributed to the reviewer agent name.
-8. Lead routes blocking findings to the responsible Dev Team member, who fixes and pushes. After pushing, the Dev Team member posts an in-thread reply on the finding's review thread describing what was changed, using the `post-fix-reply` skill.
-9. The original reviewing agent re-reads the changed code. If the fix is satisfactory, it posts an in-thread reply confirming the fix using the `post-verified-reply` skill, then resolves the thread using `pr-thread-list` (to find the thread's node ID) followed by `pr-thread-resolve`.
-   If the fix introduces a new issue or is incomplete, the reviewer posts a new blocking comment on the relevant line (`post-review-finding`) and the cycle continues.
-10. Steps 8–9 repeat until all blocking threads are resolved.
-11. If any reviewer identifies a new blocking issue at any point during the fix cycle — including while verifying another finding — they post a new inline comment and it enters the same loop.
-12. If a reviewer spots an issue that was not introduced by the current changes or falls outside the acceptance criteria, they do not post a blocking comment. Instead, they report it to the lead, who asks the user: should this be tracked as a new GitHub issue or handled in this PR? The user's answer determines whether a new issue is created or the finding enters the blocking loop.
-13. PR is ready to merge only when there are no open blocking threads.
+8. **Blocking findings** are routed directly to the responsible Dev Team member to fix. **Non-blocking findings are never routed to the Dev Team without the user's direction first**: the lead asks the user for clarification, presenting a suggested approach (e.g. fix now, defer to a follow-up issue, or dismiss as not applicable), and waits for the user's decision.
+9. Once a finding has an approach — a blocking fix, or the user's chosen approach for a non-blocking one — the responsible Dev Team member applies it and pushes if a code change was made. Then (the Dev Team member if code changed, otherwise the lead) posts an in-thread reply on the finding's review thread describing what was changed or decided, using the `post-fix-reply` skill.
+10. The original reviewing agent re-reads the changed code (or the lead's recorded decision, if no code changed). If satisfactory, it posts an in-thread reply confirming this using the `post-verified-reply` skill, then resolves the thread using `pr-thread-list` (to find the thread's node ID) followed by `pr-thread-resolve`.
+    If the fix introduces a new issue or is incomplete, the reviewer posts a new comment (blocking or non-blocking as appropriate) on the relevant line (`post-review-finding`) and the cycle continues.
+11. Steps 8–10 repeat until all threads — blocking and non-blocking — are resolved.
+12. If any reviewer identifies a new issue at any point during the fix cycle — including while verifying another finding — they post a new inline comment and it enters the same loop (via step 8 if blocking, or step 8's clarification step if non-blocking).
+13. If a reviewer spots an issue that was not introduced by the current changes or falls outside the acceptance criteria, they do not post a blocking comment. Instead, they report it to the lead, who asks the user: should this be tracked as a new GitHub issue or handled in this PR? The user's answer determines whether a new issue is created or the finding enters the resolution loop.
+14. PR is ready to merge only when there are no open threads at all — blocking or non-blocking. A non-blocking finding the user chooses to dismiss still requires a recorded reply explaining the decision and a resolved thread, per steps 9–10 — it cannot be left open or silently ignored.
 
 ### PR comment and thread mechanics
 
