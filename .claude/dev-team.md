@@ -39,6 +39,14 @@ Agent teams require the experimental flag in `.claude/settings.json`:
 | `ci-dev` | `github-actions-engineer` | `.github/` | All |
 | `test-dev` | `qa-engineer` | `src/api.integration-tests/`, `src/web/e2e/` | All |
 
+## Coding Behavior
+
+- **Think before coding** — state assumptions explicitly; if multiple interpretations exist or something is unclear, stop and ask rather than guessing (with a suggested default, per `workflow.md` Phase 1).
+- **Simplicity first** — implement the minimum that satisfies the request; no speculative features, unrequested abstractions/configurability, or error handling for impossible scenarios.
+- **Surgical changes** — touch only what the task requires; don't refactor, reformat, or "improve" unrelated code; remove only the imports/variables/functions your own change orphaned, not pre-existing dead code.
+- **Goal-driven execution** — turn the task into a verifiable check (e.g. a failing test that passes once the fix lands) and use that to know when the task is actually done, not just "looks right."
+- Use judgement on trivial tasks (typo fixes, simple renames) — don't over-apply these for small changes.
+
 ## Rules
 
 - **Single owner**: each teammate is the sole agent that may write or edit files in their owned area. No other teammate — and not the lead — makes code changes to that area directly.
