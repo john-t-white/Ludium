@@ -2,8 +2,11 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using FluentAssertions;
+using Ludium.Api.Data;
 using Ludium.Api.Tests.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Ludium.Api.Tests.Features.Users;
@@ -56,6 +59,26 @@ public class GetCurrentUserEndpointTests(IntegrationTestFactory factory) : IClas
     {
         var client = factory.WithGoogleUser(NewSubject(), "Ada Tester").WithExpiredAccessTokens().CreateClient();
         var login = await LoginAsync(client);
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/users/me");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", login.Token);
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task GetMe_WhenUserRecordDeleted_Returns401()
+    {
+        var app = factory.WithGoogleUser(NewSubject(), "Ada Tester");
+        var client = app.CreateClient();
+        var login = await LoginAsync(client);
+
+        using (var scope = app.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await dbContext.Users.Where(u => u.Id == login.User.Id).ExecuteDeleteAsync();
+        }
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/users/me");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", login.Token);
