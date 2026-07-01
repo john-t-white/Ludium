@@ -1,8 +1,14 @@
+using System.Text;
+using System.Threading.RateLimiting;
 using FluentValidation;
 using Ludium.Api.Data;
+using Ludium.Api.Features.Auth;
 using Ludium.Api.Features.AppInfo;
+using Ludium.Api.Features.Users;
+using Ludium.Api.Infrastructure.Auth;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +35,62 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddScoped<AppInfoService>();
+
+builder.Services.Configure<GoogleAuthOptions>(
+    builder.Configuration.GetSection(GoogleAuthOptions.SectionName));
+builder.Services.Configure<JwtOptions>(
+    builder.Configuration.GetSection(JwtOptions.SectionName));
+
+builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();
+builder.Services.AddSingleton<IJwtIssuer, JwtIssuer>();
+builder.Services.AddScoped<AuthService>();
+
+var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+
+// Fail fast: an HS256 signing key must be present and at least 256 bits (32 bytes).
+// The real key is supplied via user-secrets locally and Key Vault in deployed environments.
+if (Encoding.UTF8.GetByteCount(jwtOptions.SigningKey) < 32)
+{
+    throw new InvalidOperationException(
+        "Jwt:SigningKey is missing or shorter than 32 bytes. Configure a 256-bit signing key via user-secrets or Key Vault.");
+}
+
+var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey));
+
+builder.Services.AddAuthentication().AddJwtBearer(options =>
+{
+    options.MapInboundClaims = false;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidIssuer = jwtOptions.Issuer,
+        ValidateAudience = true,
+        ValidAudience = jwtOptions.Audience,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = signingKey,
+        ClockSkew = TimeSpan.FromSeconds(30),
+    };
+});
+
+builder.Services.AddAuthorization();
+
+var authPermitLimit = builder.Configuration.GetValue<int?>("Auth:RateLimit:PermitLimit") ?? 10;
+var authWindowSeconds = builder.Configuration.GetValue<int?>("Auth:RateLimit:WindowSeconds") ?? 60;
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = authPermitLimit,
+                Window = TimeSpan.FromSeconds(authWindowSeconds),
+                QueueLimit = 0,
+            }));
+});
 
 builder.Services.AddHsts(options =>
 {
@@ -77,7 +139,13 @@ if (!app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseRateLimiter();
+
 app.MapAppInfoEndpoints();
+app.MapAuthEndpoints(app.Environment, app.Configuration);
+app.MapUserEndpoints();
 
 app.Run();
 
