@@ -12,6 +12,12 @@ const heroTiles: [string, string][] = [
   ["#6f9c5e", "#4f7fb0"],
   ["#f59e0b", "#8a6fbf"],
   ["#d9702f", "#4f7fb0"],
+  ["#3d7259", "#8a6fbf"],
+  ["#e8865a", "#6f9c5e"],
+  ["#c9524f", "#f59e0b"],
+  ["#4f7fb0", "#d9702f"],
+  ["#8a6fbf", "#5b9279"],
+  ["#6f9c5e", "#c9524f"],
 ];
 
 const features = [
@@ -29,6 +35,35 @@ const features = [
     logo: true,
   },
 ];
+
+function FeatureCard({ feature }: { feature: (typeof features)[number] }) {
+  return (
+    <div className="rounded-xl border border-card-border bg-card-bg p-8">
+      <h2 className="font-sora text-base font-bold text-text-primary">
+        {feature.title}
+      </h2>
+      <p className="mt-2.5 text-sm text-text-secondary">{feature.body}</p>
+      {feature.logo && (
+        <>
+          <Image
+            src="/powered-by-bgg-rgb.svg"
+            alt="Powered by BoardGameGeek"
+            width={135}
+            height={30}
+            className="mt-3.5 block dark:hidden"
+          />
+          <Image
+            src="/powered-by-bgg-reversed-rgb.svg"
+            alt="Powered by BoardGameGeek"
+            width={135}
+            height={30}
+            className="mt-3.5 hidden dark:block"
+          />
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function Home() {
   return (
@@ -66,39 +101,18 @@ export default function Home() {
             </svg>
             Sign in with Google
           </button>
+          <div className="hidden w-full max-w-xl flex-col gap-4 lg:mt-12 lg:flex">
+            {features.map((feature) => (
+              <FeatureCard feature={feature} key={feature.title} />
+            ))}
+          </div>
         </div>
         <HeroTiles tiles={heroTiles} />
       </section>
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-5">
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:hidden">
         {features.map((feature) => (
-          <div
-            key={feature.title}
-            className="rounded-xl border border-card-border bg-card-bg p-8"
-          >
-            <h2 className="font-sora text-base font-bold text-text-primary">
-              {feature.title}
-            </h2>
-            <p className="mt-2.5 text-sm text-text-secondary">{feature.body}</p>
-            {feature.logo && (
-              <>
-                <Image
-                  src="/powered-by-bgg-rgb.svg"
-                  alt="Powered by BoardGameGeek"
-                  width={135}
-                  height={30}
-                  className="mt-3.5 block dark:hidden"
-                />
-                <Image
-                  src="/powered-by-bgg-reversed-rgb.svg"
-                  alt="Powered by BoardGameGeek"
-                  width={135}
-                  height={30}
-                  className="mt-3.5 hidden dark:block"
-                />
-              </>
-            )}
-          </div>
+          <FeatureCard feature={feature} key={feature.title} />
         ))}
       </section>
     </div>
