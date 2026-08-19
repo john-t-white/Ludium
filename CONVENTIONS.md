@@ -49,9 +49,12 @@ the PR's test plan, verifying the linked issue's acceptance criteria, a
 general code review, and a security review — and posts findings as inline
 PR comments, each attributed to the agent that raised it. This review never
 approves or merges on its own; a human reads the findings, responds inline,
-decides what to act on, and makes the merge call. As the project moves
-toward a more fully agentic workflow, this process may be formalized into
-dedicated review agents.
+decides what to act on, and makes the merge call. Once changes land in
+response to feedback, the same agents review again — and each renders an
+explicit resolve / don't-resolve verdict on the threads it owns, rather
+than the orchestrating process inferring resolution on their behalf. As the
+project moves toward a more fully agentic workflow, this process may be
+formalized into dedicated review agents.
 
 ## See Also
 
