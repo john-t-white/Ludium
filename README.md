@@ -11,7 +11,8 @@ during onboarding.
 
 ## Status
 
-Early scaffolding. Phase 1 (Scaffolding & Landing Page) is in progress.
+Early scaffolding — see this repo's Milestones and Issues on GitHub for
+current phase and progress.
 
 ## Pointers
 

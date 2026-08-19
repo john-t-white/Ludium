@@ -42,6 +42,16 @@ any code is written.
 split into multiple smaller PRs rather than landed as one big change, so
 review stays manageable.
 
+**Pull requests are reviewed by a multi-agent process, then a human.** Once
+a PR is open, an automated review runs four agents in parallel — verifying
+the PR's test plan, verifying the linked issue's acceptance criteria, a
+general code review, and a security review — and posts findings as inline
+PR comments, each attributed to the agent that raised it. This review never
+approves or merges on its own; a human reads the findings, responds inline,
+decides what to act on, and makes the merge call. As the project moves
+toward a more fully agentic workflow, this process may be formalized into
+dedicated review agents.
+
 ## See Also
 
 - [design/](design/) — the approved visual design reference (mockups, brand

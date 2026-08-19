@@ -68,8 +68,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## Project-Specific Instructions
 
-- Read [CONVENTIONS.md](CONVENTIONS.md) first for what this project is, the roadmap, and the full planning/review process.
-- Before implementing any GitHub issue, produce and get explicit approval on a plan first. Use plan mode for interactive sessions; a CI-triggered agent must post its plan and wait for approval before writing code.
-- Keep PRs small — split a large issue into multiple PRs rather than one big diff.
+- Read [CONVENTIONS.md](CONVENTIONS.md) first for what this project is, where to find the roadmap (GitHub Milestones/Issues), and how work is planned, sized, and reviewed.
+- Before implementing any GitHub issue, follow CONVENTIONS.md's planning/sizing/review process — CONVENTIONS.md is the source of truth for that workflow, including the plan-before-implement approval gate and small-PR rule.
 - Branch names for issue work must include the issue number (e.g. `1-repo-scaffolding-conventions`), for traceability from issue → branch → PR.
 - Design reference for any UI work lives in [design/ludium-mockups.dc.html](design/ludium-mockups.dc.html).
