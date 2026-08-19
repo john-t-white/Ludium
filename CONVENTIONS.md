@@ -12,20 +12,12 @@ not as a blocking step during onboarding.
 ## What We're Building, and In What Order
 
 GitHub Milestones are the project's phases, and GitHub Issues are the work
-items within them. The roadmap is a living document — only the next phase
-gets detailed into issues; later phases are named but not planned in detail
-until their turn comes.
-
-Current phase:
-
-- **Phase 1: Scaffolding & Landing Page**
-  - [ ] #1 — Repo scaffolding & working conventions
-  - [ ] #2 — Frontend app skeleton (depends on #1)
-  - [ ] #3 — Landing page (depends on #2)
-
-Later phases (Backend & Data, Infra, PR Environments, Auth & Onboarding, My
-Shelf, Production, Agentic CI) exist as milestones but aren't broken into
-issues yet.
+items within them — see the repo's Milestones and Issues tabs on GitHub for
+the current roadmap and what's actively planned. Only the next phase gets
+detailed into issues at a time; later phases are named as milestones but not
+broken into issues until their turn comes. This document intentionally
+doesn't restate that state, since it changes with every issue closed —
+GitHub is the source of truth for what's in progress.
 
 ## How Work Is Planned, Sized, and Reviewed
 
