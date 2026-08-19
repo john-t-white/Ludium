@@ -36,7 +36,8 @@ checklist, the same way an issue does.
 planned and turned into issues at a time — the backlog is not front-loaded
 into a large batch of issues up front. Every issue gets an explicit
 plan-before-implement step: propose the approach and get it approved before
-any code is written.
+any code is written. Use plan mode for interactive sessions; a CI-triggered
+agent must post its plan and wait for approval before writing code.
 
 **Pull requests stay small.** An issue that would produce a large diff is
 split into multiple smaller PRs rather than landed as one big change, so
