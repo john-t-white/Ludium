@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 
 type Theme = "light" | "dark";
 
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("light");
 
-  useEffect(() => {
-    const current = document.documentElement.getAttribute("data-theme");
-    if (current === "light" || current === "dark") {
-      // One-time sync with the data-theme attribute the pre-hydration inline
-      // script (layout.tsx) sets before React mounts — can't read it during SSR.
+  useLayoutEffect(() => {
+    if (document.documentElement.getAttribute("data-theme") === "dark") {
+      // Corrects the SSR-safe "light" default to match the real theme the
+      // pre-hydration script (layout.tsx) already applied to <html>.
+      // useLayoutEffect (not useEffect) runs before the browser paints, so
+      // this never becomes a visible flash of the wrong label/icon.
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setTheme(current);
+      setTheme("dark");
     }
   }, []);
 
@@ -29,7 +30,7 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       className="fixed top-5 right-5 z-50 flex items-center gap-2 rounded-full bg-text-primary px-4 py-2 text-sm font-semibold text-bg shadow-lg"
     >
-      <span>{theme === "dark" ? "☀" : "☾"}</span>
+      <span aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span>
       <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
     </button>
   );
