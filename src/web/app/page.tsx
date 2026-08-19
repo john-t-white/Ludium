@@ -20,6 +20,11 @@ const features = [
     title: "Get matched, not reviewed",
     body: "Find your next favorite game — and other players who felt exactly like you did.",
   },
+  {
+    title: "Already on BoardGameGeek?",
+    body: "Import your whole collection in one click and start logging plays right away.",
+    logo: true,
+  },
 ];
 
 export default function Home() {
@@ -82,31 +87,26 @@ export default function Home() {
               {feature.title}
             </h2>
             <p className="mt-2.5 text-sm text-text-secondary">{feature.body}</p>
+            {feature.logo && (
+              <>
+                <Image
+                  src="/powered-by-bgg-rgb.svg"
+                  alt="Powered by BoardGameGeek"
+                  width={135}
+                  height={30}
+                  className="mt-3.5 block dark:hidden"
+                />
+                <Image
+                  src="/powered-by-bgg-reversed-rgb.svg"
+                  alt="Powered by BoardGameGeek"
+                  width={135}
+                  height={30}
+                  className="mt-3.5 hidden dark:block"
+                />
+              </>
+            )}
           </div>
         ))}
-        <div className="rounded-xl border border-card-border bg-card-bg p-8">
-          <h2 className="font-sora text-base font-bold text-text-primary">
-            Already on BoardGameGeek?
-          </h2>
-          <p className="mt-2.5 text-sm text-text-secondary">
-            Import your whole collection in one click and start logging plays
-            right away.
-          </p>
-          <Image
-            src="/powered-by-bgg-rgb.svg"
-            alt="Powered by BoardGameGeek"
-            width={120}
-            height={30}
-            className="mt-3.5 block dark:hidden"
-          />
-          <Image
-            src="/powered-by-bgg-reversed-rgb.svg"
-            alt="Powered by BoardGameGeek"
-            width={120}
-            height={30}
-            className="mt-3.5 hidden dark:block"
-          />
-        </div>
       </section>
     </div>
   );
