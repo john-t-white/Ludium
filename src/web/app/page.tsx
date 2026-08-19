@@ -1,6 +1,7 @@
 import Image from "next/image";
+import { HeroTiles } from "./components/hero-tiles";
 
-const heroTiles = [
+const heroTiles: [string, string][] = [
   ["#f59e0b", "#d9702f"],
   ["#5b9279", "#3d7259"],
   ["#4f7fb0", "#6f9c5e"],
@@ -64,17 +65,7 @@ export default function Home() {
             Sign in with Google
           </button>
         </div>
-        <div className="flex w-full max-w-md gap-3 overflow-x-auto lg:max-w-none lg:flex-1 lg:grid lg:grid-cols-4 lg:overflow-visible">
-          {heroTiles.map(([c1, c2], i) => (
-            <div
-              key={i}
-              className="aspect-square w-20 shrink-0 rounded-lg lg:w-auto"
-              style={{
-                backgroundImage: `repeating-linear-gradient(45deg, ${c1} 0 8px, ${c2} 8px 16px)`,
-              }}
-            />
-          ))}
-        </div>
+        <HeroTiles tiles={heroTiles} />
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-5">
