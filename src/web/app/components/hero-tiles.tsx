@@ -10,6 +10,8 @@ export function HeroTiles({ tiles }: Props) {
   const stripRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ x: 0, scrollLeft: 0 });
 
   function updateFades() {
     const el = stripRef.current;
@@ -24,17 +26,41 @@ export function HeroTiles({ tiles }: Props) {
     return () => window.removeEventListener("resize", updateFades);
   }, []);
 
+  function onMouseDown(e: React.MouseEvent) {
+    const el = stripRef.current;
+    if (!el) return;
+    setIsDragging(true);
+    dragStartRef.current = { x: e.pageX, scrollLeft: el.scrollLeft };
+  }
+
+  function onMouseMove(e: React.MouseEvent) {
+    if (!isDragging) return;
+    const el = stripRef.current;
+    if (!el) return;
+    el.scrollLeft =
+      dragStartRef.current.scrollLeft - (e.pageX - dragStartRef.current.x);
+    updateFades();
+  }
+
+  function endDrag() {
+    setIsDragging(false);
+  }
+
   return (
-    <div className="relative w-full max-w-md lg:max-w-none lg:flex-1">
+    <div className="relative w-full max-w-md md:max-w-2xl lg:max-w-none lg:flex-1">
       <div
         ref={stripRef}
         onScroll={updateFades}
-        className="scrollbar-hide flex gap-3 overflow-x-auto lg:grid lg:grid-cols-4 lg:overflow-visible"
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={endDrag}
+        onMouseLeave={endDrag}
+        className={`scrollbar-hide flex gap-3 overflow-x-auto md:grid md:grid-cols-4 md:overflow-visible md:cursor-auto ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
       >
         {tiles.map(([c1, c2], i) => (
           <div
             key={i}
-            className="aspect-square w-20 shrink-0 rounded-lg lg:w-auto"
+            className="aspect-square w-20 shrink-0 select-none rounded-lg md:w-auto"
             style={{
               backgroundImage: `repeating-linear-gradient(45deg, ${c1} 0 8px, ${c2} 8px 16px)`,
             }}

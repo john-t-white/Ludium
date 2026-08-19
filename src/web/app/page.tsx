@@ -10,6 +10,8 @@ const heroTiles: [string, string][] = [
   ["#3d7259", "#5b9279"],
   ["#8a6fbf", "#c9524f"],
   ["#6f9c5e", "#4f7fb0"],
+  ["#f59e0b", "#8a6fbf"],
+  ["#d9702f", "#4f7fb0"],
 ];
 
 const features = [
@@ -30,8 +32,8 @@ const features = [
 
 export default function Home() {
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-16 px-6 py-16 lg:gap-24 lg:py-24">
-      <section className="flex flex-col items-center gap-12 text-center lg:flex-row lg:items-center lg:gap-16 lg:text-left">
+    <div className="mx-auto flex max-w-[1440px] flex-col gap-16 px-6 py-16 lg:gap-24 lg:py-24">
+      <section className="flex flex-col items-center gap-12 text-center lg:flex-row lg:items-start lg:gap-16 lg:text-left">
         <div className="flex flex-col items-center lg:items-start">
           <h1 className="max-w-xl font-sora text-4xl font-extrabold text-text-primary lg:text-5xl">
             Track how you feel about every game you play.
