@@ -19,6 +19,7 @@ current phase and progress.
 - **Design reference:** [design/](design/) — open
   [design/ludium-mockups.dc.html](design/ludium-mockups.dc.html) in a
   browser to view the approved mockups.
-- **Frontend app:** will live in [src/web/](src/web/) (see issue #2).
+- **Frontend app:** [src/web/](src/web/) — Next.js + TypeScript + Tailwind,
+  see [src/web/README.md](src/web/README.md) to run it locally.
 - **Working conventions:** see [CONVENTIONS.md](CONVENTIONS.md) for what's
   being built, in what order, and how work is planned and reviewed.

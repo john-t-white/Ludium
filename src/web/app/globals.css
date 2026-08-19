@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+:root {
+  --bg: oklch(97% 0.004 80);
+  --card-bg: oklch(99% 0.004 80);
+  --card-border: rgba(0, 0, 0, 0.06);
+  --text-primary: oklch(20% 0.014 45);
+  --text-secondary: oklch(45% 0.014 45);
+  --text-tertiary: oklch(50% 0.014 45);
+  --input-bg: #ffffff;
+  --input-border: rgba(0, 0, 0, 0.1);
+  --row-border: rgba(0, 0, 0, 0.05);
+  --accent: #f59e0b;
+  --header-bg: oklch(16% 0.014 45);
+  --header-border: oklch(30% 0.014 45);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: oklch(15% 0.012 45);
+    --card-bg: oklch(20% 0.012 45);
+    --card-border: rgba(255, 255, 255, 0.18);
+    --text-primary: oklch(95% 0.006 90);
+    --text-secondary: oklch(70% 0.012 60);
+    --text-tertiary: oklch(60% 0.012 60);
+    --input-bg: rgb(232, 234, 237);
+    --input-border: rgba(255, 255, 255, 0.12);
+    --row-border: rgba(255, 255, 255, 0.06);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: oklch(15% 0.012 45);
+  --card-bg: oklch(20% 0.012 45);
+  --card-border: rgba(255, 255, 255, 0.18);
+  --text-primary: oklch(95% 0.006 90);
+  --text-secondary: oklch(70% 0.012 60);
+  --text-tertiary: oklch(60% 0.012 60);
+  --input-bg: rgb(232, 234, 237);
+  --input-border: rgba(255, 255, 255, 0.12);
+  --row-border: rgba(255, 255, 255, 0.06);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-card-bg: var(--card-bg);
+  --color-card-border: var(--card-border);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-input-bg: var(--input-bg);
+  --color-input-border: var(--input-border);
+  --color-row-border: var(--row-border);
+  --color-accent: var(--accent);
+  --color-header-bg: var(--header-bg);
+  --color-header-border: var(--header-border);
+  --font-sora: var(--font-sora);
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+}
