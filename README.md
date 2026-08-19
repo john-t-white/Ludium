@@ -1,1 +1,23 @@
 # Ludium
+
+Board games, matched by how they actually played.
+
+Ludium is a board-game shelf and matching app — not a review site. Play
+logs capture how a game felt at the table, and that signal drives matches:
+to similar games, and to other people who felt the same way about them.
+There's no in-app buying or selling, just connecting. Importing a
+collection from BoardGameGeek runs in the background from your Shelf, not
+during onboarding.
+
+## Status
+
+Early scaffolding. Phase 1 (Scaffolding & Landing Page) is in progress.
+
+## Pointers
+
+- **Design reference:** [design/](design/) — open
+  [design/ludium-mockups.dc.html](design/ludium-mockups.dc.html) in a
+  browser to view the approved mockups.
+- **Frontend app:** will live in [src/web/](src/web/) (see issue #2).
+- **Working conventions:** see [CONVENTIONS.md](CONVENTIONS.md) for what's
+  being built, in what order, and how work is planned and reviewed.
