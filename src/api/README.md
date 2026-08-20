@@ -60,6 +60,88 @@ them automatically in Development.
 Readiness — whether the service can reach its database — arrives with the
 database work later in this phase.
 
+## Tests
+
+From the repo root:
+
+```bash
+dotnet test
+```
+
+That runs every backend test project. It needs no arguments because
+`Ludium.slnx` at the repo root lists them; adding another test project to the
+solution is enough for this command to pick it up.
+
+Tests live in [`tests/api/`](../../tests/api/), mirroring `src/api`. They need
+no database and no running server: `WebApplicationFactory` starts the app
+in-process and calls it over an in-memory transport, so there is no port to
+bind and no connection string to configure.
+
+`TestApiFactory` decides what configuration the app under test sees. It runs
+under the `Testing` environment, clears every configuration source the host
+would otherwise pick up, and then adds back `appsettings.json` alone.
+
+That leaves tests running on exactly the settings the service ships with.
+Nothing machine-specific gets in — not `appsettings.Development.json` (which
+carries the database settings once the schema work lands), not user secrets,
+not a stray environment variable — while the committed baseline is still
+exercised, so tightening a setting there is a change tests can actually catch.
+Anything else a test needs is added in that factory, deliberately.
+
+The test runner reports usage telemetry to Microsoft unless
+`TESTINGPLATFORM_TELEMETRY_OPTOUT=1` or the .NET-wide
+`DOTNET_CLI_TELEMETRY_OPTOUT=1` is set. Both are environment variables — there
+is no setting to check in — so set one in your shell if you want it off
+locally.
+
+Note that `dotnet test` builds the service, so it fails with a file-lock error
+if `dotnet run` is holding the binary. Stop the running service first.
+
+Tests run on [xUnit v3](https://xunit.net/), which uses Microsoft.Testing
+Platform rather than VSTest. `global.json` selects that runner for
+`dotnet test`; without it the .NET 10 SDK errors out instead of falling back.
+
+### Coverage
+
+Coverage is collected on request rather than on every run, so the command above
+stays a plain pass/fail:
+
+```bash
+dotnet tool restore   # once per clone
+git clean -xdf TestResults coverage
+dotnet test --coverage --coverage-output-format cobertura
+dotnet reportgenerator -reports:"TestResults/**/*.cobertura.xml" -targetdir:"coverage" -reporttypes:"Html;TextSummary"
+```
+
+That writes a browsable report to `coverage/index.html` and a console-friendly
+summary to `coverage/Summary.txt`. Both `TestResults/` and `coverage/` are
+gitignored.
+
+Let the runner name the coverage files rather than pinning one name: every test
+project writes its own, and a fixed name means they overwrite each other and
+the report silently covers whichever finished last. The glob picks up all of
+them, and clearing `TestResults/` first stops files from earlier runs being
+counted too. `git clean` is used for that rather than a shell-specific delete,
+so the same line works whichever shell you run it from. `-x` is needed because
+both directories are gitignored and a plain `git clean -df` would skip them.
+
+Keep both paths on that line. `git clean -xdf` without them deletes every
+untracked and ignored file in the repo — `node_modules/`, your
+`appsettings.Development.json`, any `.env.local` — and none of it is
+recoverable from git.
+
+No minimum coverage is enforced — nothing here fails a build on a low number.
+Enforcing a threshold only does real work once it runs on proposed changes, so
+it belongs with the Infra phase's merge gate rather than in a local command.
+
+## Package sources
+
+[`nuget.config`](../../nuget.config) at the repo root clears inherited package
+sources and lists only nuget.org. Restore would otherwise also use whatever
+feeds the machine or build agent has configured, which makes a build depend on
+the machine it runs on and lets an unrelated feed answer for a package name
+expected from nuget.org.
+
 ## Other commands
 
 ```bash

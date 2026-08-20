@@ -49,6 +49,14 @@ plan-before-implement step: propose the approach and get it approved before
 any code is written. Use plan mode for interactive sessions; a CI-triggered
 agent must post its plan and wait for approval before writing code.
 
+**Tests come first.** Backend work follows red-green-refactor: the failing
+test is written before the code that satisfies it, and the pull request's test
+plan records having seen it fail. Writing the test first is what forces the
+change to be stated as observable behaviour rather than as an implementation,
+and it is the only way to know the test can actually fail. Where the behaviour
+already exists and a test is being added after the fact, say so in the test
+plan rather than implying an order that didn't happen.
+
 **Pull requests stay small.** An issue that would produce a large diff is
 split into multiple smaller PRs rather than landed as one big change, so
 review stays manageable.

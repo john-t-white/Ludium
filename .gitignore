@@ -5,6 +5,10 @@
 bin/
 obj/
 
+# Test and coverage output
+TestResults/
+coverage/
+
 # Next.js build artifacts
 .next/
 node_modules/
