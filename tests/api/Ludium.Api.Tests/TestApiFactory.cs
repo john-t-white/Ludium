@@ -21,12 +21,10 @@ public class TestApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
-        builder.ConfigureAppConfiguration((context, config) =>
+        builder.ConfigureAppConfiguration((_, config) =>
         {
             config.Sources.Clear();
-            config.AddJsonFile(
-                Path.Combine(context.HostingEnvironment.ContentRootPath, "appsettings.json"),
-                optional: false);
+            config.AddJsonFile("appsettings.json", optional: false);
         });
     }
 }

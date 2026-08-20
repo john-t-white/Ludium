@@ -108,7 +108,7 @@ stays a plain pass/fail:
 
 ```bash
 dotnet tool restore   # once per clone
-rm -rf TestResults coverage
+git clean -xdf TestResults coverage
 dotnet test --coverage --coverage-output-format cobertura
 dotnet reportgenerator -reports:"TestResults/**/*.cobertura.xml" -targetdir:"coverage" -reporttypes:"Html;TextSummary"
 ```
@@ -121,7 +121,8 @@ Let the runner name the coverage files rather than pinning one name: every test
 project writes its own, and a fixed name means they overwrite each other and
 the report silently covers whichever finished last. The glob picks up all of
 them, and clearing `TestResults/` first stops files from earlier runs being
-counted too.
+counted too. `git clean` is used for that rather than a shell-specific delete,
+so the same line works whichever shell you run it from.
 
 No minimum coverage is enforced — nothing here fails a build on a low number.
 Enforcing a threshold only does real work once it runs on proposed changes, so
