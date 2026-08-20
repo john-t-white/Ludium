@@ -12,11 +12,12 @@ public class HealthCheckTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task LivenessEndpoint_ReportsHealthy()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
         var client = _factory.CreateClient();
 
-        var response = await client.GetAsync("/health/live");
+        var response = await client.GetAsync("/health/live", cancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("Healthy", await response.Content.ReadAsStringAsync());
+        Assert.Equal("Healthy", await response.Content.ReadAsStringAsync(cancellationToken));
     }
 }

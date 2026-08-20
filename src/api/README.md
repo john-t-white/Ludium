@@ -77,15 +77,19 @@ no database and no running server: `WebApplicationFactory` starts the app
 in-process and calls it over an in-memory transport, so there is no port to
 bind and no connection string to configure.
 
+Tests run on [xUnit v3](https://xunit.net/), which uses Microsoft.Testing
+Platform rather than VSTest. `global.json` selects that runner for
+`dotnet test`; without it the .NET 10 SDK errors out instead of falling back.
+
 ### Coverage
 
 Coverage is collected on request rather than on every run, so the command above
 stays a plain pass/fail:
 
 ```bash
-dotnet tool restore                            # once per clone
-dotnet test --collect:"XPlat Code Coverage" --results-directory TestResults
-dotnet reportgenerator -reports:"TestResults/**/coverage.cobertura.xml" -targetdir:"coverage" -reporttypes:"Html;TextSummary"
+dotnet tool restore   # once per clone
+dotnet test --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml
+dotnet reportgenerator -reports:"TestResults/coverage.cobertura.xml" -targetdir:"coverage" -reporttypes:"Html;TextSummary"
 ```
 
 That writes a browsable report to `coverage/index.html` and a console-friendly
