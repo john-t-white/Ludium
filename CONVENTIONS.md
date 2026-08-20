@@ -32,6 +32,16 @@ implementation decisions belong in the plan written for that issue, not in
 the issue itself. Milestones carry their own phase-level acceptance
 checklist, the same way an issue does.
 
+**Settled decisions go in Developer Notes.** Some technical decisions get
+made before an issue is written — usually while planning the phase — and
+re-deciding them once per issue wastes the plan-before-implement step. An
+issue may carry a Developer Notes section recording those decisions and why
+they were made. This is the one place technical specifics belong in an
+issue, and it exists to close questions rather than open them: everything
+above it stays high-level, and the implementation plan restates and
+justifies each note rather than treating it as unquestionable. A decision
+that has not actually been settled does not belong here.
+
 **Work proceeds incrementally.** Only the next small slice of work is
 planned and turned into issues at a time — the backlog is not front-loaded
 into a large batch of issues up front. Every issue gets an explicit
