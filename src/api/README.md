@@ -77,18 +77,22 @@ no database and no running server: `WebApplicationFactory` starts the app
 in-process and calls it over an in-memory transport, so there is no port to
 bind and no connection string to configure.
 
-`TestApiFactory` gives the app configuration the test owns outright. It runs
-under the `Testing` environment, which nothing writes a settings file for and
-which user secrets do not load under, and it clears the configuration sources
-the host would otherwise inherit. So neither `appsettings.Development.json` —
-including the database settings that arrive with the schema work — nor a stray
-environment variable can change what a test sees. Anything a test needs is
-added back in that factory, deliberately.
+`TestApiFactory` decides what configuration the app under test sees. It runs
+under the `Testing` environment, clears every configuration source the host
+would otherwise pick up, and then adds back `appsettings.json` alone.
+
+That leaves tests running on exactly the settings the service ships with.
+Nothing machine-specific gets in — not `appsettings.Development.json` (which
+carries the database settings once the schema work lands), not user secrets,
+not a stray environment variable — while the committed baseline is still
+exercised, so tightening a setting there is a change tests can actually catch.
+Anything else a test needs is added in that factory, deliberately.
 
 The test runner reports usage telemetry to Microsoft unless
-`TESTINGPLATFORM_TELEMETRY_OPTOUT=1` is set. It can only be set as an
-environment variable, so there is nothing to check in; set it in your shell if
-you want it off locally.
+`TESTINGPLATFORM_TELEMETRY_OPTOUT=1` or the .NET-wide
+`DOTNET_CLI_TELEMETRY_OPTOUT=1` is set. Both are environment variables — there
+is no setting to check in — so set one in your shell if you want it off
+locally.
 
 Note that `dotnet test` builds the service, so it fails with a file-lock error
 if `dotnet run` is holding the binary. Stop the running service first.
@@ -104,13 +108,20 @@ stays a plain pass/fail:
 
 ```bash
 dotnet tool restore   # once per clone
-dotnet test --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml
-dotnet reportgenerator -reports:"TestResults/coverage.cobertura.xml" -targetdir:"coverage" -reporttypes:"Html;TextSummary"
+rm -rf TestResults coverage
+dotnet test --coverage --coverage-output-format cobertura
+dotnet reportgenerator -reports:"TestResults/**/*.cobertura.xml" -targetdir:"coverage" -reporttypes:"Html;TextSummary"
 ```
 
 That writes a browsable report to `coverage/index.html` and a console-friendly
 summary to `coverage/Summary.txt`. Both `TestResults/` and `coverage/` are
 gitignored.
+
+Let the runner name the coverage files rather than pinning one name: every test
+project writes its own, and a fixed name means they overwrite each other and
+the report silently covers whichever finished last. The glob picks up all of
+them, and clearing `TestResults/` first stops files from earlier runs being
+counted too.
 
 No minimum coverage is enforced — nothing here fails a build on a low number.
 Enforcing a threshold only does real work once it runs on proposed changes, so
