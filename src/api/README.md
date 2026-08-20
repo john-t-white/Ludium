@@ -47,7 +47,7 @@ That file isn't in the repo yet, because nothing currently differs from
 
 Neither file is gitignored, so neither is a place for secrets. When
 something genuinely secret needs to live locally, use user secrets:
-`dotnet user-secrets init` registers the project, and the host then loads
+`dotnet user-secrets init --project src/api` registers the project, and the host then loads
 them automatically in Development.
 
 ## Health checks
