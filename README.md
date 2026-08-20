@@ -21,5 +21,7 @@ current phase and progress.
   browser to view the approved mockups.
 - **Frontend app:** [src/web/](src/web/) — Next.js + TypeScript + Tailwind,
   see [src/web/README.md](src/web/README.md) to run it locally.
+- **Backend service:** [src/api/](src/api/) — ASP.NET Core (.NET 10), see
+  [src/api/README.md](src/api/README.md) to run it locally.
 - **Working conventions:** see [CONVENTIONS.md](CONVENTIONS.md) for what's
   being built, in what order, and how work is planned and reviewed.
