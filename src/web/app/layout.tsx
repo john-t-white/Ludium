@@ -3,7 +3,6 @@ import { Sora, Inter } from "next/font/google";
 import Image from "next/image";
 import "./globals.css";
 import { ThemeToggle } from "./components/theme-toggle";
-import { BreakpointIndicator } from "./components/breakpoint-indicator";
 
 const sora = Sora({
   variable: "--font-sora",
@@ -49,7 +48,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Image src="/ludium-logo.svg" alt="Ludium" width={140} height={53} priority />
         </header>
         <ThemeToggle />
-        <BreakpointIndicator />
         <main className="flex-1">{children}</main>
       </body>
     </html>

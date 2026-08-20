@@ -29,17 +29,21 @@ export function HeroTiles({ tiles }: Props) {
   function onMouseDown(e: React.MouseEvent) {
     const el = stripRef.current;
     if (!el) return;
+    e.preventDefault();
     setIsDragging(true);
     dragStartRef.current = { x: e.pageX, scrollLeft: el.scrollLeft };
   }
 
   function onMouseMove(e: React.MouseEvent) {
     if (!isDragging) return;
+    if (e.buttons !== 1) {
+      setIsDragging(false);
+      return;
+    }
     const el = stripRef.current;
     if (!el) return;
     el.scrollLeft =
       dragStartRef.current.scrollLeft - (e.pageX - dragStartRef.current.x);
-    updateFades();
   }
 
   function endDrag() {
@@ -55,6 +59,9 @@ export function HeroTiles({ tiles }: Props) {
         onMouseMove={onMouseMove}
         onMouseUp={endDrag}
         onMouseLeave={endDrag}
+        tabIndex={0}
+        role="region"
+        aria-label="Box art gallery"
         className={`scrollbar-hide grid grid-rows-2 grid-flow-col gap-3 overflow-x-auto ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
       >
         {tiles.map(([c1, c2], i) => (
