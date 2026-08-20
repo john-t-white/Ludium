@@ -122,7 +122,13 @@ project writes its own, and a fixed name means they overwrite each other and
 the report silently covers whichever finished last. The glob picks up all of
 them, and clearing `TestResults/` first stops files from earlier runs being
 counted too. `git clean` is used for that rather than a shell-specific delete,
-so the same line works whichever shell you run it from.
+so the same line works whichever shell you run it from. `-x` is needed because
+both directories are gitignored and a plain `git clean -df` would skip them.
+
+Keep both paths on that line. `git clean -xdf` without them deletes every
+untracked and ignored file in the repo — `node_modules/`, your
+`appsettings.Development.json`, any `.env.local` — and none of it is
+recoverable from git.
 
 No minimum coverage is enforced — nothing here fails a build on a low number.
 Enforcing a threshold only does real work once it runs on proposed changes, so
