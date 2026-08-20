@@ -77,6 +77,16 @@ no database and no running server: `WebApplicationFactory` starts the app
 in-process and calls it over an in-memory transport, so there is no port to
 bind and no connection string to configure.
 
+`TestApiFactory` runs the app under the `Testing` environment rather than the
+`Development` default. Nothing writes an `appsettings.Testing.json`, and user
+secrets only load in Development, so developer-local configuration cannot reach
+a test run — including the database settings that arrive with the schema work.
+Environment variables set in the shell still reach the app, which is how you
+override something deliberately.
+
+Note that `dotnet test` builds the service, so it fails with a file-lock error
+if `dotnet run` is holding the binary. Stop the running service first.
+
 Tests run on [xUnit v3](https://xunit.net/), which uses Microsoft.Testing
 Platform rather than VSTest. `global.json` selects that runner for
 `dotnet test`; without it the .NET 10 SDK errors out instead of falling back.

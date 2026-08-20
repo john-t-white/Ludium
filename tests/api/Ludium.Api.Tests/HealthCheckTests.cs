@@ -1,13 +1,12 @@
 using System.Net;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Ludium.Api.Tests;
 
-public class HealthCheckTests : IClassFixture<WebApplicationFactory<Program>>
+public class HealthCheckTests : IClassFixture<TestApiFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly TestApiFactory _factory;
 
-    public HealthCheckTests(WebApplicationFactory<Program> factory) => _factory = factory;
+    public HealthCheckTests(TestApiFactory factory) => _factory = factory;
 
     [Fact]
     public async Task LivenessEndpoint_ReportsHealthy()

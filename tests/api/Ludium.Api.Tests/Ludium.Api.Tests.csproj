@@ -7,7 +7,6 @@
     <IsPackable>false</IsPackable>
     <!-- xunit v3 test projects are executables: each runs its own test host. -->
     <OutputType>Exe</OutputType>
-    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
   </PropertyGroup>
 
   <ItemGroup>
