@@ -60,6 +60,42 @@ them automatically in Development.
 Readiness — whether the service can reach its database — arrives with the
 database work later in this phase.
 
+## Tests
+
+From the repo root:
+
+```bash
+dotnet test
+```
+
+That runs every backend test project. It needs no arguments because
+`Ludium.slnx` at the repo root lists them; adding another test project to the
+solution is enough for this command to pick it up.
+
+Tests live in [`tests/api/`](../../tests/api/), mirroring `src/api`. They need
+no database and no running server: `WebApplicationFactory` starts the app
+in-process and calls it over an in-memory transport, so there is no port to
+bind and no connection string to configure.
+
+### Coverage
+
+Coverage is collected on request rather than on every run, so the command above
+stays a plain pass/fail:
+
+```bash
+dotnet tool restore                            # once per clone
+dotnet test --collect:"XPlat Code Coverage" --results-directory TestResults
+dotnet reportgenerator -reports:"TestResults/**/coverage.cobertura.xml" -targetdir:"coverage" -reporttypes:"Html;TextSummary"
+```
+
+That writes a browsable report to `coverage/index.html` and a console-friendly
+summary to `coverage/Summary.txt`. Both `TestResults/` and `coverage/` are
+gitignored.
+
+No minimum coverage is enforced — nothing here fails a build on a low number.
+Enforcing a threshold only does real work once it runs on proposed changes, so
+it belongs with the Infra phase's merge gate rather than in a local command.
+
 ## Other commands
 
 ```bash
