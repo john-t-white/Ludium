@@ -47,7 +47,7 @@ export function HeroTiles({ tiles }: Props) {
   }
 
   return (
-    <div className="relative w-full max-w-md md:max-w-2xl lg:max-w-none lg:flex-1">
+    <div className="relative w-full">
       <div
         ref={stripRef}
         onScroll={updateFades}
@@ -55,12 +55,12 @@ export function HeroTiles({ tiles }: Props) {
         onMouseMove={onMouseMove}
         onMouseUp={endDrag}
         onMouseLeave={endDrag}
-        className={`scrollbar-hide flex gap-3 overflow-x-auto md:grid md:grid-cols-4 md:overflow-visible md:cursor-auto ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`scrollbar-hide grid grid-rows-2 grid-flow-col gap-3 overflow-x-auto ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
       >
         {tiles.map(([c1, c2], i) => (
           <div
             key={i}
-            className="aspect-square w-20 shrink-0 select-none rounded-lg md:w-auto"
+            className="aspect-square w-20 shrink-0 select-none rounded-lg sm:w-40"
             style={{
               backgroundImage: `repeating-linear-gradient(45deg, ${c1} 0 8px, ${c2} 8px 16px)`,
             }}

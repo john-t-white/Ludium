@@ -101,20 +101,15 @@ export default function Home() {
             </svg>
             Sign in with Google
           </button>
-          <div className="hidden w-full max-w-xl flex-col gap-4 lg:mt-12 lg:flex">
-            {features.map((feature) => (
-              <FeatureCard feature={feature} key={feature.title} />
-            ))}
-          </div>
         </div>
-        <HeroTiles tiles={heroTiles} />
+        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3 lg:max-w-xl lg:flex-1 lg:grid-cols-1">
+          {features.map((feature) => (
+            <FeatureCard feature={feature} key={feature.title} />
+          ))}
+        </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:hidden">
-        {features.map((feature) => (
-          <FeatureCard feature={feature} key={feature.title} />
-        ))}
-      </section>
+      <HeroTiles tiles={heroTiles} />
     </div>
   );
 }
