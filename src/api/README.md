@@ -110,6 +110,14 @@ No minimum coverage is enforced — nothing here fails a build on a low number.
 Enforcing a threshold only does real work once it runs on proposed changes, so
 it belongs with the Infra phase's merge gate rather than in a local command.
 
+## Package sources
+
+[`nuget.config`](../../nuget.config) at the repo root clears inherited package
+sources and lists only nuget.org. Restore would otherwise also use whatever
+feeds the machine or build agent has configured, which makes a build depend on
+the machine it runs on and lets an unrelated feed answer for a package name
+expected from nuget.org.
+
 ## Other commands
 
 ```bash
