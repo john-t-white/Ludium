@@ -29,12 +29,23 @@ reports that the service itself started and is serving requests.
 
 - `Program.cs` — the whole service: builds the host, registers health
   checks, and maps the liveness endpoint.
-- `appsettings.json` — configuration checked into the repo. Nothing secret
-  belongs here.
+- `appsettings.json` — configuration checked into the repo.
 - `Properties/launchSettings.json` — the local run profile, including the
   port above. That port applies to `dotnet run` only; a published build
   binds Kestrel's own defaults instead. HTTP only, so running it locally
   doesn't depend on trusting a development HTTPS certificate first.
+
+## Configuration
+
+Local development settings go in `appsettings.Development.json`, the
+built-in ASP.NET Core convention — it loads automatically on top of
+`appsettings.json` when the environment is Development, which the run
+profile sets.
+
+That file isn't in the repo yet, because nothing currently differs from
+`appsettings.json`. Create it when something does. Both files are checked
+in, so neither is a place for secrets; `.gitignore` reserves
+`appsettings.local.json` for anything that genuinely has to stay local.
 
 ## Health checks
 
