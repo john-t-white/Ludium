@@ -10,6 +10,14 @@ const heroTiles: [string, string][] = [
   ["#3d7259", "#5b9279"],
   ["#8a6fbf", "#c9524f"],
   ["#6f9c5e", "#4f7fb0"],
+  ["#f59e0b", "#8a6fbf"],
+  ["#d9702f", "#4f7fb0"],
+  ["#3d7259", "#8a6fbf"],
+  ["#e8865a", "#6f9c5e"],
+  ["#c9524f", "#f59e0b"],
+  ["#4f7fb0", "#d9702f"],
+  ["#8a6fbf", "#5b9279"],
+  ["#6f9c5e", "#c9524f"],
 ];
 
 const features = [
@@ -28,10 +36,39 @@ const features = [
   },
 ];
 
+function FeatureCard({ feature }: { feature: (typeof features)[number] }) {
+  return (
+    <div className="rounded-xl border border-card-border bg-card-bg p-8">
+      <h2 className="font-sora text-base font-bold text-text-primary">
+        {feature.title}
+      </h2>
+      <p className="mt-2.5 text-sm text-text-secondary">{feature.body}</p>
+      {feature.logo && (
+        <>
+          <Image
+            src="/powered-by-bgg-rgb.svg"
+            alt="Powered by BoardGameGeek"
+            width={135}
+            height={30}
+            className="mt-3.5 block dark:hidden"
+          />
+          <Image
+            src="/powered-by-bgg-reversed-rgb.svg"
+            alt="Powered by BoardGameGeek"
+            width={135}
+            height={30}
+            className="mt-3.5 hidden dark:block"
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-16 px-6 py-16 lg:gap-24 lg:py-24">
-      <section className="flex flex-col items-center gap-12 text-center lg:flex-row lg:items-center lg:gap-16 lg:text-left">
+    <div className="mx-auto flex max-w-[1440px] flex-col gap-16 px-6 py-16 lg:gap-24 lg:py-24">
+      <section className="flex flex-col items-center gap-12 text-center lg:flex-row lg:items-start lg:gap-16 lg:text-left">
         <div className="flex flex-col items-center lg:items-start">
           <h1 className="max-w-xl font-sora text-4xl font-extrabold text-text-primary lg:text-5xl">
             Track how you feel about every game you play.
@@ -65,40 +102,14 @@ export default function Home() {
             Sign in with Google
           </button>
         </div>
-        <HeroTiles tiles={heroTiles} />
+        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3 lg:max-w-xl lg:flex-1 lg:grid-cols-1">
+          {features.map((feature) => (
+            <FeatureCard feature={feature} key={feature.title} />
+          ))}
+        </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-5">
-        {features.map((feature) => (
-          <div
-            key={feature.title}
-            className="rounded-xl border border-card-border bg-card-bg p-8"
-          >
-            <h2 className="font-sora text-base font-bold text-text-primary">
-              {feature.title}
-            </h2>
-            <p className="mt-2.5 text-sm text-text-secondary">{feature.body}</p>
-            {feature.logo && (
-              <>
-                <Image
-                  src="/powered-by-bgg-rgb.svg"
-                  alt="Powered by BoardGameGeek"
-                  width={135}
-                  height={30}
-                  className="mt-3.5 block dark:hidden"
-                />
-                <Image
-                  src="/powered-by-bgg-reversed-rgb.svg"
-                  alt="Powered by BoardGameGeek"
-                  width={135}
-                  height={30}
-                  className="mt-3.5 hidden dark:block"
-                />
-              </>
-            )}
-          </div>
-        ))}
-      </section>
+      <HeroTiles tiles={heroTiles} />
     </div>
   );
 }
