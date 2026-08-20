@@ -45,11 +45,10 @@ profile sets.
 That file isn't in the repo yet, because nothing currently differs from
 `appsettings.json`. Create it when something does.
 
-Neither file is gitignored, so neither is a place for secrets. `.gitignore`
-reserves `appsettings.local.json`, but nothing loads it — the host reads
-`appsettings.json` and `appsettings.{Environment}.json` only. Wiring that
-file up, or using `dotnet user-secrets` instead, belongs to the work that
-first needs a local secret.
+Neither file is gitignored, so neither is a place for secrets. When
+something genuinely secret needs to live locally, use user secrets:
+`dotnet user-secrets init` registers the project, and the host then loads
+them automatically in Development.
 
 ## Health checks
 
