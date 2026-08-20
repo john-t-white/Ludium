@@ -43,15 +43,20 @@ built-in ASP.NET Core convention — it loads automatically on top of
 profile sets.
 
 That file isn't in the repo yet, because nothing currently differs from
-`appsettings.json`. Create it when something does. Both files are checked
-in, so neither is a place for secrets; `.gitignore` reserves
-`appsettings.local.json` for anything that genuinely has to stay local.
+`appsettings.json`. Create it when something does.
+
+Neither file is gitignored, so neither is a place for secrets. `.gitignore`
+reserves `appsettings.local.json`, but nothing loads it — the host reads
+`appsettings.json` and `appsettings.{Environment}.json` only. Wiring that
+file up, or using `dotnet user-secrets` instead, belongs to the work that
+first needs a local secret.
 
 ## Health checks
 
 - `GET /health/live` — liveness. `200 Healthy` means the service is
-  running. It deliberately registers no checks, so it keeps answering
-  while a dependency is down.
+  running. It runs no checks: the predicate excludes every registered
+  check, including ones added later, so it keeps answering while a
+  dependency is down.
 
 Readiness — whether the service can reach its database — arrives with the
 database work later in this phase.
