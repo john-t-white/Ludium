@@ -12,6 +12,7 @@ export function HeroTiles({ tiles }: Props) {
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, scrollLeft: 0 });
+  const isScrollable = canScrollLeft || canScrollRight;
 
   function updateFades() {
     const el = stripRef.current;
@@ -26,28 +27,39 @@ export function HeroTiles({ tiles }: Props) {
     return () => window.removeEventListener("resize", updateFades);
   }, []);
 
+  useEffect(() => {
+    if (!isDragging) return;
+
+    function onWindowMouseMove(e: MouseEvent) {
+      if (e.buttons !== 1) {
+        setIsDragging(false);
+        return;
+      }
+      const el = stripRef.current;
+      if (!el) return;
+      el.scrollLeft =
+        dragStartRef.current.scrollLeft - (e.pageX - dragStartRef.current.x);
+    }
+
+    function onWindowMouseUp() {
+      setIsDragging(false);
+    }
+
+    window.addEventListener("mousemove", onWindowMouseMove);
+    window.addEventListener("mouseup", onWindowMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onWindowMouseMove);
+      window.removeEventListener("mouseup", onWindowMouseUp);
+    };
+  }, [isDragging]);
+
   function onMouseDown(e: React.MouseEvent) {
+    if (!isScrollable) return;
     const el = stripRef.current;
     if (!el) return;
     e.preventDefault();
     setIsDragging(true);
     dragStartRef.current = { x: e.pageX, scrollLeft: el.scrollLeft };
-  }
-
-  function onMouseMove(e: React.MouseEvent) {
-    if (!isDragging) return;
-    if (e.buttons !== 1) {
-      setIsDragging(false);
-      return;
-    }
-    const el = stripRef.current;
-    if (!el) return;
-    el.scrollLeft =
-      dragStartRef.current.scrollLeft - (e.pageX - dragStartRef.current.x);
-  }
-
-  function endDrag() {
-    setIsDragging(false);
   }
 
   return (
@@ -56,13 +68,10 @@ export function HeroTiles({ tiles }: Props) {
         ref={stripRef}
         onScroll={updateFades}
         onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={endDrag}
-        onMouseLeave={endDrag}
         tabIndex={0}
         role="region"
         aria-label="Box art gallery"
-        className={`scrollbar-hide grid grid-rows-2 grid-flow-col gap-3 overflow-x-auto ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`scrollbar-hide grid grid-rows-2 grid-flow-col gap-3 overflow-x-auto ${isScrollable ? (isDragging ? "cursor-grabbing" : "cursor-grab") : ""}`}
       >
         {tiles.map(([c1, c2], i) => (
           <div
