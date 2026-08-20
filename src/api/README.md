@@ -77,12 +77,18 @@ no database and no running server: `WebApplicationFactory` starts the app
 in-process and calls it over an in-memory transport, so there is no port to
 bind and no connection string to configure.
 
-`TestApiFactory` runs the app under the `Testing` environment rather than the
-`Development` default. Nothing writes an `appsettings.Testing.json`, and user
-secrets only load in Development, so developer-local configuration cannot reach
-a test run — including the database settings that arrive with the schema work.
-Environment variables set in the shell still reach the app, which is how you
-override something deliberately.
+`TestApiFactory` gives the app configuration the test owns outright. It runs
+under the `Testing` environment, which nothing writes a settings file for and
+which user secrets do not load under, and it clears the configuration sources
+the host would otherwise inherit. So neither `appsettings.Development.json` —
+including the database settings that arrive with the schema work — nor a stray
+environment variable can change what a test sees. Anything a test needs is
+added back in that factory, deliberately.
+
+The test runner reports usage telemetry to Microsoft unless
+`TESTINGPLATFORM_TELEMETRY_OPTOUT=1` is set. It can only be set as an
+environment variable, so there is nothing to check in; set it in your shell if
+you want it off locally.
 
 Note that `dotnet test` builds the service, so it fails with a file-lock error
 if `dotnet run` is holding the binary. Stop the running service first.
