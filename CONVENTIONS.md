@@ -67,12 +67,35 @@ the PR's test plan, verifying the linked issue's acceptance criteria, a
 general code review, and a security review — and posts findings as inline
 PR comments, each attributed to the agent that raised it. This review never
 approves or merges on its own; a human reads the findings, responds inline,
-decides what to act on, and makes the merge call. Once changes land in
-response to feedback, the same agents review again — and each renders an
-explicit resolve / don't-resolve verdict on the threads it owns, rather
-than the orchestrating process inferring resolution on their behalf. As the
-project moves toward a more fully agentic workflow, this process may be
-formalized into dedicated review agents.
+decides what to act on, and makes the merge call. As the project moves
+toward a more fully agentic workflow, this process may be formalized into
+dedicated review agents.
+
+**A finding gets one thread.** A finding stays on the thread it was first
+raised on, from that first raise until it is resolved. A follow-up arising
+from a fix — the replacement is wrong, or incomplete, or raises a new
+question — is a reply on that thread, not a new one. An agent that
+independently finds a problem another agent has already raised joins that
+thread, saying what it found and what would satisfy it, rather than filing
+a duplicate or staying silent: two agents often care about the same problem
+for different reasons, and each reason has its own test for "fixed". A
+thread can therefore have more than one owning agent, and closing it takes
+a verdict from each of them. The payoff for the human deciding is that the
+whole history of a problem — what was tried, what a second agent
+confirmed, what each still needs — sits in one place.
+
+**The review loop ends.** Once changes land in response to feedback, the
+same agents review again — and each renders an explicit resolve /
+don't-resolve verdict on the threads it owns, rather than the orchestrating
+process inferring resolution on their behalf. From this second round on,
+they raise only findings that would block merging — ones the agent would
+not merge without; anything smaller is left for the human rather than
+opened as a new thread, so a fix cannot pull the review back into a fresh
+round of minor findings. A reply saying a fix does not satisfy the finding
+its thread already holds is not a new finding, and is made whatever its
+size. The loop ends when every thread has a resolve verdict from each of
+its owning agents and the latest round raised nothing blocking — that is
+the review finishing, not a step being skipped.
 
 ## See Also
 
