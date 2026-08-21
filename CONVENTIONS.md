@@ -75,11 +75,12 @@ restate the issue, re-quote acceptance criteria, or summarize the diff.
 **Pull requests are reviewed by a multi-agent process, then a human.** Once
 a PR is open, an automated review runs four agents in parallel — verifying
 the PR's test plan, verifying the linked issue's acceptance criteria, a
-general code review, and a security review — and posts findings as inline PR
-comments, each attributed to the agent that raised it. The four run as
-subagents spawned for the purpose, from checked-in definitions in
-[.claude/agents/](.claude/agents/) — one file per agent, and the source of
-truth for what each reads, what it looks for, and the form its findings take.
+general code review, and a security review. Each posts its own findings as
+inline PR comments under its own name, so a finding reads as the agent that
+raised it wrote it. The four run as subagents spawned for the purpose, from
+checked-in definitions in [.claude/agents/](.claude/agents/) — one file per
+agent, and the source of truth for what each reads, what it looks for, and
+the form its findings take.
 This document says why the review works the way it does; those files are what
 actually runs, so a change to how a review runs is a change to them. Each
 agent runs at a capability level matched to its job, and its file records why.

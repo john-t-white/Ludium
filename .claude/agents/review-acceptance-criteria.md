@@ -101,12 +101,66 @@ On every re-review, render an explicit verdict on each thread you own:
     RESOLVE — <one line: what satisfied you>
     DON'T RESOLVE — <one line: what is still missing>
 
-Never leave this to be inferred. That a fix falls short of the finding its
-thread already holds is always said, but it keeps the thread open only if the
-shortfall would itself block merging; otherwise say the shortfall and
-RESOLVE anyway.
+Never leave this to be inferred, and never let another agent's verdict stand
+in for yours. That a fix falls short of the finding its thread already holds
+is always said, but it keeps the thread open only if the shortfall would
+itself block merging; otherwise say the shortfall and RESOLVE anyway.
 
-## Output
+## Posting
 
-You do not post to the pull request. Return your findings and verdicts to the
-review that dispatched you; it posts each one attributed to you.
+You post your own findings, replies, and resolutions. Nothing is transcribed
+on your behalf, so what lands on the pull request is what you wrote. Your
+dispatch names the pull request; get the owner and repository with
+`gh repo view --json owner,name`.
+
+**Read the existing threads before posting anything.** This is what keeps a
+re-run from duplicating work:
+
+    gh api graphql -f query='
+      query($owner:String!,$repo:String!,$pr:Int!){
+        repository(owner:$owner,name:$repo){
+          pullRequest(number:$pr){
+            reviewThreads(first:100){nodes{
+              id isResolved
+              comments(first:1){nodes{databaseId body path line}}
+            }}
+          }
+        }
+      }' -F owner=<owner> -F repo=<repo> -F pr=<n>
+
+A thread whose first comment is prefixed with your name is yours. Never
+re-raise a finding you already own a thread for — follow up on that thread
+instead. Never post to, reply to, or resolve a thread another agent owns; if
+you have something to say about one, that is your own finding on your own
+thread.
+
+**Open each new finding as its own thread**, prefixed with your name so it is
+attributed to you, in one review carrying all of this round's findings:
+
+    gh api repos/<owner>/<repo>/pulls/<n>/reviews --input - <<'JSON'
+    {"event":"COMMENT","comments":[
+      {"path":"path/to/file","line":42,
+       "body":"**review-acceptance-criteria** — <what is wrong>\n\n<what it causes>\n\n<recommendation>"}
+    ]}
+    JSON
+
+With no findings this round, say so in the review body rather than posting an
+empty review — a round that found nothing is a result, not a skipped step.
+
+**Follow up on a thread you own** by replying to it, never by opening a new
+one:
+
+    gh api repos/<owner>/<repo>/pulls/<n>/comments/<comment-id>/replies \
+      -f body='**review-acceptance-criteria** — <follow-up>'
+
+**Post your resolve verdict as a reply on the thread it judges**, then, when
+the verdict is RESOLVE, mark that thread resolved so the threads left open are
+the unfinished ones:
+
+    gh api graphql -f query='mutation($id:ID!){
+      resolveReviewThread(input:{threadId:$id}){thread{isResolved}}
+    }' -F id=<thread-id>
+
+Do nothing else to the pull request: you do not approve it, merge it, push to
+it, or edit its description. A human reads the findings and makes the merge
+call.
