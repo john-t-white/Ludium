@@ -55,7 +55,9 @@ plan records having seen it fail. Writing the test first is what forces the
 change to be stated as observable behaviour rather than as an implementation,
 and it is the only way to know the test can actually fail. Where the behaviour
 already exists and a test is being added after the fact, say so in the test
-plan rather than implying an order that didn't happen.
+plan rather than implying an order that didn't happen. Every pull request
+carries a test plan, including one whose change has nothing to run — that
+plan says so, and says what was checked instead.
 
 **Pull requests stay small.** An issue that would produce a large diff is
 split into multiple smaller PRs rather than landed as one big change, so
@@ -111,8 +113,8 @@ raised nothing blocking — that is the review finishing, not a step being
 skipped.
 
 **A finding is three parts.** What is wrong, what it causes where an example
-clarifies it, and a recommendation. Volume buries the thing the reader has
-to act on.
+clarifies it, and a recommendation, kept short: volume buries the thing the
+reader has to act on.
 
 **Acceptance criteria are checked off when the pull request merges.** Not
 when a review agent verifies them and not while review is still running: a
