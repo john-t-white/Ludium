@@ -82,7 +82,8 @@ what it found and what would satisfy it, rather than filing a duplicate or
 staying silent: two agents often care about the same problem for different
 reasons, and each reason has its own test for "fixed". A thread can
 therefore have more than one owning agent, and closing it takes a verdict
-from each of them.
+from each of them; a thread that has them is then marked resolved on the
+pull request, so the open threads are the unfinished ones.
 
 **The review loop ends.** Once changes land in response to feedback, the
 same agents review again — and each renders an explicit resolve /
