@@ -94,10 +94,12 @@ thread or by joining one, so a fix cannot pull the review back into a fresh
 round of minor findings. That a fix falls short of the finding its thread
 already holds is always said, but it keeps the thread open only if the
 shortfall would itself block merging. A thread can also close without a
-resolve verdict: the human declines the finding, or the agent that raised
-it withdraws it, or its owning agent does not run again and the human
-closes it. The loop ends when no thread is open and the latest round raised
-nothing blocking — that is the review finishing, not a step being skipped.
+resolve verdict. The human declining a finding closes its thread outright.
+An agent withdrawing its own finding, or the human closing out an owner
+that will not run again, ends that agent's ownership rather than the
+thread, which closes once no owning agent is left waiting on it. The loop
+ends when no thread is open and the latest round raised nothing blocking —
+that is the review finishing, not a step being skipped.
 
 ## See Also
 
