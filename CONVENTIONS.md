@@ -72,30 +72,32 @@ toward a more fully agentic workflow, this process may be formalized into
 dedicated review agents.
 
 **A finding gets one thread.** A finding stays on the thread it was first
-raised on, from that first raise until it is resolved. A follow-up arising
-from a fix — the replacement is wrong, or incomplete, or raises a new
-question — is a reply on that thread, not a new one. An agent that
-independently finds a problem another agent has already raised joins that
-thread, saying what it found and what would satisfy it, rather than filing
-a duplicate or staying silent: two agents often care about the same problem
-for different reasons, and each reason has its own test for "fixed". A
-thread can therefore have more than one owning agent, and closing it takes
-a verdict from each of them. The payoff for the human deciding is that the
-whole history of a problem — what was tried, what a second agent
-confirmed, what each still needs — sits in one place.
+raised on, from that first raise until it is resolved. A follow-up about
+that same finding — the fix is wrong, or incomplete, or raises a new
+question about the problem the thread already holds — is a reply on that
+thread, not a new one; a separate problem the fix introduced is a finding
+in its own right, and gets its own thread. An agent that independently
+finds a problem another agent has already raised joins that thread, saying
+what it found and what would satisfy it, rather than filing a duplicate or
+staying silent: two agents often care about the same problem for different
+reasons, and each reason has its own test for "fixed". A thread can
+therefore have more than one owning agent, and closing it takes a verdict
+from each of them.
 
 **The review loop ends.** Once changes land in response to feedback, the
 same agents review again — and each renders an explicit resolve /
 don't-resolve verdict on the threads it owns, rather than the orchestrating
-process inferring resolution on their behalf. From this second round on,
-they raise only findings that would block merging — ones the agent would
-not merge without; anything smaller is left for the human rather than
-opened as a new thread, so a fix cannot pull the review back into a fresh
-round of minor findings. A reply saying a fix does not satisfy the finding
-its thread already holds is not a new finding, and is made whatever its
-size. The loop ends when every thread has a resolve verdict from each of
-its owning agents and the latest round raised nothing blocking — that is
-the review finishing, not a step being skipped.
+process inferring resolution on their behalf. Each such pass is a round,
+and from the second one on, agents raise only findings that would block
+merging — ones the agent would not merge without — whether by opening a
+thread or by joining one, so a fix cannot pull the review back into a fresh
+round of minor findings. That a fix falls short of the finding its thread
+already holds is always said, but it keeps the thread open only if the
+shortfall would itself block merging. A thread can also close without a
+resolve verdict: the human declines the finding, or the agent that raised
+it withdraws it, or its owning agent does not run again and the human
+closes it. The loop ends when no thread is open and the latest round raised
+nothing blocking — that is the review finishing, not a step being skipped.
 
 ## See Also
 
