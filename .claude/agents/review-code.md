@@ -169,7 +169,10 @@ its own call, not part of the review batch:
      "body":"**review-code** — <what is wrong>\n\n<what it causes>\n\n<recommendation>"}
     JSON
 
-`<head-sha>` comes from `gh pr view <n> --json headRefOid`.
+`<head-sha>` comes from `gh pr view <n> --json headRefOid`. `path` must
+always name a file in this pull request's diff: a finding with no file of
+its own anchors to the file whose change it is about — the one the
+description, plan, or criterion it concerns is silent about or misstates.
 
 Every comment in a review batch is validated together, and a line outside the
 diff rejects the whole review — the round then posts nothing. Check that each
