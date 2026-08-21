@@ -55,24 +55,77 @@ plan records having seen it fail. Writing the test first is what forces the
 change to be stated as observable behaviour rather than as an implementation,
 and it is the only way to know the test can actually fail. Where the behaviour
 already exists and a test is being added after the fact, say so in the test
-plan rather than implying an order that didn't happen.
+plan rather than implying an order that didn't happen. Every pull request
+carries a test plan, including one whose change has nothing to run — that
+plan says so, and says what was checked instead.
 
 **Pull requests stay small.** An issue that would produce a large diff is
 split into multiple smaller PRs rather than landed as one big change, so
 review stays manageable.
 
+**Pull request descriptions say only what's new.** A description gives what
+the issue and the diff do not already say: what changed, any judgement call
+a reader could not infer, and the test plan required above. It does not
+restate the issue, re-quote acceptance criteria, or summarize the diff.
+
 **Pull requests are reviewed by a multi-agent process, then a human.** Once
 a PR is open, an automated review runs four agents in parallel — verifying
 the PR's test plan, verifying the linked issue's acceptance criteria, a
-general code review, and a security review — and posts findings as inline
-PR comments, each attributed to the agent that raised it. This review never
-approves or merges on its own; a human reads the findings, responds inline,
-decides what to act on, and makes the merge call. Once changes land in
-response to feedback, the same agents review again — and each renders an
-explicit resolve / don't-resolve verdict on the threads it owns, rather
-than the orchestrating process inferring resolution on their behalf. As the
-project moves toward a more fully agentic workflow, this process may be
-formalized into dedicated review agents.
+general code review, and a security review — and posts findings as inline PR
+comments, each attributed to the agent that raised it. The four run as
+subagents spawned for the purpose. This review never approves or merges on
+its own; a human reads the findings, responds inline, decides what to act
+on, and makes the merge call. As the project moves toward a more fully
+agentic workflow, this process may be formalized into dedicated review
+agents.
+
+**A finding gets one thread.** A finding stays on the thread it was first
+raised on, from that first raise until it is resolved. A follow-up about
+that same finding — the fix is wrong, or incomplete, or raises a new
+question about the problem the thread already holds — is a reply on that
+thread, not a new one; a separate problem the fix introduced is a finding in
+its own right, and gets its own thread. An agent that independently finds a
+problem another agent has already raised files its own thread for it —
+naming the thread already open on that problem, saying what it found and
+what would satisfy it — rather than staying silent or letting its concern be
+settled by another agent's verdict: two agents often care about the same
+problem for different reasons, and each reason has its own test for "fixed".
+Two threads on one problem is the cost of keeping each concern independently
+answerable: every thread has exactly one owning agent, and a fix that
+satisfies one agent's thread leaves the other's open until that agent says
+so itself.
+
+**The review loop ends.** Once changes land in response to feedback, the
+same agents review again — and each renders an explicit resolve /
+don't-resolve verdict on the threads it owns, rather than the orchestrating
+process inferring resolution on their behalf. A thread that closes, by
+verdict or by any of the routes below, is marked resolved on the pull
+request, so the threads left open are the unfinished ones. Each such pass is
+a round, and from the second one on, agents raise only findings that would
+block merging — ones the agent would not merge without — so a fix cannot
+pull the review back into a fresh round of minor findings. That a fix falls
+short of the finding its thread already holds is always said, but it keeps
+the thread open only if the shortfall would itself block merging. A thread
+can also close without a resolve verdict: the human declines the finding, or
+its owning agent withdraws it, or that agent will not run again and the
+human closes it. The loop ends when no thread is open and the latest round
+raised nothing blocking — that is the review finishing, not a step being
+skipped.
+
+**A finding is three parts.** What is wrong, what it causes where an example
+clarifies it, and a recommendation, kept short: volume buries the thing the
+reader has to act on.
+
+**Acceptance criteria are checked off when the pull request merges.** Not
+when a review agent verifies them and not while review is still running: a
+box ticked earlier records work that can still change.
+
+## Toolchains
+
+Toolchains are pinned to release builds, and one that accepts prereleases
+by default is configured to refuse them explicitly rather than left to that
+default holding. The .NET SDK is such a toolchain, which is why `global.json`
+sets `allowPrerelease` to false.
 
 ## See Also
 
