@@ -26,3 +26,5 @@ current phase and progress.
   [tests/api/](tests/api/) and run with `dotnet test` from the repo root.
 - **Working conventions:** see [CONVENTIONS.md](CONVENTIONS.md) for what's
   being built, in what order, and how work is planned and reviewed.
+- **Review agents:** [.claude/agents/](.claude/agents/) — the four agents that
+  review every pull request, one definition file each.

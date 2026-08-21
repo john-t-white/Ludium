@@ -1,5 +1,8 @@
-# Claude Code local settings (may contain secrets)
-.claude/settings.local.json
+# Claude Code: track only the shared configuration, never local settings
+# (which may contain secrets) or machine-local runtime state
+.claude/*
+!.claude/agents/
+!.claude/settings.json
 
 # Build artifacts
 bin/
