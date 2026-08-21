@@ -84,6 +84,11 @@ the form its findings take.
 This document says why the review works the way it does; those files are what
 actually runs, so a change to how a review runs is a change to them. Each
 agent runs at a capability level matched to its job, and its file records why.
+What a review flags, at what severity, and how much of it is calibration
+rather than process, and it lives in [REVIEW.md](REVIEW.md), which a review
+reads and nothing else does. The three files divide cleanly: `CLAUDE.md` is
+context for all work, this document is how work is planned and reviewed and
+why, and `REVIEW.md` is what a review does with the change in front of it.
 This review never approves or merges on its own; a human reads the findings,
 responds inline, decides what to act on, and makes the merge call.
 
@@ -95,13 +100,15 @@ thread, not a new one; a separate problem the fix introduced is a finding in
 its own right, and gets its own thread. An agent that independently finds a
 problem another agent has already raised files its own thread for it —
 naming the thread already open on that problem, saying what it found and
-what would satisfy it — rather than staying silent or letting its concern be
-settled by another agent's verdict: two agents often care about the same
-problem for different reasons, and each reason has its own test for "fixed".
-Two threads on one problem is the cost of keeping each concern independently
-answerable: every thread has exactly one owning agent, and a fix that
-satisfies one agent's thread leaves the other's open until that agent says
-so itself.
+what would satisfy it — rather than letting its concern be settled by
+another agent's verdict: two agents often care about the same problem for
+different reasons, and each reason has its own test for "fixed". Two threads
+on one problem is the cost of keeping each concern independently answerable:
+every thread has exactly one owning agent, and a fix that satisfies one
+agent's thread leaves the other's open until that agent says so itself. This
+decides whose thread a concern goes on, not whether the concern clears the
+bar of the round it is found in — one that does not clear that bar is not
+raised by anyone, which is the bar working rather than an agent deferring.
 
 **The review loop ends.** Once changes land in response to feedback, the
 same agents review again — and each renders an explicit resolve /
@@ -110,10 +117,14 @@ process inferring resolution on their behalf. A thread that closes, by
 verdict or by any of the routes below, is marked resolved on the pull
 request, so the threads left open are the unfinished ones. Each such pass is
 a round, and from the second one on, agents raise only findings that would
-block merging — ones the agent would not merge without — so a fix cannot
-pull the review back into a fresh round of minor findings. That a fix falls
-short of the finding its thread already holds is always said, but it keeps
-the thread open only if the shortfall would itself block merging. A thread
+block merging — ones the agent would not merge without — on material the
+review has already seen, so a fix cannot pull the review back into a fresh
+round of minor findings. Material a fix newly adds is material the review is
+seeing for the first time, whatever round it arrives in, so it gets a
+first-round review: the bar rules out returning to reviewed material with a
+fresh minor finding, not reviewing something new. That a fix falls short of
+the finding its thread already holds is always said, but it keeps the thread
+open only if the shortfall would itself block merging. A thread
 can also close without a resolve verdict: the human declines the finding, or
 its owning agent withdraws it, or that agent will not run again and the
 human closes it. The loop ends when no thread is open and the latest round
@@ -139,4 +150,6 @@ sets `allowPrerelease` to false.
 
 - [design/](design/) — the approved visual design reference (mockups, brand
   assets).
+- [REVIEW.md](REVIEW.md) — review calibration: what a review flags, at what
+  severity, and how much of it.
 - [README.md](README.md) — project overview for newcomers.

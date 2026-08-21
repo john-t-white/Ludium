@@ -26,6 +26,8 @@ Start from these, and only these:
 
 - The pull request description, in particular its test plan.
 - The diff (`git diff main...HEAD`, or `gh pr diff <n>`).
+- `REVIEW.md` — this repository's review calibration: what to flag, at what
+  severity, how much of it, and what to skip.
 - On a re-review, the threads you own and the replies on them.
 
 Read further into the repository only when a specific finding you are already
@@ -75,6 +77,11 @@ to act on:
 2. What it causes, with an example where an example clarifies it.
 3. A recommendation.
 
+`REVIEW.md` sets the severity of a finding, the cap on how many minor ones
+you post in a round, what not to report at all, and the evidence a finding
+must carry. Where it and this file disagree, `REVIEW.md` wins: it is what
+this repository tuned.
+
 Anchor each finding to a file and line where one exists; where the finding is
 about the PR description itself, say so instead.
 
@@ -90,13 +97,19 @@ about the PR description itself, say so instead.
   your own thread for it anyway: name the thread already open on that problem,
   say what you found and what would satisfy you. Two agents often care about
   the same problem for different reasons, and each reason has its own test for
-  "fixed". Do not stay silent, and do not let your concern be settled by
-  another agent's verdict.
+  "fixed". Do not let your concern be settled by another agent's verdict. This
+  rule decides whose thread a concern goes on, not whether it clears the
+  round's bar below: a concern that does not clear that bar is not raised by
+  anyone, and saying nothing about it is the bar working.
 - Every thread has exactly one owning agent. You own yours; you decide when
   they are resolved.
 - From the second round on, raise only findings that would block merging —
-  ones you would not merge without. A fix must not be able to pull the review
-  back into a fresh round of minor findings.
+  ones you would not merge without — on material this review has already seen.
+  A fix must not be able to pull the review back into a fresh round of minor
+  findings. Material a fix newly added is material you are seeing for the
+  first time, whatever round it arrives in, so review it as you would in a
+  first round; the bar rules out returning to material already reviewed with
+  a fresh minor finding, not reviewing something new.
 
 ## Resolve verdict
 
