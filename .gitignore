@@ -1,6 +1,9 @@
 # Claude Code local settings (may contain secrets)
 .claude/settings.local.json
 
+# Claude Code machine-local runtime state
+.claude/scheduled_tasks.lock
+
 # Build artifacts
 bin/
 obj/
