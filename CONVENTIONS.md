@@ -61,7 +61,11 @@ plan says so, and says what was checked instead.
 
 **Pull requests stay small.** An issue that would produce a large diff is
 split into multiple smaller PRs rather than landed as one big change, so
-review stays manageable.
+review stays manageable. Those PRs land one at a time, each branched from
+`main` after the previous one merged, rather than stacked on one another —
+`main` squashes on merge, so a branch built on an unmerged PR carries
+commits that cease to exist once that PR lands, and the conflicts that
+follow are noise rather than real disagreement.
 
 **Pull request descriptions say only what's new.** A description gives what
 the issue and the diff do not already say: what changed, any judgement call
