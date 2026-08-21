@@ -39,15 +39,17 @@ leads with that.
 ## Do not report
 
 - Anything a local build already prints: C# compiler and nullable warnings
-  from `dotnet build`, the TypeScript compiler, and ESLint
-  (`src/web/eslint.config.mjs`) from `next lint`. Nothing runs these on a pull
-  request yet, so this defers to what the author reads, not to a gate.
+  from `dotnet build`, and, in `src/web/`, the TypeScript compiler from
+  `npm run build` and ESLint (`src/web/eslint.config.mjs`) from `npm run lint`.
+  Nothing runs these on a pull request yet, so this defers to what the author
+  reads, not to a gate.
 - The contents of generated and vendored paths: `src/web/node_modules/`,
   `bin/`, `obj/`, and `src/web/next-env.d.ts`. That a diff touches a path
   `.gitignore` excludes is still worth a sentence — it got there by force-add.
 - Version-bump noise in `src/web/package-lock.json` matching a `package.json`
-  change. A repointed `resolved` host, a changed `integrity` value, or a
-  package with no reason in `package.json` is never skipped.
+  change. A `resolved` host that is not the npm registry, an `integrity` value
+  that changed without its version changing, or a package with no reason in
+  `package.json` is never skipped.
 - Unmodified `create-next-app` scaffolding under `src/web/`.
 - Pre-existing problems the diff merely sits next to. Mention one in a
   sentence if it matters; do not build a finding on it.
