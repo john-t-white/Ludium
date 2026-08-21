@@ -61,6 +61,11 @@ plan rather than implying an order that didn't happen.
 split into multiple smaller PRs rather than landed as one big change, so
 review stays manageable.
 
+**Pull request descriptions say only what's new.** A description gives what
+the issue and the diff do not already say: what changed, any judgement call
+a reader could not infer, and the test plan required above. It does not
+restate the issue, re-quote acceptance criteria, or summarize the diff.
+
 **Pull requests are reviewed by a multi-agent process, then a human.** Once
 a PR is open, an automated review runs four agents in parallel — verifying
 the PR's test plan, verifying the linked issue's acceptance criteria, a
@@ -105,13 +110,9 @@ human closes it. The loop ends when no thread is open and the latest round
 raised nothing blocking — that is the review finishing, not a step being
 skipped.
 
-**Pull requests and findings say only what's new.** A pull request
-description gives what the issue and the diff do not already say: what
-changed, and any judgement call a reader could not infer. It does not
-restate the issue, re-quote acceptance criteria, summarize the diff, or
-narrate the review. A review finding is the same discipline in three parts —
-what is wrong, what it causes where an example clarifies it, and a
-recommendation. Volume buries the thing the reader has to act on.
+**A finding is three parts.** What is wrong, what it causes where an example
+clarifies it, and a recommendation. Volume buries the thing the reader has
+to act on.
 
 **Acceptance criteria are checked off when the pull request merges.** Not
 when a review agent verifies them and not while review is still running: a
@@ -119,9 +120,10 @@ box ticked earlier records work that can still change.
 
 ## Toolchains
 
-Toolchains are pinned to release builds. Where a toolchain accepts
-prereleases by default, the project's configuration refuses them
-explicitly rather than relying on that default holding.
+Toolchains are pinned to release builds, and one that accepts prereleases
+by default is configured to refuse them explicitly rather than left to that
+default holding. The .NET SDK is such a toolchain, which is why `global.json`
+sets `allowPrerelease` to false.
 
 ## See Also
 
