@@ -64,12 +64,13 @@ review stays manageable.
 **Pull requests are reviewed by a multi-agent process, then a human.** Once
 a PR is open, an automated review runs four agents in parallel — verifying
 the PR's test plan, verifying the linked issue's acceptance criteria, a
-general code review, and a security review — and posts findings as inline
-PR comments, each attributed to the agent that raised it. This review never
-approves or merges on its own; a human reads the findings, responds inline,
-decides what to act on, and makes the merge call. As the project moves
-toward a more fully agentic workflow, this process may be formalized into
-dedicated review agents.
+general code review, and a security review — and posts findings as inline PR
+comments, each attributed to the agent that raised it. The four run as
+subagents spawned for the purpose. This review never approves or merges on
+its own; a human reads the findings, responds inline, decides what to act
+on, and makes the merge call. As the project moves toward a more fully
+agentic workflow, this process may be formalized into dedicated review
+agents.
 
 **A finding gets one thread.** A finding stays on the thread it was first
 raised on, from that first raise until it is resolved. A follow-up about
@@ -92,16 +93,35 @@ same agents review again — and each renders an explicit resolve /
 don't-resolve verdict on the threads it owns, rather than the orchestrating
 process inferring resolution on their behalf. A thread that closes, by
 verdict or by any of the routes below, is marked resolved on the pull
-request, so the threads left open are the unfinished ones. Each such pass is a round, and from the second one on, agents raise
-only findings that would block merging — ones the agent would not merge
-without — so a fix cannot pull the review back into a fresh round of minor
-findings. That a fix falls short of the finding its thread already holds is
-always said, but it keeps the thread open only if the shortfall would itself
-block merging. A thread can also close without a resolve verdict: the human
-declines the finding, or its owning agent withdraws it, or that agent will
-not run again and the human closes it. The loop ends when no thread is open
-and the latest round raised nothing blocking — that is the review finishing,
-not a step being skipped.
+request, so the threads left open are the unfinished ones. Each such pass is
+a round, and from the second one on, agents raise only findings that would
+block merging — ones the agent would not merge without — so a fix cannot
+pull the review back into a fresh round of minor findings. That a fix falls
+short of the finding its thread already holds is always said, but it keeps
+the thread open only if the shortfall would itself block merging. A thread
+can also close without a resolve verdict: the human declines the finding, or
+its owning agent withdraws it, or that agent will not run again and the
+human closes it. The loop ends when no thread is open and the latest round
+raised nothing blocking — that is the review finishing, not a step being
+skipped.
+
+**Pull requests and findings say only what's new.** A pull request
+description gives what the issue and the diff do not already say: what
+changed, and any judgement call a reader could not infer. It does not
+restate the issue, re-quote acceptance criteria, summarize the diff, or
+narrate the review. A review finding is the same discipline in three parts —
+what is wrong, what it causes where an example clarifies it, and a
+recommendation. Volume buries the thing the reader has to act on.
+
+**Acceptance criteria are checked off when the pull request merges.** Not
+when a review agent verifies them and not while review is still running: a
+box ticked earlier records work that can still change.
+
+## Toolchains
+
+Toolchains are pinned to release builds. Where a toolchain accepts
+prereleases by default, the project's configuration refuses them
+explicitly rather than relying on that default holding.
 
 ## See Also
 
