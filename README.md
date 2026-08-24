@@ -28,3 +28,7 @@ current phase and progress.
   being built, in what order, and how work is planned and reviewed.
 - **Review agents:** [.claude/agents/](.claude/agents/) — the four agents that
   review every pull request, one definition file each.
+- **Review tooling:** [tools/review-state/](tools/review-state/) — reports the
+  review state of a pull request. Run it with
+  `node tools/review-state/review-state.mjs --pr <number>`, and its tests with
+  `node --test tests/tools/review-state/` from the repo root.
