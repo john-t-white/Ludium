@@ -1,7 +1,7 @@
 // Establishes the facts a review round needs: whose thread is whose, which
 // are still open, who owes a verdict on each, and which round each agent is
-// on. All of it is mechanical — a flag, an author, a name prefix, a timestamp
-// comparison — so it is settled here rather than by an agent reading the pull
+// on. All of it is mechanical — a flag, an author, a name prefix, a commit
+// identity — so it is settled here rather than by an agent reading the pull
 // request.
 //
 // Pure: everything below reads the GraphQL payload it is handed and nothing
@@ -57,22 +57,23 @@ export function verdictIn(body) {
 /**
  * Whether the owning agent still owes a verdict this round.
  *
- * A verdict answers for the state of the thread when it was written, so it
- * goes stale when either the branch or the thread moves on. The head commit's
- * date is the weaker of the two signals — it is the committer's clock, which
- * the person pushing the fix chooses — so the newest comment somebody else
- * left on the thread counts too. In the workflow the conventions describe,
- * where a fix is answered inline on each thread it addresses, that reply is
- * what a verdict has to answer, and no clock is involved.
+ * A verdict answers for the state of the branch and the thread when it was
+ * written, so it goes stale when either moves on:
+ *
+ * - The commit it answered for is no longer the head. GitHub records that
+ *   commit on the review a comment belongs to and freezes it there, so this
+ *   is an identity check on a server-assigned value. No clock is involved,
+ *   and in particular not the committer date, which whoever pushes the fix
+ *   chooses.
+ * - Somebody else has since said something on the thread. In the workflow the
+ *   conventions describe, a fix is answered inline on each thread it
+ *   addresses, and a verdict has to answer that reply.
  */
-export function owesVerdict(thread, headCommittedDate) {
+export function owesVerdict(thread, headOid) {
   if (thread.isResolved || thread.owner === null) return false;
   if (thread.verdict === null) return true;
-  const measuredFrom =
-    thread.latestOtherCommentAt !== null && thread.latestOtherCommentAt > headCommittedDate
-      ? thread.latestOtherCommentAt
-      : headCommittedDate;
-  return thread.verdict.at < measuredFrom;
+  if (thread.verdict.answeredFor !== headOid) return true;
+  return thread.latestOtherCommentAt !== null && thread.verdict.at < thread.latestOtherCommentAt;
 }
 
 /**
@@ -121,6 +122,11 @@ function normalizeThread(node, reviewAccount) {
   const first = comments[0];
   const owner = first === undefined ? null : postedBy(first, reviewAccount);
 
+  // Every comment an agent posts carries its name, replies and verdicts
+  // included. That prefix is the only thing separating an agent from the
+  // human, since the review runs on the human's account: a verdict posted
+  // without it cannot be told from the author answering their own thread, so
+  // it is not read as one.
   const fromOwner = (comment) => owner !== null && postedBy(comment, reviewAccount) === owner;
 
   const references = [];
@@ -132,7 +138,11 @@ function normalizeThread(node, reviewAccount) {
 
   const verdicts = comments
     .filter((comment) => fromOwner(comment) && verdictIn(comment.body) !== null)
-    .map((comment) => ({ kind: verdictIn(comment.body), at: comment.createdAt }));
+    .map((comment) => ({
+      kind: verdictIn(comment.body),
+      at: comment.createdAt,
+      answeredFor: comment.pullRequestReview?.commit?.oid ?? null,
+    }));
 
   const otherDates = comments.filter((comment) => !fromOwner(comment)).map((c) => c.createdAt);
 
@@ -162,10 +172,9 @@ export function reviewState(payload) {
   const pr = payload.data.repository.pullRequest;
   const reviews = pr.reviews.nodes;
   const threads = pr.reviewThreads.nodes.map((node) => normalizeThread(node, reviewAccount));
-  const headCommittedDate = pr.commits.nodes[0].commit.committedDate;
 
   for (const thread of threads) {
-    thread.owesVerdict = owesVerdict(thread, headCommittedDate);
+    thread.owesVerdict = owesVerdict(thread, pr.headRefOid);
   }
 
   const owed = {};
@@ -186,7 +195,7 @@ export function reviewState(payload) {
 
   return {
     headOid: pr.headRefOid,
-    headCommittedDate,
+    reviewAccount,
     rounds,
     threads,
     openGroups,
@@ -202,7 +211,7 @@ function status(thread) {
   if (thread.owesVerdict) {
     return thread.verdict === null
       ? 'awaiting verdict'
-      : `awaiting verdict (${thread.verdict.kind} no longer answers the thread)`;
+      : `awaiting verdict (${thread.verdict.kind} answered an earlier state)`;
   }
   return thread.verdict.kind;
 }
@@ -210,7 +219,7 @@ function status(thread) {
 /** The state as one report, for a human and for the dispatch that follows. */
 export function renderReport(state, prNumber) {
   const lines = [
-    `PR #${prNumber} — head ${state.headOid.slice(0, 7)} (${state.headCommittedDate})`,
+    `PR #${prNumber} — head ${state.headOid.slice(0, 7)} · review account ${state.reviewAccount}`,
     `Next round: ${AGENTS.map((agent) => `${agent} ${state.rounds[agent]}`).join(', ')}`,
     '',
   ];

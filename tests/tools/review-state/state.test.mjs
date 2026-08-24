@@ -25,6 +25,10 @@ const HEAD_AT = '2026-08-21T20:00:00Z';
 // The account the review runs as. Everything the agents post is authored by
 // it; anyone else on a public repository can write the same text.
 const REVIEWER = 'john-t-white';
+// The commit a payload's pull request is currently on, and the one a comment
+// is recorded against unless a case says otherwise.
+const HEAD_OID = 'abc1234def';
+const EARLIER_OID = '0000111feed';
 const OUTSIDER = 'passing-stranger';
 
 // Builds the shape reviewState reads, so a test states only what it is about.
@@ -34,8 +38,7 @@ function payload({ reviews = [], threads = [], headAt = HEAD_AT } = {}) {
       viewer: { login: REVIEWER },
       repository: {
         pullRequest: {
-          headRefOid: 'abc1234def',
-          commits: { nodes: [{ commit: { committedDate: headAt } }] },
+          headRefOid: HEAD_OID,
           reviews: {
             nodes: reviews.map((review) =>
               typeof review === 'string'
@@ -59,13 +62,14 @@ function thread({ isResolved = false, path = 'REVIEW.md', line = 10, comments })
     path,
     line,
     comments: {
-      nodes: comments.map(([body, createdAt = HEAD_AT, login = REVIEWER], i) => {
+      nodes: comments.map(([body, createdAt = HEAD_AT, login = REVIEWER, oid = HEAD_OID], i) => {
         const databaseId = nextId * 1000 + i;
         return {
           databaseId,
           createdAt,
           body,
           author: { login },
+          pullRequestReview: { commit: { oid } },
         };
       }),
     },
@@ -176,60 +180,43 @@ describe('verdictIn', () => {
 
 describe('owesVerdict', () => {
   const owner = 'review-code';
+  const open = (verdict, latestOtherCommentAt = null) => ({
+    isResolved: false,
+    owner,
+    verdict,
+    latestOtherCommentAt,
+  });
 
   test('an unresolved thread with no verdict on it owes one', () => {
-    const t = { isResolved: false, owner, verdict: null, latestOtherCommentAt: null };
-    assert.equal(owesVerdict(t, HEAD_AT), true);
+    assert.equal(owesVerdict(open(null), HEAD_OID), true);
   });
 
-  test('a verdict rendered before the head commit does not count for this round', () => {
-    const t = {
-      isResolved: false,
-      owner,
-      verdict: { kind: "DON'T RESOLVE", at: '2026-08-21T19:00:00Z' },
-      latestOtherCommentAt: null,
-    };
-    assert.equal(owesVerdict(t, HEAD_AT), true);
+  test('a verdict written against an earlier commit does not answer for the fix', () => {
+    const verdict = { kind: "DON'T RESOLVE", at: HEAD_AT, answeredFor: EARLIER_OID };
+    assert.equal(owesVerdict(open(verdict), HEAD_OID), true);
   });
 
-  test('a verdict rendered after the head commit settles the round', () => {
-    const t = {
-      isResolved: false,
-      owner,
-      verdict: { kind: "DON'T RESOLVE", at: '2026-08-21T20:30:00Z' },
-      latestOtherCommentAt: null,
-    };
-    assert.equal(owesVerdict(t, HEAD_AT), false);
+  test('a verdict written against the current head settles the round', () => {
+    const verdict = { kind: "DON'T RESOLVE", at: HEAD_AT, answeredFor: HEAD_OID };
+    assert.equal(owesVerdict(open(verdict), HEAD_OID), false);
   });
 
-  test('a reply after the verdict reopens the question, whatever the commit clock says', () => {
-    const t = {
-      isResolved: false,
-      owner,
-      verdict: { kind: "DON'T RESOLVE", at: '2026-08-21T20:30:00Z' },
-      latestOtherCommentAt: '2026-08-21T21:00:00Z',
-    };
-    assert.equal(owesVerdict(t, HEAD_AT), true);
+  test('a reply after the verdict reopens the question even on the same commit', () => {
+    const verdict = { kind: 'RESOLVE', at: '2026-08-21T20:30:00Z', answeredFor: HEAD_OID };
+    assert.equal(owesVerdict(open(verdict, '2026-08-21T21:00:00Z'), HEAD_OID), true);
   });
 
   test('a verdict answering the last reply on the thread settles it', () => {
-    const t = {
-      isResolved: false,
-      owner,
-      verdict: { kind: 'RESOLVE', at: '2026-08-21T21:30:00Z' },
-      latestOtherCommentAt: '2026-08-21T21:00:00Z',
-    };
-    assert.equal(owesVerdict(t, HEAD_AT), false);
+    const verdict = { kind: 'RESOLVE', at: '2026-08-21T21:30:00Z', answeredFor: HEAD_OID };
+    assert.equal(owesVerdict(open(verdict, '2026-08-21T21:00:00Z'), HEAD_OID), false);
   });
 
   test('a resolved thread owes nothing', () => {
-    const t = { isResolved: true, owner, verdict: null, latestOtherCommentAt: null };
-    assert.equal(owesVerdict(t, HEAD_AT), false);
+    assert.equal(owesVerdict({ ...open(null), isResolved: true }, HEAD_OID), false);
   });
 
   test('a thread no agent owns is never asked for a verdict', () => {
-    const t = { isResolved: false, owner: null, verdict: null, latestOtherCommentAt: null };
-    assert.equal(owesVerdict(t, HEAD_AT), false);
+    assert.equal(owesVerdict({ ...open(null), owner: null }, HEAD_OID), false);
   });
 });
 
@@ -264,10 +251,10 @@ describe('linkedGroups', () => {
 });
 
 describe('reviewState', () => {
-  test('the head commit date comes from the last commit', () => {
-    const state = reviewState(payload({ headAt: '2026-01-02T03:04:05Z' }));
-    assert.equal(state.headCommittedDate, '2026-01-02T03:04:05Z');
-    assert.equal(state.headOid, 'abc1234def');
+  test('the head commit and the review account come off the payload', () => {
+    const state = reviewState(payload());
+    assert.equal(state.headOid, HEAD_OID);
+    assert.equal(state.reviewAccount, REVIEWER);
   });
 
   test('an owner and its verdict are read off the thread', () => {
@@ -315,6 +302,25 @@ describe('reviewState', () => {
     const [t] = state.threads;
     assert.equal(t.verdict, null);
     assert.equal(t.owesVerdict, true);
+  });
+
+  test('a verdict written against an earlier commit is owed again', () => {
+    const state = reviewState(
+      payload({
+        threads: [
+          thread({
+            comments: [
+              ['**review-code** — a finding', '2026-08-21T18:00:00Z', REVIEWER, EARLIER_OID],
+              ['**review-code** — RESOLVE — covered', '2026-08-21T18:30:00Z', REVIEWER, EARLIER_OID],
+            ],
+          }),
+        ],
+      }),
+    );
+    const [t] = state.threads;
+    assert.equal(t.verdict.answeredFor, EARLIER_OID);
+    assert.equal(t.owesVerdict, true);
+    assert.deepEqual(state.owed, { 'review-code': 1 });
   });
 
   test("a reply by anyone else is what the owner's verdict has to answer", () => {
@@ -401,6 +407,11 @@ describe('renderReport', () => {
     assert.match(report, /PR #29/);
     assert.match(report, /No open threads/);
     assert.match(report, /review-code 4/);
+  });
+
+  test('the header names the account attribution was matched against', () => {
+    const report = renderReport(reviewState(payload()), 22);
+    assert.match(report, new RegExp(`review account ${REVIEWER}`));
   });
 
   test('an open thread carries what an agent needs to answer it', () => {
