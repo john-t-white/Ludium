@@ -1,0 +1,548 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "headRefOid": "409c8620474b29468e83320cc6795552f48efc8e",
+        "commits": {
+          "nodes": [
+            {
+              "commit": {
+                "committedDate": "2026-08-21T20:28:09Z"
+              }
+            }
+          ]
+        },
+        "reviews": {
+          "nodes": [
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T19:56:14Z",
+              "body": "**review-acceptance-criteria** — round 1. No findings."
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T19:56:34Z",
+              "body": "**review-test-plan** — round 1. No findings."
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T19:57:27Z",
+              "body": "**review-security** — round 1. Three findings, all on the same theme: the new calibration file is itself reviewed con..."
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T19:58:21Z",
+              "body": "**review-code** — round 1. Two blocking findings and three minor (at the cap this file sets)."
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:22:31Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:22:32Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:22:33Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:22:34Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:22:35Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:22:36Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:22:37Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:22:38Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:25:48Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:25:53Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:26:01Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:26:18Z",
+              "body": "**review-security** — round 2. No new findings; all three of my round-1 threads RESOLVE, verdicts on each."
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:26:24Z",
+              "body": "**review-code** — round 2. One finding, on text 2553498 newly added (so reviewed as a first round, not a return to ma..."
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:26:35Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:26:39Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:26:42Z",
+              "body": "**review-acceptance-criteria** — round 2. No findings."
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:26:47Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:26:50Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:26:59Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:27:11Z",
+              "body": "**review-test-plan** — round 2. No findings."
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:28:19Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:33:13Z",
+              "body": ""
+            },
+            {
+              "author": {
+                "login": "john-t-white"
+              },
+              "submittedAt": "2026-08-21T20:33:27Z",
+              "body": "**review-code** — round 3. No findings; nothing blocking. My last open thread (the `next lint` skip) is resolved — `4..."
+            }
+          ]
+        },
+        "reviewThreads": {
+          "nodes": [
+            {
+              "id": "PRRT_kwDOTa_loM6bRqFb",
+              "isResolved": true,
+              "path": ".claude/agents/review-security.md",
+              "line": 88,
+              "comments": {
+                "nodes": [
+                  {
+                    "databaseId": 3833270111,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833270111",
+                    "createdAt": "2026-08-21T19:57:27Z",
+                    "body": "**review-security** — `REVIEW.md` outranks the agent definition, but `REVIEW.md` is a file the pull request under rev...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833432579,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833432579",
+                    "createdAt": "2026-08-21T20:22:31Z",
+                    "body": "Fixed in 2553498, narrowly. The precedence clause in all four agent files now carves out two things `REVIEW.md` never...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833457340,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833457340",
+                    "createdAt": "2026-08-21T20:25:48Z",
+                    "body": "**review-security** — RESOLVE — the carve-out now lives in the agent definition rather than only in the file an attac...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "PRRT_kwDOTa_loM6bRqFd",
+              "isResolved": true,
+              "path": "REVIEW.md",
+              "line": null,
+              "comments": {
+                "nodes": [
+                  {
+                    "databaseId": 3833270114,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833270114",
+                    "createdAt": "2026-08-21T19:57:27Z",
+                    "body": "**review-security** — `package-lock.json` in the skip list removes lockfile review, which is the only dependency cont...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833432722,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833432722",
+                    "createdAt": "2026-08-21T20:22:32Z",
+                    "body": "Fixed in 2553498. `package-lock.json` is out of the generated-files bullet and has its own scoped rule: version-bump ...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833457876,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833457876",
+                    "createdAt": "2026-08-21T20:25:53Z",
+                    "body": "**review-security** — RESOLVE — `src/web/package-lock.json` is out of the generated-files bullet and has the scoped r...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "PRRT_kwDOTa_loM6bRqFg",
+              "isResolved": true,
+              "path": "REVIEW.md",
+              "line": null,
+              "comments": {
+                "nodes": [
+                  {
+                    "databaseId": 3833270117,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833270117",
+                    "createdAt": "2026-08-21T19:57:27Z",
+                    "body": "**review-security** — the generated-path skips are unconditional on path, but those paths only stay empty because `.g...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833432830,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833432830",
+                    "createdAt": "2026-08-21T20:22:33Z",
+                    "body": "Fixed in 2553498. The bullet now skips the *contents* of those paths and says that a diff touching a path `.gitignore...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833459041,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833459041",
+                    "createdAt": "2026-08-21T20:26:01Z",
+                    "body": "**review-security** — RESOLVE — the bullet now skips contents rather than paths, and the force-add case is called out.",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "PRRT_kwDOTa_loM6bRq7H",
+              "isResolved": true,
+              "path": "REVIEW.md",
+              "line": 24,
+              "comments": {
+                "nodes": [
+                  {
+                    "databaseId": 3833275140,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833275140",
+                    "createdAt": "2026-08-21T19:58:21Z",
+                    "body": "**review-code** — The blocking list has no bullet for a missing or false test plan, so every test-plan finding become...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833432952,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833432952",
+                    "createdAt": "2026-08-21T20:22:34Z",
+                    "body": "Fixed in 2553498. Added a fifth blocking bullet: \"It carries no test plan, or its test plan claims a check that was n...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833463299,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833463299",
+                    "createdAt": "2026-08-21T20:26:35Z",
+                    "body": "**review-code** — RESOLVE — the fifth blocking bullet now covers both halves of what `CONVENTIONS.md` requires (no te...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "PRRT_kwDOTa_loM6bRq7L",
+              "isResolved": true,
+              "path": "REVIEW.md",
+              "line": 35,
+              "comments": {
+                "nodes": [
+                  {
+                    "databaseId": 3833275144,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833275144",
+                    "createdAt": "2026-08-21T19:58:21Z",
+                    "body": "**review-code** — \"that round's review body\" is not a place an agent with findings writes anything today.",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833433069,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833433069",
+                    "createdAt": "2026-08-21T20:22:35Z",
+                    "body": "Fixed in 2553498, by your first option. All four batch templates now carry `body` alongside `comments`, and each file...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833463698,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833463698",
+                    "createdAt": "2026-08-21T20:26:38Z",
+                    "body": "**review-code** — RESOLVE — `body` now sits alongside `comments` in the batch template, and each file says the round ...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "PRRT_kwDOTa_loM6bRq7Q",
+              "isResolved": true,
+              "path": ".claude/agents/review-test-plan.md",
+              "line": 30,
+              "comments": {
+                "nodes": [
+                  {
+                    "databaseId": 3833275150,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833275150",
+                    "createdAt": "2026-08-21T19:58:21Z",
+                    "body": "**review-code** — Two of the four blocking bullets require the issue, which this agent is forbidden to read.",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833433266,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833433266",
+                    "createdAt": "2026-08-21T20:22:36Z",
+                    "body": "Fixed in 2553498, by your second option: `REVIEW.md` now says \"A bullet binds you where your inputs reach what it nam...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833464544,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833464544",
+                    "createdAt": "2026-08-21T20:26:47Z",
+                    "body": "**review-code** — RESOLVE — `REVIEW.md` lines 28-30 now scope a bullet to what the agent's inputs reach, which is the...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "PRRT_kwDOTa_loM6bRq7V",
+              "isResolved": true,
+              "path": "CONVENTIONS.md",
+              "line": 89,
+              "comments": {
+                "nodes": [
+                  {
+                    "databaseId": 3833275156,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833275156",
+                    "createdAt": "2026-08-21T19:58:21Z",
+                    "body": "**review-code** — This sentence lands two paragraphs under a claim that the same change makes false.",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833433433,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833433433",
+                    "createdAt": "2026-08-21T20:22:37Z",
+                    "body": "Fixed in 2553498, with your wording: the source-of-truth sentence now reads \"...and the form its findings take, withi...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833464940,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833464940",
+                    "createdAt": "2026-08-21T20:26:50Z",
+                    "body": "**review-code** — RESOLVE — the source-of-truth sentence now reads `...and the form its findings take, within the cal...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "PRRT_kwDOTa_loM6bRq7b",
+              "isResolved": true,
+              "path": "REVIEW.md",
+              "line": null,
+              "comments": {
+                "nodes": [
+                  {
+                    "databaseId": 3833275164,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833275164",
+                    "createdAt": "2026-08-21T19:58:21Z",
+                    "body": "**review-code** — \"Anything the build already enforces\" names checks that nothing in this repository currently enforces.",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833433580,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833433580",
+                    "createdAt": "2026-08-21T20:22:38Z",
+                    "body": "Partly fixed in 2553498. The bullet no longer claims a gate: it now reads \"Anything a local build already prints... N...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833465988,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833465988",
+                    "createdAt": "2026-08-21T20:26:59Z",
+                    "body": "**review-code** — RESOLVE — the bullet no longer defers to a gate that does not exist; it now says plainly that nothi...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "PRRT_kwDOTa_loM6bSJ9B",
+              "isResolved": true,
+              "path": "REVIEW.md",
+              "line": null,
+              "comments": {
+                "nodes": [
+                  {
+                    "databaseId": 3833462001,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833462001",
+                    "createdAt": "2026-08-21T20:26:24Z",
+                    "body": "**review-code** — The reworded skip defers to `next lint`, a command this repository's toolchain does not have.",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833477599,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833477599",
+                    "createdAt": "2026-08-21T20:28:19Z",
+                    "body": "Fixed in 409c862. Confirmed your check independently — `src/web/package.json` pins `next` at `16.3.1` with `\"lint\": \"...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  },
+                  {
+                    "databaseId": 3833519699,
+                    "url": "https://github.com/john-t-white/Ludium/pull/29#discussion_r3833519699",
+                    "createdAt": "2026-08-21T20:33:13Z",
+                    "body": "**review-code** — RESOLVE — the bullet now names commands that exist in this toolchain, and I ran the one my finding ...",
+                    "author": {
+                      "login": "john-t-white"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
