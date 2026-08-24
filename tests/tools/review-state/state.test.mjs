@@ -32,7 +32,7 @@ const EARLIER_OID = '0000111feed';
 const OUTSIDER = 'passing-stranger';
 
 // Builds the shape reviewState reads, so a test states only what it is about.
-function payload({ reviews = [], threads = [], headAt = HEAD_AT } = {}) {
+function payload({ reviews = [], threads = [] } = {}) {
   return {
     data: {
       viewer: { login: REVIEWER },
@@ -41,9 +41,7 @@ function payload({ reviews = [], threads = [], headAt = HEAD_AT } = {}) {
           headRefOid: HEAD_OID,
           reviews: {
             nodes: reviews.map((review) =>
-              typeof review === 'string'
-                ? { body: review, submittedAt: headAt, author: { login: REVIEWER } }
-                : { submittedAt: HEAD_AT, ...review },
+              typeof review === 'string' ? { body: review, author: { login: REVIEWER } } : review,
             ),
           },
           reviewThreads: { nodes: threads },

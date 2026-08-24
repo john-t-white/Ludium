@@ -12,189 +12,162 @@
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T19:56:14Z",
               "body": "**review-acceptance-criteria** — round 1. No findings."
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T19:56:34Z",
               "body": "**review-test-plan** — round 1. No findings."
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T19:57:27Z",
               "body": "**review-security** — round 1. Three findings, all on the same theme: the new calibration file is itself reviewed con..."
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T19:58:21Z",
               "body": "**review-code** — round 1. Two blocking findings and three minor (at the cap this file sets)."
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:22:31Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:22:32Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:22:33Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:22:34Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:22:35Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:22:36Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:22:37Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:22:38Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:25:48Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:25:53Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:26:01Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:26:18Z",
               "body": "**review-security** — round 2. No new findings; all three of my round-1 threads RESOLVE, verdicts on each."
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:26:24Z",
               "body": "**review-code** — round 2. One finding, on text 2553498 newly added (so reviewed as a first round, not a return to ma..."
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:26:35Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:26:39Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:26:42Z",
               "body": "**review-acceptance-criteria** — round 2. No findings."
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:26:47Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:26:50Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:26:59Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:27:11Z",
               "body": "**review-test-plan** — round 2. No findings."
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:28:19Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:33:13Z",
               "body": ""
             },
             {
               "author": {
                 "login": "john-t-white"
               },
-              "submittedAt": "2026-08-21T20:33:27Z",
               "body": "**review-code** — round 3. No findings; nothing blocking. My last open thread (the `next lint` skip) is resolved — `4..."
             }
           ]
