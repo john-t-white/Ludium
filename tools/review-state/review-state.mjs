@@ -12,6 +12,7 @@ import { renderReport, reviewState } from './state.mjs';
 
 const QUERY = `
 query($owner:String!,$repo:String!,$pr:Int!){
+  viewer{login}
   repository(owner:$owner,name:$repo){
     pullRequest(number:$pr){
       headRefOid
@@ -19,7 +20,7 @@ query($owner:String!,$repo:String!,$pr:Int!){
       reviews(first:100){nodes{author{login} submittedAt body}}
       reviewThreads(first:100){nodes{
         id isResolved path line
-        comments(first:50){nodes{databaseId url createdAt body author{login}}}
+        comments(first:50){nodes{databaseId createdAt body author{login}}}
       }}
     }
   }
