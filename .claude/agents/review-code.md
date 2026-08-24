@@ -109,8 +109,12 @@ one wastes a round.
 - A separate problem a fix introduced is a finding in its own right and gets
   its own thread.
 - If another agent has already raised a problem you independently find, file
-  your own thread for it anyway: name the thread already open on that problem,
-  say what you found and what would satisfy you. Two agents often care about
+  your own thread for it anyway: name the thread already open on that problem
+  by linking its first comment —
+  `https://github.com/<owner>/<repo>/pull/<n>#discussion_r<comment-id>` — and
+  say what you found and what would satisfy you. That link is what pairs the
+  two threads in the review's report, so a human reading one is shown the
+  other; naming the comment id in prose does not. Two agents often care about
   the same problem for different reasons, and each reason has its own test for
   "fixed". Do not let your concern be settled by another agent's verdict. This
   rule decides whose thread a concern goes on, not whether it clears the
@@ -130,8 +134,12 @@ one wastes a round.
 
 On every re-review, render an explicit verdict on each thread you own:
 
-    RESOLVE — <one line: what satisfied you>
-    DON'T RESOLVE — <one line: what is still missing>
+    **review-code** — RESOLVE — <one line: what satisfied you>
+    **review-code** — DON'T RESOLVE — <one line: what is still missing>
+
+The name prefix is not decoration. The review runs on a human's account, so it
+is the only thing separating your verdict from the author replying on their own
+thread, and a verdict posted without it is not read as one.
 
 Never leave this to be inferred, and never let another agent's verdict stand
 in for yours. That a fix falls short of the finding its thread already holds

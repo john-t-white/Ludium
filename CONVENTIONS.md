@@ -92,6 +92,23 @@ why, and `REVIEW.md` is what a review does with the change in front of it.
 This review never approves or merges on its own; a human reads the findings,
 responds inline, decides what to act on, and makes the merge call.
 
+**A round runs as one command.** The loop around the agents — dispatching all
+four, telling each what round it is on and which of its threads are open,
+checking that each round actually posted, and reporting what is left — is
+[.claude/skills/pr-review/](.claude/skills/pr-review/), and running it is
+what a review round is. Assembling that loop by hand each time made two runs
+of "the same" review not the same review, which is the problem the checked-in
+agent definitions already solved for the agents themselves. The parts of a
+round that are facts rather than judgments — who owns a thread, which are
+unresolved, who still owes a verdict, what round each agent is on — are
+settled by [tools/review-state/](tools/review-state/) before any agent runs,
+because an agent working them out spends calls on it every round and can get
+it wrong, while a check returns the same answer every time. A thread that a
+second agent opened on a problem already raised is reported together with the
+first, so a human reading one is shown the other rather than having to notice
+the connection. As with the agent files, this document says why; the skill is
+what runs.
+
 **A finding gets one thread.** A finding stays on the thread it was first
 raised on, from that first raise until it is resolved. A follow-up about
 that same finding — the fix is wrong, or incomplete, or raises a new
