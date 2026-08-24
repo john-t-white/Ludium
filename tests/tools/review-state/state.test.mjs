@@ -32,18 +32,16 @@ const EARLIER_OID = '0000111feed';
 const OUTSIDER = 'passing-stranger';
 
 // Builds the shape reviewState reads, so a test states only what it is about.
-function payload({ reviews = [], threads = [] } = {}) {
+function payload({ threads = [] } = {}) {
   return {
     data: {
       viewer: { login: REVIEWER },
       repository: {
         pullRequest: {
           headRefOid: HEAD_OID,
-          reviews: {
-            nodes: reviews.map((review) =>
-              typeof review === 'string' ? { body: review, author: { login: REVIEWER } } : review,
-            ),
-          },
+          // Rounds are counted from reviews, and every case that exercises
+          // that passes its own list to roundFor directly.
+          reviews: { nodes: [] },
           reviewThreads: { nodes: threads },
         },
       },
