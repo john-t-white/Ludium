@@ -27,7 +27,9 @@ current phase and progress.
 - **Working conventions:** see [CONVENTIONS.md](CONVENTIONS.md) for what's
   being built, in what order, and how work is planned and reviewed.
 - **Review agents:** [.claude/agents/](.claude/agents/) — the four agents that
-  review every pull request, one definition file each.
+  review every pull request, one definition file each. A round of that review
+  runs as one command, [.claude/skills/pr-review/](.claude/skills/pr-review/),
+  invoked in Claude Code as `/pr-review <number>`.
 - **Review tooling:** [tools/review-state/](tools/review-state/) — reports the
   review state of a pull request. Run it with
   `node tools/review-state/review-state.mjs --pr <number>`, and its tests with
