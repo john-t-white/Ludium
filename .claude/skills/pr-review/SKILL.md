@@ -47,10 +47,16 @@ source of thread state and a thing under review: a regression in it reports no
 open threads and no verdicts owed, step 3's check passes, and step 4 declares
 the review finished on the strength of the very diff being reviewed.
 
-    T=$(mktemp -d)
-    git show main:tools/review-state/state.mjs        > "$T/state.mjs"
-    git show main:tools/review-state/review-state.mjs > "$T/review-state.mjs"
+    T=$(mktemp -d) &&
+    git show main:tools/review-state/state.mjs        > "$T/state.mjs" &&
+    git show main:tools/review-state/review-state.mjs > "$T/review-state.mjs" &&
     node "$T/review-state.mjs" --pr <number>
+
+Keep it one chained command. A redirect creates its file whether or not the
+`git show` feeding it succeeded, so unchained lines would run `node` against an
+empty file and print nothing — reachable the day a pull request *adds* a file
+under `tools/review-state/`, which is the same condition that selects this
+block.
 
 The tool answers from the GitHub API and takes `--pr`, so it needs nothing from
 the branch's tree; it is two files, and imports nothing but node builtins and
@@ -101,8 +107,10 @@ identical afterwards.
 
 ## 3. Confirm each round posted
 
-Re-run the state command — the same copy step 1 used, base branch's or the
-branch's own. Each dispatched agent's next-round number must have gone up by
+Re-run the state command — the same copy step 1 used. Where that was the base
+branch's, run step 1's whole block again rather than reaching for `$T`, which
+did not survive the dispatches; a fresh `mktemp -d` re-reads `main`'s blobs,
+which is what you want anyway. Each dispatched agent's next-round number must have gone up by
 one; that is what proves its review reached the pull request.
 
 That number counts reviews whose body carries the agent's name prefix, which is
