@@ -109,13 +109,25 @@ identical afterwards.
 ## 3. Check the round
 
 Re-run the state command for the state the round left behind, then check the
-round against it — both the same copy step 1 used. Where that was the base
-branch's, run step 1's whole block again rather than reaching for `$T`, which
-did not survive the dispatches; a fresh `mktemp -d` re-reads `main`, which is
-what you want anyway.
+round against it. Both run the copy step 1 chose, for the reason step 1 gives:
+the check is a gate, so a branch that could supply it could pass itself.
 
     node tools/review-state/review-state.mjs --pr <number>
-    node tools/review-state/review-state.mjs check --pr <number>       --dispatched review-code=2,review-security=2
+    node tools/review-state/review-state.mjs check --pr <number> --dispatched review-code=2,review-security=2
+
+**When the diff touches `tools/review-state/`, run `main`'s copy of both**, as
+step 1 did. `$T` did not survive the dispatches, so extract it again — a fresh
+`mktemp -d` re-reads `main`, which is what you want anyway:
+
+    T=$(mktemp -d) &&
+    git archive main tools/review-state | tar -x -C "$T" &&
+    node "$T/tools/review-state/review-state.mjs" --pr <number> &&
+    node "$T/tools/review-state/review-state.mjs" check --pr <number> --dispatched review-code=2,review-security=2
+
+A branch adding a check `main` does not have yet is the one case this cannot
+run: say so in the report and check the round by hand, rather than reaching
+for the branch's copy. That is the branch under review deciding whether its own
+round passed, which is the whole of what step 1 exists to prevent.
 
 The report is what step 4 reads. The check exits 0, or exits non-zero naming
 what broke — an agent that did not post, a thread its owner left unverdicted, a

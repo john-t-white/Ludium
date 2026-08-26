@@ -8,8 +8,12 @@ import { checkRound, renderCheck } from '../../../tools/review-state/check.mjs';
 const REVIEWER = 'john-t-white';
 const HEAD_OID = 'abc1234def';
 const EARLIER_OID = '0000111feed';
+// A thread raised before this round, the round's own review, and a thread the
+// round itself raised. A verdict is owed on the first and not on the third:
+// no agent can render one on a finding it has just written.
 const AT = '2026-08-26T12:00:00Z';
-const LATER = '2026-08-26T13:00:00Z';
+const ROUND_AT = '2026-08-26T13:00:00Z';
+const LATER = '2026-08-26T14:00:00Z';
 
 // The forms tools/review-post/ writes. A case that wants a compliant round
 // asks for one of these rather than spelling the punctuation out again.
@@ -22,7 +26,11 @@ const findingBody = (agent, severity = 'blocking') =>
 
 const verdictBody = (agent, verdict = 'RESOLVE') => `**${agent}** — ${verdict} — the fix holds.`;
 
-const review = (body, login = REVIEWER) => ({ body, author: { login } });
+const review = (body, { login = REVIEWER, at = ROUND_AT } = {}) => ({
+  body,
+  createdAt: at,
+  author: { login },
+});
 
 let nextId = 1;
 
@@ -113,7 +121,9 @@ describe('a dispatched agent that did not post', () => {
   });
 
   test('is a failure when the review is somebody else writing the prefix', () => {
-    const state = payload({ reviews: [review(roundBody('review-code', 1), 'passing-stranger')] });
+    const state = payload({
+      reviews: [review(roundBody('review-code', 1), { login: 'passing-stranger' })],
+    });
     assert.deepEqual(kinds(checkRound(state, { 'review-code': 1 })), ['no-round']);
   });
 
@@ -151,6 +161,28 @@ describe('an owned thread left unverdicted', () => {
     assert.deepEqual(kinds(checkRound(state, { 'review-code': 1 })), ['owes-verdict']);
   });
 
+  test('is not a failure on a thread the round itself raised', () => {
+    // The finding and its round record arrive together, and no agent renders
+    // a verdict on a finding it has just written — verdicts are owed on the
+    // re-review. Reported as owed, every first round would fail this check.
+    const state = payload({
+      reviews: [review(roundBody('review-code', 1, { blocking: 1 }))],
+      threads: [thread({ comments: [comment(findingBody('review-code'), { at: LATER })] })],
+    });
+    assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
+  });
+
+  test('is a failure on a thread raised in an earlier round', () => {
+    const state = payload({
+      reviews: [
+        review(roundBody('review-code', 1, { blocking: 1 }), { at: AT }),
+        review(roundBody('review-code', 2), { at: LATER }),
+      ],
+      threads: [thread({ comments: [comment(findingBody('review-code'), { at: AT })] })],
+    });
+    assert.deepEqual(kinds(checkRound(state, { 'review-code': 2 })), ['owes-verdict']);
+  });
+
   test('is not a failure on a thread its owner was not dispatched to answer', () => {
     const state = payload({
       reviews: [review(roundBody('review-code', 1))],
@@ -178,16 +210,27 @@ describe('a round not posted by tools/review-post/', () => {
     assert.equal(failures[0].agent, 'review-code');
   });
 
-  test('is a failure when the body counts a round the agent was not dispatched to', () => {
+  test('a round record numbering a different round is its own failure', () => {
+    // The command wrote this body; what is wrong is the number it was given,
+    // so saying it was not posted through the command would be untrue.
     const state = payload({ reviews: [review(roundBody('review-code', 4))] });
     const failures = checkRound(state, { 'review-code': 1 });
-    assert.deepEqual(kinds(failures), ['hand-posted']);
+    assert.deepEqual(kinds(failures), ['wrong-round']);
     assert.match(failures[0].detail, /round 4/);
   });
 
   test('reads a round whose cap held back findings', () => {
     const state = payload({ reviews: [review(roundBody('review-code', 1, { minor: 3, similar: 2 }))] });
     assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
+  });
+
+  test('reads a round whose held-back summary contains a paren', () => {
+    // review-post takes `similar.about` as free prose, so a body the command
+    // itself wrote must not read as one an agent composed.
+    const body =
+      '**review-code** — round 1 · 0 blocking, 3 minor ' +
+      '(plus 2 similar: naming (mostly) and wording). Looked at the diff.';
+    assert.deepEqual(checkRound(payload({ reviews: [review(body)] }), { 'review-code': 1 }), []);
   });
 
   test('checks only the round the agent was dispatched to run', () => {
@@ -216,7 +259,9 @@ describe('an unanchored finding', () => {
       ],
     });
     const failures = checkRound(state, { 'review-code': 1 });
-    assert.deepEqual(kinds(failures), ['unanchored']);
+    // The thread is anchored; what it lacks is the tag, and the two are
+    // different failures.
+    assert.deepEqual(kinds(failures), ['untagged']);
   });
 
   test('is a failure when a thread with no line is not marked file-level', () => {
@@ -347,6 +392,35 @@ describe('an unlinked sibling', () => {
     assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
   });
 
+  test('is not a failure on two file-level threads in one file', () => {
+    // A file-level finding has no line, and #32's criterion pairs threads
+    // "sharing another's file and line". Two agents with unrelated things to
+    // say about one file have nothing to link.
+    const state = payload({
+      reviews: [
+        review(roundBody('review-code', 1, { minor: 1 })),
+        review(roundBody('review-security', 1, { minor: 1 })),
+      ],
+      threads: [
+        thread({
+          path: 'REVIEW.md',
+          line: null,
+          comments: [
+            comment(findingBody('review-code', 'minor · file-level'), { at: LATER }),
+          ],
+        }),
+        thread({
+          path: 'REVIEW.md',
+          line: null,
+          comments: [
+            comment(findingBody('review-security', 'minor · file-level'), { at: LATER }),
+          ],
+        }),
+      ],
+    });
+    assert.deepEqual(checkRound(state, { 'review-code': 1, 'review-security': 1 }), []);
+  });
+
   test('is not a failure on two threads in the same file at different lines', () => {
     const state = payload({
       reviews: [
@@ -401,7 +475,7 @@ describe('a round that broke several rules', () => {
       threads: [thread({ comments: [comment('**review-code** — the check never runs.')] })],
     });
     const failures = checkRound(state, { 'review-code': 1, 'review-test-plan': 1 });
-    assert.deepEqual(kinds(failures).sort(), ['no-round', 'over-cap', 'owes-verdict', 'unanchored']);
+    assert.deepEqual(kinds(failures).sort(), ['no-round', 'over-cap', 'owes-verdict', 'untagged']);
   });
 });
 
