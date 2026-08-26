@@ -79,16 +79,23 @@ general code review, and a security review. Each posts its own findings as
 inline PR comments under its own name, so a finding reads as the agent that
 raised it wrote it. The four run as subagents spawned for the purpose, from
 checked-in definitions in [.claude/agents/](.claude/agents/) — one file per
-agent, and the source of truth for what each reads, what it looks for, and
-the form its findings take, within the calibration `REVIEW.md` sets.
-This document says why the review works the way it does; those files are what
+agent, and the source of truth for what each reads and what it looks for,
+within the calibration `REVIEW.md` sets. An agent file holds that judgment and
+nothing else: how a finding is filed is the same for all four, so it is written
+once in `REVIEW.md` and enforced by [tools/review-post/](tools/review-post/),
+the one command an agent posts a round with. The name prefix, the severity
+tag, and the link that pairs two threads on one problem are written by that
+command, and it refuses a finding with no anchor, because every one of those
+was a rule in prose that an agent broke at least once. This document says why
+the review works the way it does; those files and that command are what
 actually runs, so a change to how a review runs is a change to them. Each
-agent runs at a capability level matched to its job, and its file records why.
-What a review flags, at what severity, and how much of it is calibration
-rather than process, and it lives in [REVIEW.md](REVIEW.md), which a review
-reads and nothing else does. The three files divide cleanly: `CLAUDE.md` is
-context for all work, this document is how work is planned and reviewed and
-why, and `REVIEW.md` is what a review does with the change in front of it.
+agent runs at a capability level matched to its job, recorded in its
+frontmatter. What a review flags, at what severity, how much of it, and how a
+finding is filed is calibration rather than process, and it lives in
+[REVIEW.md](REVIEW.md), which a review reads and nothing else does. The three
+files divide cleanly: `CLAUDE.md` is context for all work, this document is
+how work is planned and reviewed and why, and `REVIEW.md` is what a review
+does with the change in front of it.
 This review never approves or merges on its own; a human reads the findings,
 responds inline, decides what to act on, and makes the merge call.
 

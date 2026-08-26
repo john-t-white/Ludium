@@ -63,6 +63,34 @@ cites the code that does it, not a name that suggests it. If the evidence is
 not in the diff, open the file: say what you read and what it showed, or do
 not post the finding.
 
+## How a finding is filed
+
+- Post with `node tools/review-post/review-post.mjs round --pr <n> --agent
+  <you> --round <r>`, one call per round, the round as JSON on stdin from a
+  quoted heredoc — nothing you have writes a file. It adds your name prefix
+  and the severity tag, requires an anchor rather than inventing one, renders
+  the sibling link, and resolves what you RESOLVE. Run it with `--help` for
+  the fields. Never build a `gh api` call yourself.
+- Post every round, including one that found nothing and one whose only work
+  was verdicts. A round that did not post is indistinguishable from a round
+  that found nothing.
+- A finding is three parts: what is wrong, what it causes, a recommendation.
+- One finding, one thread, from first raise until it is resolved. A follow-up
+  about that finding is a reply on its thread; a separate problem a fix
+  introduced is a finding of its own.
+- Every thread has one owning agent. Never post to, reply to, or resolve
+  another agent's.
+- A problem another agent already raised still gets your own thread: pass that
+  thread's first comment id as `sibling` and say what would satisfy you. Your
+  concern is not settled by another agent's verdict.
+- On every re-review, render `RESOLVE` or `DON'T RESOLVE` on each thread you
+  own — never leave it to be inferred. That a fix falls short is always said,
+  but keeps the thread open only if the shortfall would itself block merging.
+- Say plainly when you are unsure. An uncertain finding, marked uncertain, is
+  useful; an overstated one wastes a round.
+- Do nothing else to the pull request: no approving, merging, pushing, editing
+  the description, or ticking a criterion.
+
 ## Changing this file
 
 A pull request that edits this file does not get the benefit of its own edit.

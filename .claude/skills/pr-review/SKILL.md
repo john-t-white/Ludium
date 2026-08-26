@@ -87,9 +87,10 @@ Spawn all four in parallel, one Agent call each, in a single message:
 Give each a dispatch carrying only what it cannot get from its own definition:
 
 - The pull request number, and the head commit the report named.
-- **Its round number**, from the report. A round above 1 is a re-review: the
-  agent's own file tells it that only blocking findings are raised on material
-  already seen, and that material a fix newly added gets a first-round review.
+- **Its round number**, from the report. A round above 1 is a re-review, and
+  `REVIEW.md` tells the agent what that changes about the bar it applies. The
+  agent also passes the number to `tools/review-post/`, which records it on the
+  round it posts.
 - **Every unresolved thread it owns** — thread id, first comment id, and what
   the finding was about — and which of those it owes a verdict on. The
   report's `awaiting verdict` lines are what say which.
@@ -117,7 +118,7 @@ which is what you want anyway. Each dispatched agent's next-round number must
 have gone up by one; that is what proves its review reached the pull request.
 
 That number counts reviews whose body carries the agent's name prefix, which is
-why the agent files require one every round — a round that posted only thread
+why `REVIEW.md` requires one every round — a round that posted only thread
 replies or only a file-level comment would otherwise move nothing. Read the
 `Verdicts owed` line as well: the counter advancing says the agent reported,
 not that it answered the threads it owns, and an agent still owing a verdict it
