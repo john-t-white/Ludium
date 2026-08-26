@@ -44,12 +44,25 @@ function comment(body, { at = AT, login = REVIEWER, oid = HEAD_OID } = {}) {
   };
 }
 
-function thread({ isResolved = false, path = 'tools/review-state/check.mjs', line = 10, comments }) {
+// `line` is what a thread anchors to now and goes null once the thread is
+// outdated; `subjectType` is what it was posted as and does not move. A case
+// that wants an outdated thread passes `line: null` and leaves subjectType
+// alone; one that wants a file-level finding passes `subjectType: 'FILE'`.
+function thread({
+  isResolved = false,
+  path = 'tools/review-state/check.mjs',
+  line = 10,
+  originalLine = line,
+  subjectType = 'LINE',
+  comments,
+}) {
   return {
     id: `PRRT_${(nextId += 1)}`,
     isResolved,
     path,
     line,
+    originalLine,
+    subjectType,
     comments: { nodes: comments },
   };
 }
@@ -270,11 +283,30 @@ describe('an unanchored finding', () => {
       threads: [
         thread({
           line: null,
+          subjectType: 'FILE',
           comments: [comment(findingBody('review-code')), comment(verdictBody('review-code'))],
         }),
       ],
     });
     assert.deepEqual(kinds(checkRound(state, { 'review-code': 1 })), ['unanchored']);
+  });
+
+  test('is not a failure on a thread that has merely gone outdated', () => {
+    // GitHub nulls `line` when a thread goes outdated, so a null line alone
+    // says nothing about how the finding was posted. What it was anchored to
+    // is `subjectType`, and a posted comment cannot be re-anchored — read as
+    // unanchored, an outdated thread fails a round nobody can fix.
+    const state = payload({
+      reviews: [review(roundBody('review-code', 1, { blocking: 1 }))],
+      threads: [
+        thread({
+          line: null,
+          originalLine: 42,
+          comments: [comment(findingBody('review-code')), comment(verdictBody('review-code'))],
+        }),
+      ],
+    });
+    assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
   });
 
   test('is not a failure on a file-level finding that says so', () => {
@@ -283,6 +315,7 @@ describe('an unanchored finding', () => {
       threads: [
         thread({
           line: null,
+          subjectType: 'FILE',
           comments: [
             comment(findingBody('review-code', 'minor · file-level')),
             comment(verdictBody('review-code')),
@@ -329,6 +362,36 @@ describe('an unlinked sibling', () => {
     const failures = checkRound(state, { 'review-code': 1, 'review-security': 1 });
     assert.deepEqual(kinds(failures), ['unlinked-sibling']);
     assert.match(failures[0].detail, /REVIEW\.md:42/);
+  });
+
+  test('is a failure on two outdated threads that shared a line', () => {
+    // The pair has to survive the threads going outdated: what they shared is
+    // `originalLine`, which does not move.
+    const state = payload({
+      reviews: [
+        review(roundBody('review-code', 1, { blocking: 1 })),
+        review(roundBody('review-security', 1, { blocking: 1 })),
+      ],
+      threads: [
+        thread({
+          path: 'REVIEW.md',
+          line: null,
+          originalLine: 42,
+          comments: [comment(findingBody('review-code')), comment(verdictBody('review-code'))],
+        }),
+        thread({
+          path: 'REVIEW.md',
+          line: null,
+          originalLine: 42,
+          comments: [
+            comment(findingBody('review-security')),
+            comment(verdictBody('review-security')),
+          ],
+        }),
+      ],
+    });
+    const failures = checkRound(state, { 'review-code': 1, 'review-security': 1 });
+    assert.deepEqual(kinds(failures), ['unlinked-sibling']);
   });
 
   test('is not a failure when the second thread links the first', () => {
@@ -405,6 +468,7 @@ describe('an unlinked sibling', () => {
         thread({
           path: 'REVIEW.md',
           line: null,
+          subjectType: 'FILE',
           comments: [
             comment(findingBody('review-code', 'minor · file-level'), { at: LATER }),
           ],
@@ -412,6 +476,7 @@ describe('an unlinked sibling', () => {
         thread({
           path: 'REVIEW.md',
           line: null,
+          subjectType: 'FILE',
           comments: [
             comment(findingBody('review-security', 'minor · file-level'), { at: LATER }),
           ],

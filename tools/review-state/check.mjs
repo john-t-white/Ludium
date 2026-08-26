@@ -77,9 +77,10 @@ function roundRecords(reviews, dispatched, reviewAccount) {
  * the verdict is owed on the re-review, once a fix has answered it. Counting
  * a round's own findings would fail every first round.
  *
- * An agent whose round record is missing its timestamp is left alone: that is
- * a payload this cannot read rather than a rule anybody broke, and a check
- * that fails a compliant round is one people learn to run past.
+ * An agent whose round record carries no timestamp is reported rather than
+ * skipped: the query fetches one on every review, so a payload without it is
+ * one this cannot read, and the reading that costs a false failure beats the
+ * one that drops a verdict nobody then renders.
  */
 function unverdicted(state, dispatched, reviews, raised) {
   const records = roundRecords(reviews, dispatched, state.reviewAccount);
@@ -164,6 +165,16 @@ function checkRoundRecord(agent, round, reviews, reviewAccount, failures) {
   }
 }
 
+/**
+ * Findings the command could not have posted: no severity tag, or no anchor
+ * and nothing saying the finding never had one.
+ *
+ * A null `line` is not the test for either. GitHub nulls it once a thread goes
+ * outdated, so a finding posted correctly against a line reads as unanchored
+ * the moment a fix moves that line — and a posted comment cannot be
+ * re-anchored, so the round would fail with nothing anybody could do about it.
+ * What the finding was posted as is `subjectType`, which does not move.
+ */
 function malformed(state, raised) {
   const failures = [];
   for (const thread of state.threads) {
@@ -175,11 +186,11 @@ function malformed(state, raised) {
         agent: thread.owner,
         detail: `${anchor(thread)} — thread ${thread.id} carries no severity tag`,
       });
-    } else if (thread.line === null && match[1] === undefined) {
+    } else if (thread.subjectType === 'FILE' && match[1] === undefined) {
       failures.push({
         kind: 'unanchored',
         agent: thread.owner,
-        detail: `${anchor(thread)} — thread ${thread.id} has no line and is not file-level`,
+        detail: `${anchor(thread)} — thread ${thread.id} has no anchor and is not file-level`,
       });
     }
   }
@@ -193,6 +204,20 @@ function malformed(state, raised) {
  * Two open threads at one spot, owned by different agents and in different
  * groups, is that failure.
  */
+/**
+ * Where a thread was raised, or null for one that pairs with nothing.
+ *
+ * A file-level finding has no line, and #32 pairs threads "sharing another's
+ * file and line" — two agents with unrelated things to say about one file are
+ * not one problem, and have nothing to link. For the rest it is the line the
+ * finding was posted against, which outlives the thread going outdated.
+ */
+function spotOf(thread) {
+  if (thread.subjectType === 'FILE') return null;
+  const line = thread.line ?? thread.originalLine;
+  return line === null ? null : `${thread.path}:${line}`;
+}
+
 function unlinkedSiblings(state) {
   const group = new Map();
   linkedGroups(state.threads).forEach((threads, index) => {
@@ -204,10 +229,7 @@ function unlinkedSiblings(state) {
   for (let i = 0; i < open.length; i += 1) {
     for (let j = i + 1; j < open.length; j += 1) {
       const [one, other] = [open[i], open[j]];
-      // A file-level finding has no line, and #32 pairs threads "sharing
-      // another's file and line". Two agents with unrelated things to say
-      // about one file are not one problem, and have nothing to link.
-      if (one.line === null || one.line !== other.line || one.path !== other.path) continue;
+      if (spotOf(one) === null || spotOf(one) !== spotOf(other)) continue;
       if (one.owner === other.owner) continue;
       if (group.get(one.id) === group.get(other.id)) continue;
       failures.push({
