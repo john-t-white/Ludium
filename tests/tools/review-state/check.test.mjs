@@ -394,6 +394,33 @@ describe('an unlinked sibling', () => {
     assert.deepEqual(kinds(failures), ['unlinked-sibling']);
   });
 
+  test('does not pair a live thread with an outdated one at the same number', () => {
+    // `line` is where a thread sits now and `originalLine` where it was
+    // raised. Comparing one against the other pairs two threads that were
+    // never at the same place, on a coincidence of numbering.
+    const state = payload({
+      reviews: [
+        review(roundBody('review-code', 1, { blocking: 1 })),
+        review(roundBody('review-security', 1, { blocking: 1 })),
+      ],
+      threads: [
+        thread({
+          path: 'REVIEW.md',
+          line: null,
+          originalLine: 42,
+          comments: [comment(findingBody('review-security')), comment(verdictBody('review-security'))],
+        }),
+        thread({
+          path: 'REVIEW.md',
+          line: 42,
+          originalLine: 7,
+          comments: [comment(findingBody('review-code')), comment(verdictBody('review-code'))],
+        }),
+      ],
+    });
+    assert.deepEqual(checkRound(state, { 'review-code': 1, 'review-security': 1 }), []);
+  });
+
   test('is not a failure when the second thread links the first', () => {
     const first = comment(findingBody('review-code'));
     const state = payload({

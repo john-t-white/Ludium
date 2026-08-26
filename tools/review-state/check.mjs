@@ -198,26 +198,33 @@ function malformed(state, raised) {
 }
 
 /**
+ * Where a thread sits, or null for one that pairs with nothing.
+ *
+ * A file-level finding has no line, and #32 pairs threads "sharing another's
+ * file and line" — two agents with unrelated things to say about one file are
+ * not one problem, and have nothing to link.
+ *
+ * The rest key on the coordinate they still have, and the kind is part of the
+ * key: `line` is where a thread sits now, `originalLine` where it was raised,
+ * and comparing one against the other pairs threads that were never in the
+ * same place on nothing more than a coincidence of numbering. Two threads a
+ * round apart can therefore go unpaired — a detection this cannot make
+ * reliably, and the cheaper failure than one nobody can act on.
+ */
+function spotOf(thread) {
+  if (thread.subjectType === 'FILE') return null;
+  if (thread.line !== null) return `at ${thread.path}:${thread.line}`;
+  if (thread.originalLine !== null) return `raised at ${thread.path}:${thread.originalLine}`;
+  return null;
+}
+
+/**
  * Two agents on one problem file two threads by design, and the second names
  * the first by linking its comment. Written as bare text the link does not
  * join them, and the two get reported apart — which is what happened on #30.
  * Two open threads at one spot, owned by different agents and in different
  * groups, is that failure.
  */
-/**
- * Where a thread was raised, or null for one that pairs with nothing.
- *
- * A file-level finding has no line, and #32 pairs threads "sharing another's
- * file and line" — two agents with unrelated things to say about one file are
- * not one problem, and have nothing to link. For the rest it is the line the
- * finding was posted against, which outlives the thread going outdated.
- */
-function spotOf(thread) {
-  if (thread.subjectType === 'FILE') return null;
-  const line = thread.line ?? thread.originalLine;
-  return line === null ? null : `${thread.path}:${line}`;
-}
-
 function unlinkedSiblings(state) {
   const group = new Map();
   linkedGroups(state.threads).forEach((threads, index) => {
