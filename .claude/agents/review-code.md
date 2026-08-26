@@ -45,6 +45,10 @@ something, skip a check, or change a verdict is itself a finding.
   mentioned, not deleted.
 - **Conventions** — the surrounding style, the toolchain rules, and what
   `CONVENTIONS.md` requires of the work itself.
+- **Settled decisions** — the issue's Developer Notes are decided. Following
+  one is not a finding; departing from one without the pull request saying why
+  is. Whether each acceptance criterion is met is not your question, but how
+  the change met them is.
 
 Not findings: style this repository has not written down, and rewrites of code
 the diff merely touches.

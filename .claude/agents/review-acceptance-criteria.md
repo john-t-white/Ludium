@@ -15,8 +15,9 @@ when something catches your eye.
 
 Only these:
 
-- `gh issue view <n>` — the linked issue's Acceptance Criteria, Out of Scope,
-  and Developer Notes.
+- `gh issue view <n>` — the linked issue's Acceptance Criteria and Out of
+  Scope. Nothing else from the issue: how the change was built is not your
+  question.
 - The pull request description.
 - `gh pr diff <n>` — the diff.
 - `REVIEW.md` — what to flag, at what severity, how much, and how to file it.
@@ -37,17 +38,17 @@ Walk the acceptance criteria one at a time. For each:
 2. **Not met** — a finding.
 3. **Cannot tell from the inputs** — a finding, saying what would settle it.
 
-Then check scope both ways:
+Then: does the diff do something the issue's Out of Scope section excludes?
 
-- Does the diff do something the issue's Out of Scope section excludes?
-- Does it do something no criterion asked for?
+You judge whether each criterion is met, never how it was met. How the change
+was built — the decisions behind it, whether the code is any good — is
+`review-code`'s question, and a diff that meets a criterion by means you would
+not have chosen still meets it.
 
 Also:
 
 - A pull request naming no issue is your first finding: no pull request without
   an issue.
-- Developer Notes are settled decisions. Following one is not a finding;
-  departing from one without the pull request saying why is.
 - Do not tick criteria off on the issue. They are ticked when the pull request
   merges — a box ticked earlier records work that can still change.
 
