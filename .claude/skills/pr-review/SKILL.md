@@ -1,6 +1,6 @@
 ---
 name: pr-review
-description: Run one round of Ludium's multi-agent pull request review — establish thread state deterministically, dispatch the four review agents, confirm each round posted, and report what is still open. Use when asked to review a pull request in this repository, or to re-review one after fixes have landed.
+description: Run one round of Ludium's multi-agent pull request review — establish thread state deterministically, dispatch the four review agents, check the round they posted, and report what is still open. Use when asked to review a pull request in this repository, or to re-review one after fixes have landed.
 ---
 
 # Running a review round
@@ -48,22 +48,19 @@ open threads and no verdicts owed, step 3's check passes, and step 4 declares
 the review finished on the strength of the very diff being reviewed.
 
     T=$(mktemp -d) &&
-    git show main:tools/review-state/state.mjs        > "$T/state.mjs" &&
-    git show main:tools/review-state/review-state.mjs > "$T/review-state.mjs" &&
-    node "$T/review-state.mjs" --pr <number>
+    git archive main tools/review-state | tar -x -C "$T" &&
+    node "$T/tools/review-state/review-state.mjs" --pr <number>
 
-Keep it one chained command. A redirect creates its file whether or not the
-`git show` feeding it succeeded, so unchained lines would run `node` against an
-empty file and print nothing. Both paths above exist on `main` today, so what
-makes that reachable is `main` itself: no local `main` ref to resolve, or these
-two files moving on `main` later. The same second case has a failure the chain
-cannot catch — the day `main`'s `review-state.mjs` imports a third file,
-copying two blobs leaves `node` failing on the missing import. Both are loud,
-which is the point: this block must produce a report or nothing.
+Keep it one chained command, and extract the whole directory rather than named
+files. An unchained `tar` that extracted nothing would leave `node` running
+against a missing path, and naming files would leave it failing on a missing
+import the day the tool grows one. What is left is `main` itself — no local
+`main` ref to resolve — which is loud, and that is the point: this block must
+produce a report or nothing.
 
 The tool answers from the GitHub API and takes `--pr`, so it needs nothing from
-the branch's tree; it is two files, and imports nothing but node builtins and
-its own sibling. Reading `main`'s blobs leaves nothing behind to go stale,
+the branch's tree, and imports nothing but node builtins and its own siblings.
+Reading `main` into a scratch directory leaves nothing behind to go stale,
 collide on a second round, or drift onto another branch — so there is no
 teardown, and nothing to verify before trusting it. Use this form rather than a
 worktree, which has all three of those failure modes and must be checked
@@ -109,27 +106,40 @@ its thread cannot close without it. When you do leave an agent out, say so in
 the report, because a round nobody ran and a round that found nothing look
 identical afterwards.
 
-## 3. Confirm each round posted
+## 3. Check the round
 
-Re-run the state command — the same copy step 1 used. Where that was the base
+Re-run the state command for the state the round left behind, then check the
+round against it — both the same copy step 1 used. Where that was the base
 branch's, run step 1's whole block again rather than reaching for `$T`, which
-did not survive the dispatches; a fresh `mktemp -d` re-reads `main`'s blobs,
-which is what you want anyway. Each dispatched agent's next-round number must
-have gone up by one; that is what proves its review reached the pull request.
+did not survive the dispatches; a fresh `mktemp -d` re-reads `main`, which is
+what you want anyway.
 
-That number counts reviews whose body carries the agent's name prefix, which is
-why `REVIEW.md` requires one every round — a round that posted only thread
-replies or only a file-level comment would otherwise move nothing. Read the
-`Verdicts owed` line as well: the counter advancing says the agent reported,
-not that it answered the threads it owns, and an agent still owing a verdict it
-was dispatched to render has not finished its round either.
+    node tools/review-state/review-state.mjs --pr <number>
+    node tools/review-state/review-state.mjs check --pr <number>       --dispatched review-code=2,review-security=2
 
-An agent that returned findings to you but whose round did not advance **did
-not post**, and its findings exist nowhere but in its reply to you. This has
-happened. Dispatch that agent once more, telling it its previous round did not
-post and to check the API call succeeded. If it fails again, say so in the
-report and quote what it found, rather than letting a silent failure read as a
-clean round.
+The report is what step 4 reads. The check exits 0, or exits non-zero naming
+what broke — an agent that did not post, a thread its owner left unverdicted, a
+round not posted through `tools/review-post/`, a finding with no anchor, two
+agents on one line with no link between their threads, a round over the
+minor-findings cap. **Do not judge any of that by reading the pull request**
+yourself; that is what this step exists to replace.
+
+`--dispatched` is the agents you actually dispatched and the round number you
+gave each. An agent you left out of the round is left out here, which is what
+tells a round nobody ran from a round that found nothing.
+
+**`did not post its round`** means that agent's findings exist nowhere but in
+its reply to you. This has happened. Dispatch that agent once more, telling it
+its previous round did not post and to check the call succeeded. If it fails
+again, say so in the report and quote what it found, rather than letting a
+silent failure read as a clean round.
+
+**`left a thread it owns unverdicted`** means it reported without finishing:
+nobody else can render that verdict and the thread cannot close without it.
+Dispatch it again for the threads the check names.
+
+Run the check again after any re-dispatch, raising that agent's number in the
+spec if its earlier round did post.
 
 ## 4. Report
 
