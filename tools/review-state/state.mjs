@@ -151,6 +151,11 @@ function normalizeThread(node, reviewAccount) {
     isResolved: node.isResolved,
     path: node.path,
     line: node.line,
+    // What the thread was posted against, which is not what it is anchored to
+    // now: GitHub nulls `line` once a thread goes outdated, while
+    // `originalLine` and `subjectType` are fixed when the comment is written.
+    originalLine: node.originalLine ?? null,
+    subjectType: node.subjectType ?? 'LINE',
     owner,
     commentId: first?.databaseId ?? null,
     summary: summarize(first?.body),
@@ -203,7 +208,8 @@ export function reviewState(payload) {
   };
 }
 
-const anchor = (thread) => (thread.line === null ? thread.path : `${thread.path}:${thread.line}`);
+/** How a thread is named in a report: its file, and its line where it has one. */
+export const anchor = (thread) => (thread.line === null ? thread.path : `${thread.path}:${thread.line}`);
 
 function status(thread) {
   if (thread.isResolved) return 'resolved';

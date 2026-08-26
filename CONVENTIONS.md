@@ -113,8 +113,12 @@ because an agent working them out spends calls on it every round and can get
 it wrong, while a check returns the same answer every time. A thread that a
 second agent opened on a problem already raised is reported together with the
 first, so a human reading one is shown the other rather than having to notice
-the connection. As with the agent files, this document says why; the skill is
-what runs.
+the connection. What the round then owed is checked by that same tool rather
+than read for: an agent that did not post, a thread its owner left unverdicted,
+a finding with no anchor, a sibling thread left unlinked, and a round over the
+minor-findings cap each fail a check that exits non-zero. Every one of those
+was a rule that lived in prose and was broken while it did. As with the agent
+files, this document says why; the skill is what runs.
 
 **A finding gets one thread.** A finding stays on the thread it was first
 raised on, from that first raise until it is resolved. A follow-up about
