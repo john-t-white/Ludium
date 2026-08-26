@@ -153,6 +153,7 @@ export function plan(round, context) {
     });
   }
 
+  let verdicts = 0;
   for (const verdict of round.verdicts ?? []) {
     if (!VERDICTS.includes(verdict.verdict)) {
       throw new Error(`verdict must be one of ${VERDICTS.join(' or ')}`);
@@ -162,8 +163,10 @@ export function plan(round, context) {
     if (typeof thread !== 'string' || !THREAD_ID.test(thread)) {
       throw new Error('verdict.thread must be a review thread id');
     }
+    const id = `verdict-${(verdicts += 1)}`;
     steps.push({
       kind: 'verdict',
+      id,
       label: `${verdict.verdict} on r${comment}`,
       thread,
       endpoint: `${pulls}/comments/${comment}/replies`,
@@ -175,14 +178,16 @@ export function plan(round, context) {
       },
     });
     if (verdict.verdict === 'RESOLVE') {
-      // Named after the verdict above: resolving a thread whose verdict never
-      // posted would close the finding with nothing on the pull request saying
-      // why, and the state tool reports a resolved thread as settled.
+      // Named after the one verdict above, not its thread: resolving a thread
+      // whose verdict never posted would close the finding with nothing on the
+      // pull request saying why, and the state tool reports a resolved thread
+      // as settled. A round may carry a second verdict on the same thread, so
+      // the dependency is on this exact call.
       steps.push({
         kind: 'resolve',
         label: `resolve ${thread}`,
         threadId: thread,
-        dependsOn: thread,
+        dependsOn: id,
       });
     }
   }

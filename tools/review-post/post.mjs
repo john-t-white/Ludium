@@ -14,13 +14,16 @@
  * - A resolve names the verdict it depends on. Resolving a thread whose
  *   verdict never posted closes the finding with nothing on the pull request
  *   saying why, and the state tool reports a resolved thread as settled.
+ *
+ * Returns the labels posted and skipped, whether the round's review is on the
+ * pull request, and each failure with the error that caused it.
  */
 export function post(steps, execute) {
   const result = { reviewPosted: false, posted: [], failed: [], skipped: [] };
-  const unanswered = new Set();
+  const unposted = new Set();
 
   for (const step of steps) {
-    if (step.dependsOn !== undefined && unanswered.has(step.dependsOn)) {
+    if (step.dependsOn !== undefined && unposted.has(step.dependsOn)) {
       result.skipped.push(step.label);
       continue;
     }
@@ -29,9 +32,8 @@ export function post(steps, execute) {
       result.posted.push(step.label);
       if (step.kind === 'review') result.reviewPosted = true;
     } catch (error) {
-      result.failed.push(step.label);
-      result.errors = [...(result.errors ?? []), { label: step.label, error }];
-      if (step.thread !== undefined) unanswered.add(step.thread);
+      result.failed.push({ label: step.label, error });
+      if (step.id !== undefined) unposted.add(step.id);
       if (step.kind === 'review') break;
     }
   }

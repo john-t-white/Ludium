@@ -134,7 +134,7 @@ const result = post(steps, (step) => {
 });
 
 for (const label of result.posted) console.log(`posted — ${label}`);
-for (const { label, error } of result.errors ?? []) {
+for (const { label, error } of result.failed) {
   console.error(`FAILED — ${label}\n${error.message}`);
 }
 for (const label of result.skipped) {

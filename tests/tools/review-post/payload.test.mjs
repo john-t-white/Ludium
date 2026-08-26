@@ -204,14 +204,9 @@ describe('a verdict', () => {
     assert.equal(reply.body.body, '**review-code** — RESOLVE — The cap now comes from the round.');
     // The resolve names the verdict it depends on, so a verdict that fails to
     // post cannot leave the thread resolved with nothing on it.
-    assert.deepEqual(only(steps, 'resolve'), [
-      {
-        kind: 'resolve',
-        label: 'resolve PRRT_kwDO1',
-        threadId: 'PRRT_kwDO1',
-        dependsOn: 'PRRT_kwDO1',
-      },
-    ]);
+    const [resolve] = only(steps, 'resolve');
+    assert.equal(resolve.threadId, 'PRRT_kwDO1');
+    assert.equal(resolve.dependsOn, reply.id);
     assert.equal(reply.thread, 'PRRT_kwDO1');
   });
 
