@@ -1,0 +1,164 @@
+// Turns one review round into the API calls that post it. Every rule an agent
+// used to be told to remember — the name prefix, the severity tag, the anchor,
+// the sibling link, the verdict form, one review per round — is applied here,
+// so a round that omits one cannot be built rather than being caught later.
+//
+// Pure: this decides what to post. review-post.mjs posts it.
+
+export const AGENTS = [
+  'review-acceptance-criteria',
+  'review-code',
+  'review-security',
+  'review-test-plan',
+];
+
+export const SEVERITIES = ['blocking', 'minor'];
+
+const VERDICTS = ['RESOLVE', "DON'T RESOLVE"];
+
+function required(value, field) {
+  if (typeof value === 'string' ? value.trim() === '' : value === undefined || value === null) {
+    throw new Error(`${field} is required`);
+  }
+  return value;
+}
+
+// Every comment an agent posts carries its name. The review runs on a human's
+// account, so the prefix is the only thing separating an agent from the author
+// answering their own thread, and tools/review-state/ reads nothing without it.
+const prefixed = (agent, text) => `**${agent}** — ${text}`;
+
+function findingBody(agent, finding, context) {
+  const severity = required(finding.severity, 'finding.severity');
+  if (!SEVERITIES.includes(severity)) {
+    throw new Error(`finding.severity must be one of ${SEVERITIES.join(', ')}`);
+  }
+  const tag = finding.fileLevel === true ? `${severity} · file-level` : severity;
+
+  const parts = [
+    prefixed(agent, `[${tag}] ${required(finding.wrong, 'finding.wrong')}`),
+    required(finding.causes, 'finding.causes'),
+    required(finding.recommend, 'finding.recommend'),
+  ];
+
+  // The link is what pairs two threads on one problem in the review's report;
+  // the comment id written as prose does not, which is how #30's pair came
+  // back reported separately.
+  if (finding.sibling !== undefined) {
+    const { owner, repo, pr } = context;
+    parts.push(
+      `Same problem as https://github.com/${owner}/${repo}/pull/${pr}#discussion_r${finding.sibling}`,
+    );
+  }
+  return parts.join('\n\n');
+}
+
+function roundBody(round, findings) {
+  const count = (severity) => findings.filter((finding) => finding.severity === severity).length;
+  const held =
+    round.similar === undefined
+      ? ''
+      : ` (plus ${required(round.similar.count, 'similar.count')} similar: ${required(
+          round.similar.about,
+          'similar.about',
+        )})`;
+  return prefixed(
+    round.agent,
+    `round ${round.round} · ${count('blocking')} blocking, ${count('minor')} minor${held}. ` +
+      `${required(round.summary, 'summary')}`,
+  );
+}
+
+/**
+ * The calls that post one round, in the order they must be made: the round's
+ * own review first, then anything answering a thread that already exists.
+ *
+ * The review is one call carrying every anchored finding, because GitHub
+ * validates a review's comments together and tools/review-state/ counts one
+ * prefixed review per round — several reviews would read as several rounds.
+ */
+export function plan(round, context) {
+  if (!AGENTS.includes(round.agent)) {
+    throw new Error(`agent must be one of ${AGENTS.join(', ')}`);
+  }
+  if (!Number.isInteger(round.round) || round.round < 1) {
+    throw new Error('round must be a whole number from 1');
+  }
+
+  const { owner, repo, pr } = context;
+  const pulls = `repos/${owner}/${repo}/pulls/${pr}`;
+  const findings = round.findings ?? [];
+  const steps = [];
+
+  const anchored = [];
+  const fileLevel = [];
+  for (const finding of findings) {
+    const path = required(finding.path, 'finding.path');
+    const body = findingBody(round.agent, finding, context);
+    if (finding.fileLevel === true) {
+      fileLevel.push({ path, body });
+    } else {
+      if (!Number.isInteger(finding.line)) {
+        throw new Error('finding.line is required unless the finding is fileLevel');
+      }
+      anchored.push({ path, line: finding.line, body });
+    }
+  }
+
+  steps.push({
+    kind: 'review',
+    label: `round ${round.round} review (${anchored.length} anchored)`,
+    endpoint: `${pulls}/reviews`,
+    body: { event: 'COMMENT', body: roundBody(round, findings), comments: anchored },
+  });
+
+  // A file-level comment cannot ride in the review batch, so it is its own
+  // call — still a thread this agent owns and can resolve.
+  for (const finding of fileLevel) {
+    steps.push({
+      kind: 'file-finding',
+      label: `file-level finding on ${finding.path}`,
+      endpoint: `${pulls}/comments`,
+      body: {
+        commit_id: required(context.headOid, 'context.headOid'),
+        path: finding.path,
+        subject_type: 'file',
+        body: finding.body,
+      },
+    });
+  }
+
+  for (const reply of round.replies ?? []) {
+    const comment = required(reply.comment, 'reply.comment');
+    steps.push({
+      kind: 'reply',
+      label: `reply on r${comment}`,
+      endpoint: `${pulls}/comments/${comment}/replies`,
+      body: { body: prefixed(round.agent, required(reply.body, 'reply.body')) },
+    });
+  }
+
+  for (const verdict of round.verdicts ?? []) {
+    if (!VERDICTS.includes(verdict.verdict)) {
+      throw new Error(`verdict must be one of ${VERDICTS.join(' or ')}`);
+    }
+    const comment = required(verdict.comment, 'verdict.comment');
+    const thread = required(verdict.thread, 'verdict.thread');
+    steps.push({
+      kind: 'verdict',
+      label: `${verdict.verdict} on r${comment}`,
+      endpoint: `${pulls}/comments/${comment}/replies`,
+      body: {
+        body: prefixed(
+          round.agent,
+          `${verdict.verdict} — ${required(verdict.because, 'verdict.because')}`,
+        ),
+      },
+    });
+    if (verdict.verdict === 'RESOLVE') {
+      steps.push({ kind: 'resolve', label: `resolve ${thread}`, threadId: thread });
+    }
+  }
+
+  return steps;
+}
