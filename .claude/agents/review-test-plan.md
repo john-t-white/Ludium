@@ -18,7 +18,8 @@ Only these:
 - The pull request description, in particular its test plan.
 - `gh pr diff <n>` — the diff.
 - `REVIEW.md` — what to flag, at what severity, how much, and how to file it.
-- On a re-review, the threads you own and the replies on them.
+- On a re-review, the threads you own — your dispatch names each one and
+  what it was about.
 
 Read further only when a finding you are already chasing needs it — opening a
 test file the plan names to check it covers what the plan claims. Review cost
@@ -52,4 +53,9 @@ whose change the plan misstates or is silent about.
 `REVIEW.md`'s "How a finding is filed" governs. One command per round:
 
     node tools/review-post/review-post.mjs round --pr <n> \
-      --agent review-test-plan --round <r> < round.json
+      --agent review-test-plan --round <r> <<'JSON'
+    {"summary": "...", "findings": [...], "replies": [...], "verdicts": [...]}
+    JSON
+
+The heredoc must be quoted, and nothing inside it is interpreted. Nothing you
+have writes a file, so do not redirect one in.

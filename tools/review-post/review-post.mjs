@@ -2,28 +2,31 @@
 // Posts one review round to a pull request. See payload.mjs for what is
 // applied to a round on the way out and why it is applied here.
 //
-//   node tools/review-post/review-post.mjs round --pr <n> --agent <name> --round <r> < round.json
+//   node tools/review-post/review-post.mjs round --pr <n> --agent <name> --round <r> <<'JSON'
 //
-// The round comes in on stdin as JSON — finding bodies are multi-line and
-// quote material that contains apostrophes, which no shell argument survives.
+// The round comes in on stdin as JSON, from a quoted heredoc — finding bodies
+// are multi-line and quote material containing apostrophes, which no shell
+// argument survives, and the agents have no tool that writes a file.
 // Run with --help for the fields, or --dry-run to print the calls unsent.
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 import { AGENTS, SEVERITIES, plan } from './payload.mjs';
+import { post } from './post.mjs';
 
 const USAGE = `Post one review round.
 
-  node tools/review-post/review-post.mjs round --pr <n> --agent <name> --round <r> < round.json
+  node tools/review-post/review-post.mjs round --pr <n> --agent <name> --round <r> <<'JSON'
 
   --pr <n>       pull request number
   --agent <a>    ${AGENTS.join(' | ')}
   --round <r>    the round you were dispatched to run, from the state report
   --dry-run      print the calls instead of making them
 
-The round is one JSON object on stdin. Every field below that is not marked
-optional is required, and the command refuses a round that omits one:
+The round is one JSON object on stdin, ended by a line reading JSON. Every
+field below that is not marked optional is required, and the command refuses a
+round that omits one:
 
   {
     "summary":  "what this round looked at and concluded — posted as the round
@@ -49,9 +52,10 @@ optional is required, and the command refuses a round that omits one:
                   "verdict": "RESOLVE" | "DON'T RESOLVE", "because": "one line"}]
   }
 
-The command adds your name prefix, the severity tag, and the sibling link, and
-resolves a thread you RESOLVE. Findings post as one review, so a line outside
-the diff rejects the round: fix the anchor and run it again.`;
+The command adds your name prefix and the severity tag, renders the sibling
+link, and resolves a thread you RESOLVE. Ids are checked for shape, not just
+presence. Findings post as one review, so a line outside the diff rejects the
+round: fix the anchor and run it again.`;
 
 const argv = process.argv.slice(2);
 
@@ -98,39 +102,55 @@ try {
 const RESOLVE = `mutation($id:ID!){resolveReviewThread(input:{threadId:$id}){thread{isResolved}}}`;
 
 const dryRun = argv.includes('--dry-run');
-let failed = 0;
 
-for (const step of steps) {
-  if (dryRun) {
+if (dryRun) {
+  for (const step of steps) {
     console.log(`would post — ${step.label}`);
     console.log(JSON.stringify(step.body ?? { threadId: step.threadId }, null, 2));
-    continue;
   }
-  try {
-    if (step.kind === 'resolve') {
-      execFileSync('gh', ['api', 'graphql', '-f', `query=${RESOLVE}`, '-F', `id=${step.threadId}`], {
+  process.exit(0);
+}
+
+// gh reads a -F value beginning with @ from a local file; -f never does, and
+// GraphQL takes the thread id as the string it is.
+const execute = (step) =>
+  step.kind === 'resolve'
+    ? execFileSync('gh', ['api', 'graphql', '-f', `query=${RESOLVE}`, '-f', `id=${step.threadId}`], {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
-      });
-    } else {
-      execFileSync('gh', ['api', step.endpoint, '--input', '-'], {
+      })
+    : execFileSync('gh', ['api', step.endpoint, '--input', '-'], {
         input: JSON.stringify(step.body),
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
       });
-    }
-    console.log(`posted — ${step.label}`);
+
+const result = post(steps, (step) => {
+  try {
+    return execute(step);
   } catch (error) {
-    failed += 1;
-    console.error(`FAILED — ${step.label}\n${error.stderr ?? error.message}`);
-    // A rejected review posts nothing at all, and everything after it answers
-    // threads that round was supposed to open. Stop rather than leave a round
-    // half on the pull request.
-    if (step.kind === 'review') break;
+    throw new Error(error.stderr ?? error.message);
   }
+});
+
+for (const label of result.posted) console.log(`posted — ${label}`);
+for (const { label, error } of result.errors ?? []) {
+  console.error(`FAILED — ${label}\n${error.message}`);
+}
+for (const label of result.skipped) {
+  console.error(`SKIPPED — ${label}: the verdict it depends on did not post`);
 }
 
-if (failed > 0) {
-  console.error(`\n${failed} call(s) failed. The round is not on the pull request.`);
+if (result.failed.length > 0) {
+  // Which of the two this is decides what to do next, so it is said plainly:
+  // running the whole round again after the review posted would post a second
+  // review, and the state tool would read that as a second round.
+  console.error(
+    result.reviewPosted
+      ? `\nThe round is on the pull request; ${result.failed.length} call(s) after it failed.\n` +
+          'Run those again on their own — posting the whole round again posts a second review.'
+      : '\nThe review was rejected, so this round is not on the pull request at all.\n' +
+          'Fix what it reports and run the round again.',
+  );
   process.exit(1);
 }

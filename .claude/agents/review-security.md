@@ -17,7 +17,8 @@ concern.
 
 - `gh pr diff <n>` — the diff — and the pull request description.
 - `REVIEW.md` — what to flag, at what severity, how much, and how to file it.
-- On a re-review, the threads you own and the replies on them.
+- On a re-review, the threads you own — your dispatch names each one and
+  what it was about.
 
 Read further only when a finding you are already chasing needs it — tracing
 whether an input the diff trusts is actually attacker-controlled, or whether a
@@ -60,4 +61,9 @@ confirm it, rather than asserting a vulnerability you have not traced.
 `REVIEW.md`'s "How a finding is filed" governs. One command per round:
 
     node tools/review-post/review-post.mjs round --pr <n> \
-      --agent review-security --round <r> < round.json
+      --agent review-security --round <r> <<'JSON'
+    {"summary": "...", "findings": [...], "replies": [...], "verdicts": [...]}
+    JSON
+
+The heredoc must be quoted, and nothing inside it is interpreted. Nothing you
+have writes a file, so do not redirect one in.

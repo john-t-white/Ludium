@@ -5,16 +5,20 @@
 //
 // Pure: this decides what to post. review-post.mjs posts it.
 
-export const AGENTS = [
-  'review-acceptance-criteria',
-  'review-code',
-  'review-security',
-  'review-test-plan',
-];
+// The same four the state tool counts rounds for. Kept in one place: a list
+// that drifted would have review-post refusing a round review-state counts.
+import { AGENTS } from '../review-state/state.mjs';
+
+export { AGENTS };
 
 export const SEVERITIES = ['blocking', 'minor'];
 
 const VERDICTS = ['RESOLVE', "DON'T RESOLVE"];
+
+// GitHub's node id for a review thread. Checked for shape, not just presence:
+// it is passed to gh as a field value, and gh reads a value beginning with @
+// from a local file and sends its contents to the API.
+const THREAD_ID = /^[A-Za-z0-9_=-]+$/;
 
 function required(value, field) {
   if (typeof value === 'string' ? value.trim() === '' : value === undefined || value === null) {
@@ -27,6 +31,16 @@ function required(value, field) {
 // account, so the prefix is the only thing separating an agent from the author
 // answering their own thread, and tools/review-state/ reads nothing without it.
 const prefixed = (agent, text) => `**${agent}** — ${text}`;
+
+/**
+ * A GitHub comment id, checked rather than trusted. Every one of these is
+ * interpolated into the endpoint a call is made to, or into a link another
+ * tool has to be able to read back, so presence alone is not enough.
+ */
+function commentId(value, field) {
+  if (!Number.isInteger(value) || value < 1) throw new Error(`${field} must be a comment id`);
+  return value;
+}
 
 function findingBody(agent, finding, context) {
   const severity = required(finding.severity, 'finding.severity');
@@ -45,6 +59,7 @@ function findingBody(agent, finding, context) {
   // the comment id written as prose does not, which is how #30's pair came
   // back reported separately.
   if (finding.sibling !== undefined) {
+    commentId(finding.sibling, 'finding.sibling');
     const { owner, repo, pr } = context;
     parts.push(
       `Same problem as https://github.com/${owner}/${repo}/pull/${pr}#discussion_r${finding.sibling}`,
@@ -98,7 +113,7 @@ export function plan(round, context) {
     if (finding.fileLevel === true) {
       fileLevel.push({ path, body });
     } else {
-      if (!Number.isInteger(finding.line)) {
+      if (!Number.isInteger(finding.line) || finding.line < 1) {
         throw new Error('finding.line is required unless the finding is fileLevel');
       }
       anchored.push({ path, line: finding.line, body });
@@ -129,7 +144,7 @@ export function plan(round, context) {
   }
 
   for (const reply of round.replies ?? []) {
-    const comment = required(reply.comment, 'reply.comment');
+    const comment = commentId(reply.comment, 'reply.comment');
     steps.push({
       kind: 'reply',
       label: `reply on r${comment}`,
@@ -142,11 +157,15 @@ export function plan(round, context) {
     if (!VERDICTS.includes(verdict.verdict)) {
       throw new Error(`verdict must be one of ${VERDICTS.join(' or ')}`);
     }
-    const comment = required(verdict.comment, 'verdict.comment');
+    const comment = commentId(verdict.comment, 'verdict.comment');
     const thread = required(verdict.thread, 'verdict.thread');
+    if (typeof thread !== 'string' || !THREAD_ID.test(thread)) {
+      throw new Error('verdict.thread must be a review thread id');
+    }
     steps.push({
       kind: 'verdict',
       label: `${verdict.verdict} on r${comment}`,
+      thread,
       endpoint: `${pulls}/comments/${comment}/replies`,
       body: {
         body: prefixed(
@@ -156,7 +175,15 @@ export function plan(round, context) {
       },
     });
     if (verdict.verdict === 'RESOLVE') {
-      steps.push({ kind: 'resolve', label: `resolve ${thread}`, threadId: thread });
+      // Named after the verdict above: resolving a thread whose verdict never
+      // posted would close the finding with nothing on the pull request saying
+      // why, and the state tool reports a resolved thread as settled.
+      steps.push({
+        kind: 'resolve',
+        label: `resolve ${thread}`,
+        threadId: thread,
+        dependsOn: thread,
+      });
     }
   }
 

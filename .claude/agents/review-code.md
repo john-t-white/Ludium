@@ -18,7 +18,8 @@ you independently hit it and it is a code problem, as your own concern.
 - `gh issue view <n>` — the linked issue, including its Developer Notes.
 - `CLAUDE.md` and `CONVENTIONS.md` — this repository's stated rules.
 - `REVIEW.md` — what to flag, at what severity, how much, and how to file it.
-- On a re-review, the threads you own and the replies on them.
+- On a re-review, the threads you own — your dispatch names each one and
+  what it was about.
 
 Read further only when a finding you are already chasing needs it — the caller
 of a changed function, the helper you suspect this duplicates, the file whose
@@ -58,4 +59,9 @@ the diff merely touches.
 `REVIEW.md`'s "How a finding is filed" governs. One command per round:
 
     node tools/review-post/review-post.mjs round --pr <n> \
-      --agent review-code --round <r> < round.json
+      --agent review-code --round <r> <<'JSON'
+    {"summary": "...", "findings": [...], "replies": [...], "verdicts": [...]}
+    JSON
+
+The heredoc must be quoted, and nothing inside it is interpreted. Nothing you
+have writes a file, so do not redirect one in.

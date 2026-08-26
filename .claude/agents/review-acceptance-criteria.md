@@ -21,7 +21,8 @@ Only these:
 - The pull request description.
 - `gh pr diff <n>` — the diff.
 - `REVIEW.md` — what to flag, at what severity, how much, and how to file it.
-- On a re-review, the threads you own and the replies on them.
+- On a re-review, the threads you own — your dispatch names each one and
+  what it was about.
 
 Read further only when a criterion you are already checking needs it — opening
 a file the diff modifies to confirm the criterion holds there. Review cost
@@ -60,4 +61,9 @@ against the file whose change it is about and quote the criterion.
 `REVIEW.md`'s "How a finding is filed" governs. One command per round:
 
     node tools/review-post/review-post.mjs round --pr <n> \
-      --agent review-acceptance-criteria --round <r> < round.json
+      --agent review-acceptance-criteria --round <r> <<'JSON'
+    {"summary": "...", "findings": [...], "replies": [...], "verdicts": [...]}
+    JSON
+
+The heredoc must be quoted, and nothing inside it is interpreted. Nothing you
+have writes a file, so do not redirect one in.

@@ -123,12 +123,34 @@ describe('a finding', () => {
 
   test('is rejected without all three parts', () => {
     assert.throws(
+      () => plan({ ...ROUND, findings: [finding({ wrong: undefined })] }, CONTEXT),
+      /wrong/,
+    );
+    assert.throws(
       () => plan({ ...ROUND, findings: [finding({ causes: undefined })] }, CONTEXT),
       /causes/,
     );
     assert.throws(
       () => plan({ ...ROUND, findings: [finding({ recommend: '' })] }, CONTEXT),
       /recommend/,
+    );
+  });
+
+  test('is rejected with a line number no diff can have', () => {
+    assert.throws(() => plan({ ...ROUND, findings: [finding({ line: 0 })] }, CONTEXT), /line/);
+  });
+
+  test('is rejected with a sibling that would not render as a link', () => {
+    // #discussion_rnull matches nothing state.mjs reads, so the two threads on
+    // one problem would be reported separately with no error anywhere — the
+    // failure the sibling field exists to prevent.
+    assert.throws(
+      () => plan({ ...ROUND, findings: [finding({ sibling: null })] }, CONTEXT),
+      /sibling/,
+    );
+    assert.throws(
+      () => plan({ ...ROUND, findings: [finding({ sibling: 'r123' })] }, CONTEXT),
+      /sibling/,
     );
   });
 
@@ -156,6 +178,14 @@ describe('a reply', () => {
   test('is rejected without the comment it replies to', () => {
     assert.throws(() => plan({ ...ROUND, replies: [{ body: 'x' }] }, CONTEXT), /comment/);
   });
+
+  test('is rejected when the comment is not a comment id', () => {
+    // The id is interpolated into the endpoint the reply is posted to, so a
+    // value that is not one addresses something other than the thread.
+    for (const comment of [0, '123', '../../user', null]) {
+      assert.throws(() => plan({ ...ROUND, replies: [{ comment, body: 'x' }] }, CONTEXT), /comment/);
+    }
+  });
 });
 
 describe('a verdict', () => {
@@ -172,9 +202,25 @@ describe('a verdict', () => {
     const [reply] = only(steps, 'verdict');
     assert.equal(reply.endpoint, 'repos/john-t-white/Ludium/pulls/33/comments/123456/replies');
     assert.equal(reply.body.body, '**review-code** — RESOLVE — The cap now comes from the round.');
+    // The resolve names the verdict it depends on, so a verdict that fails to
+    // post cannot leave the thread resolved with nothing on it.
     assert.deepEqual(only(steps, 'resolve'), [
-      { kind: 'resolve', label: 'resolve PRRT_kwDO1', threadId: 'PRRT_kwDO1' },
+      {
+        kind: 'resolve',
+        label: 'resolve PRRT_kwDO1',
+        threadId: 'PRRT_kwDO1',
+        dependsOn: 'PRRT_kwDO1',
+      },
     ]);
+    assert.equal(reply.thread, 'PRRT_kwDO1');
+  });
+
+  test('is rejected when the thread is not a thread id', () => {
+    // gh reads a -F value beginning with @ from a local file and sends it to
+    // the API, so a thread id is checked for shape, not just presence.
+    for (const thread of ['@C:/Windows/win.ini', '', 42, 'PRRT_ bad']) {
+      assert.throws(() => plan({ ...ROUND, verdicts: [verdict({ thread })] }, CONTEXT), /thread/);
+    }
   });
 
   test("leaves the thread open when it is DON'T RESOLVE", () => {
