@@ -113,11 +113,12 @@ const git = (...args) =>
  * The working tree is not among them: naming it `worktree` reads as a copy
  * somebody could go and look at, and it is not one. An uncommitted edit then
  * records as `matches neither main nor branch`, which is what it is — unless
- * the edit only appended, which definition.mjs cannot tell from the harness's
- * own appended text and reads as the copy it extends. That is the cost of
- * matching an honest quote at all, and it is the direction that fails safe:
- * before it, every honest quote read as `matches neither` and the alarm meant
- * nothing.
+ * the edit only wrapped the file, adding text above or below it and changing
+ * no word of it. definition.mjs matches by containment and cannot tell that
+ * from the harness's own wrapping, so it reads as the copy it extends. That is
+ * the cost of matching an honest quote at all, and it is the direction that
+ * fails safe: before it, every honest quote read as `matches neither` and the
+ * alarm meant nothing.
  *
  * A copy that cannot be read is left out rather than reported as empty: a new
  * agent file has no copy on `main`, and a round is still worth posting.
