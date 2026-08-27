@@ -11,8 +11,10 @@
 
 import { anchor, linkedGroups, postedBy, reviewState } from './state.mjs';
 
-// REVIEW.md's cap. Beyond this an agent summarizes the rest as "plus N
-// similar" in the round body, which is why a held-back count is not a breach.
+// REVIEW.md's cap on one round's minor findings. Beyond it an agent
+// summarizes the rest as "plus N similar" in the round body; held back or
+// not, those are findings the round raised, which is what the round-two bar
+// below counts.
 const MINOR_CAP = 3;
 
 // The round record tools/review-post/ writes. Matching it is what says the
@@ -26,7 +28,7 @@ const MINOR_CAP = 3;
 // wrote, and a check that read it as hand-composed would be refusing its own
 // output.
 const ROUND =
-  /^\s*\*\*review-[a-z-]+\*\*\s*[—-]\s*round (\d+) · \d+ blocking, (\d+) minor(?: \(plus \d+ similar:.*\))?\. /s;
+  /^\s*\*\*review-[a-z-]+\*\*\s*[—-]\s*round (\d+) · \d+ blocking, (\d+) minor(?: \(plus (\d+) similar:.*\))?\. /s;
 
 // The severity tag the command writes on a finding's first line, and the
 // marker that distinguishes a finding with no line to anchor to from one
@@ -153,10 +155,21 @@ function checkRoundRecord(agent, round, reviews, reviewAccount, failures) {
     return;
   }
 
-  // The count is the command's own, written from the findings it posted, and
-  // the check above is what says the command wrote it.
+  // The counts are the command's own, written from the findings it posted, and
+  // the check above is what says the command wrote it. A held-back finding
+  // counts as raised here: it reached the round record, which is where a
+  // reader meets it.
   const minor = Number(match[2]);
-  if (minor > MINOR_CAP) {
+  const held = match[3] === undefined ? 0 : Number(match[3]);
+  if (round > 1 && minor + held > 0) {
+    // Not also reported as over-cap: from round two the cap is beside the
+    // point, because the bar is nothing minor at all.
+    failures.push({
+      kind: 'minor-after-round-one',
+      agent,
+      detail: `${minor + held} minor findings in round ${round}, which takes only blocking ones`,
+    });
+  } else if (minor > MINOR_CAP) {
     failures.push({
       kind: 'over-cap',
       agent,
@@ -263,6 +276,7 @@ const LABEL = {
   unanchored: 'posted a finding with no anchor and no file-level marker',
   'unlinked-sibling': 'left a sibling thread unlinked',
   'over-cap': 'went over the minor-findings cap',
+  'minor-after-round-one': 'raised a minor finding after round one',
 };
 
 /** The result as one report. The caller decides the exit code. */

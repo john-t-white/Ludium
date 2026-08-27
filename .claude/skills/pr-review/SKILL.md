@@ -133,8 +133,9 @@ The report is what step 4 reads. The check exits 0, or exits non-zero naming
 what broke — an agent that did not post, a thread its owner left unverdicted, a
 round not posted through `tools/review-post/`, a finding with no anchor, two
 agents on one line with no link between their threads, a round over the
-minor-findings cap. **Do not judge any of that by reading the pull request**
-yourself; that is what this step exists to replace.
+minor-findings cap, a minor finding raised after round one. **Do not judge any
+of that by reading the pull request** yourself; that is what this step exists
+to replace.
 
 `--dispatched` is the agents you actually dispatched and the round number you
 gave each. An agent you left out of the round is left out here, which is what

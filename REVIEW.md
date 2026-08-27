@@ -31,10 +31,10 @@ bullets that turn on it.
 
 ## Cap the minor findings
 
-Post at most three minor findings per agent per round. Beyond three, say
-"plus N similar" in that round's review body, with one line on what they were
-about — summarized rather than silently dropped. A round with nothing blocking
-leads with that.
+Post at most three minor findings per agent in round one, the only round that
+takes any — see "After the first round". Beyond three, say "plus N similar" in
+that round's review body, with one line on what they were about — summarized
+rather than silently dropped. A round with nothing blocking leads with that.
 
 ## Do not report
 
@@ -75,6 +75,8 @@ not post the finding.
   was verdicts. A round that did not post is indistinguishable from a round
   that found nothing.
 - A finding is three parts: what is wrong, what it causes, a recommendation.
+- From round two the command takes only `blocking`. A minor finding, or minor
+  findings held back as `similar`, is a round it refuses to build.
 - One finding, one thread, from first raise until it is resolved. A follow-up
   about that finding is a reply on its thread; a separate problem a fix
   introduced is a finding of its own.
@@ -101,7 +103,7 @@ than to the review of the pull request carrying it.
 
 ## After the first round
 
-The blocking-only bar is about material this review has already seen. Material
-a fix newly added is being reviewed for the first time, whatever round it
-arrives in, so it gets a first-round review. What the bar rules out is
-returning to material already reviewed with a fresh minor finding.
+From round two on, raise only what would block merging — a finding you would
+not merge without — on everything the round sees, material a fix newly added
+included. A nit a fix introduced is not raised at all; a problem it introduced
+that blocks is a finding in its own right.

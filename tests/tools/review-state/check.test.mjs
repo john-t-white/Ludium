@@ -560,6 +560,54 @@ describe('a round over the minor-findings cap', () => {
   });
 });
 
+describe('a minor finding raised after round one', () => {
+  test('is a failure, whatever material it was raised on', () => {
+    const state = payload({
+      reviews: [
+        review(roundBody('review-code', 1)),
+        review(roundBody('review-code', 2, { minor: 1 })),
+      ],
+    });
+    const failures = checkRound(state, { 'review-code': 2 });
+    assert.deepEqual(kinds(failures), ['minor-after-round-one']);
+  });
+
+  test('is reported once, not also as the cap it went over', () => {
+    const state = payload({
+      reviews: [
+        review(roundBody('review-code', 1)),
+        review(roundBody('review-code', 2, { minor: 4 })),
+      ],
+    });
+    assert.deepEqual(kinds(checkRound(state, { 'review-code': 2 })), ['minor-after-round-one']);
+  });
+
+  test('is a failure when the cap merely held it back', () => {
+    const state = payload({
+      reviews: [
+        review(roundBody('review-code', 1)),
+        review(roundBody('review-code', 2, { similar: 2 })),
+      ],
+    });
+    assert.deepEqual(kinds(checkRound(state, { 'review-code': 2 })), ['minor-after-round-one']);
+  });
+
+  test('is not a failure in round one, which takes minor findings', () => {
+    const state = payload({ reviews: [review(roundBody('review-code', 1, { minor: 3 }))] });
+    assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
+  });
+
+  test('leaves a re-review raising only blocking findings alone', () => {
+    const state = payload({
+      reviews: [
+        review(roundBody('review-code', 1)),
+        review(roundBody('review-code', 2, { blocking: 2 })),
+      ],
+    });
+    assert.deepEqual(checkRound(state, { 'review-code': 2 }), []);
+  });
+});
+
 describe('a round that broke several rules', () => {
   test('reports every one of them', () => {
     const state = payload({

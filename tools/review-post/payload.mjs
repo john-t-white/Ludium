@@ -105,6 +105,20 @@ export function plan(round, context) {
   const findings = round.findings ?? [];
   const steps = [];
 
+  // From round two the bar is blocking-only, on every material the round sees,
+  // fixes included. Exempting what a fix newly added is what turned #31 into
+  // seven rounds: every fix is new material, so every fix earned a fresh nit
+  // and the loop started again. REVIEW.md states the bar; this is what holds
+  // it, before anything reaches the pull request.
+  if (round.round > 1) {
+    if (findings.some((finding) => finding.severity === 'minor')) {
+      throw new Error('a minor finding cannot be raised after round one');
+    }
+    if (round.similar !== undefined) {
+      throw new Error('findings held back are minor, so similar cannot be raised after round one');
+    }
+  }
+
   const anchored = [];
   const fileLevel = [];
   for (const finding of findings) {

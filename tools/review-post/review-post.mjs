@@ -31,15 +31,16 @@ round that omits one:
   {
     "summary":  "what this round looked at and concluded — posted as the round
                  record, which is what proves the round reached the pull request",
-    "similar":  {"count": 3, "about": "one line"},        // optional: minor
-                                                          // findings the cap held back
+    "similar":  {"count": 3, "about": "one line"},        // optional, round 1
+                                                          // only: minor findings
+                                                          // the cap held back
     "findings": [
       {
         "path":      "path/in/the/diff",
         "line":      42,                  // omit only with "fileLevel": true
         "fileLevel": true,                // optional: a finding with no line to
                                           // anchor to, e.g. about the PR description
-        "severity":  "${SEVERITIES.join('" | "')}",
+        "severity":  "${SEVERITIES.join('" | "')}",   // only "blocking" after round 1
         "wrong":     "what is wrong",
         "causes":    "what it causes, with an example where one clarifies it",
         "recommend": "what to do about it",
@@ -53,9 +54,11 @@ round that omits one:
   }
 
 The command adds your name prefix and the severity tag, renders the sibling
-link, and resolves a thread you RESOLVE. Ids are checked for shape, not just
-presence. Findings post as one review, so a line outside the diff rejects the
-round: fix the anchor and run it again.`;
+link, and resolves a thread you RESOLVE. From round two it takes only blocking
+findings, on every material the round sees — a minor one, posted or held back,
+is a round it refuses. Ids are checked for shape, not just presence. Findings
+post as one review, so a line outside the diff rejects the round: fix the
+anchor and run it again.`;
 
 const argv = process.argv.slice(2);
 
