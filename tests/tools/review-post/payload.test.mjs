@@ -43,12 +43,12 @@ describe('the round review', () => {
 
   test('carries the name prefix, the round, and what the round found', () => {
     const steps = plan(
-      { ...ROUND, round: 2, findings: [finding(), finding({ line: 7, severity: 'minor' })] },
+      { ...ROUND, findings: [finding(), finding({ line: 7, severity: 'minor' })] },
       CONTEXT,
     );
     assert.equal(
       review(steps).body.body,
-      '**review-code** — round 2 · 1 blocking, 1 minor. Nothing blocking.',
+      '**review-code** — round 1 · 1 blocking, 1 minor. Nothing blocking.',
     );
   });
 
@@ -160,6 +160,23 @@ describe('a finding', () => {
       /severity/,
     );
   });
+
+  test('is rejected as minor after round one, whatever the fix newly added', () => {
+    assert.throws(
+      () => plan({ ...ROUND, round: 2, findings: [finding({ severity: 'minor' })] }, CONTEXT),
+      /minor/,
+    );
+  });
+
+  test('is still minor in round one, which is the only round that takes one', () => {
+    const steps = plan({ ...ROUND, findings: [finding({ severity: 'minor' })] }, CONTEXT);
+    assert.match(review(steps).body.comments[0].body, /\[minor\]/);
+  });
+
+  test('is blocking after round one, which is what a re-review raises', () => {
+    const steps = plan({ ...ROUND, round: 2, findings: [finding()] }, CONTEXT);
+    assert.equal(review(steps).body.comments.length, 1);
+  });
 });
 
 describe('a reply', () => {
@@ -253,6 +270,13 @@ describe('the round itself', () => {
 
   test('is rejected without a round number', () => {
     assert.throws(() => plan({ ...ROUND, round: 0 }, CONTEXT), /round/);
+  });
+
+  test('is rejected with findings held back after round one, since those are minor too', () => {
+    assert.throws(
+      () => plan({ ...ROUND, round: 2, similar: { count: 2, about: 'wording' } }, CONTEXT),
+      /minor/,
+    );
   });
 
   test('posts the review before anything that answers an existing thread', () => {

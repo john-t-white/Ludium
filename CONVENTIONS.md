@@ -115,10 +115,11 @@ second agent opened on a problem already raised is reported together with the
 first, so a human reading one is shown the other rather than having to notice
 the connection. What the round then owed is checked by that same tool rather
 than read for: an agent that did not post, a thread its owner left unverdicted,
-a finding with no anchor, a sibling thread left unlinked, and a round over the
-minor-findings cap each fail a check that exits non-zero. Every one of those
-was a rule that lived in prose and was broken while it did. As with the agent
-files, this document says why; the skill is what runs.
+a finding with no anchor, a sibling thread left unlinked, a round over the
+minor-findings cap, and a minor finding raised after round one each fail a
+check that exits non-zero. Every one of those was a rule that lived in prose
+and was broken while it did. As with the agent files, this document says why;
+the skill is what runs.
 
 **A finding gets one thread.** A finding stays on the thread it was first
 raised on, from that first raise until it is resolved. A follow-up about
@@ -145,15 +146,16 @@ process inferring resolution on their behalf. A thread that closes, by
 verdict or by any of the routes below, is marked resolved on the pull
 request, so the threads left open are the unfinished ones. Each such pass is
 a round, and from the second one on, agents raise only findings that would
-block merging — ones the agent would not merge without — on material the
-review has already seen, so a fix cannot pull the review back into a fresh
-round of minor findings. Material a fix newly adds is material the review is
-seeing for the first time, whatever round it arrives in, so it gets a
-first-round review: the bar rules out returning to reviewed material with a
-fresh minor finding, not reviewing something new. That a fix falls short of
-the finding its thread already holds is always said, but it keeps the thread
-open only if the shortfall would itself block merging. A thread
-can also close without a resolve verdict: the human declines the finding, or
+block merging — ones the agent would not merge without — on everything that
+round sees, including material a fix newly added, so a fix cannot pull the
+review back into a fresh round of minor findings. Exempting new material is
+what made that bar unenforceable: every fix is new material, so every fix
+earned a fresh round of nits, which is how a 280-line change reached round
+seven. The posting command now refuses a minor finding after round one, so the
+bar holds without being remembered. That a fix falls short of the finding its
+thread already holds is always said, but it keeps the thread open only if the
+shortfall would itself block merging. A thread can also close without a
+resolve verdict: the human declines the finding, or
 its owning agent withdraws it, or that agent will not run again and the
 human closes it. The loop ends when no thread is open and the latest round
 raised nothing blocking — that is the review finishing, not a step being
