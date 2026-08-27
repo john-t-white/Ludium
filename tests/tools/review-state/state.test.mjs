@@ -427,7 +427,7 @@ describe('parseRoundRecord', () => {
       record(
         'review-code',
         1,
-        '0 blocking, 3 minor (plus 2 similar: naming (mostly)) · definition 3f9a2c1b8e04 (branch). Looked.',
+        '0 blocking, 3 minor · definition 3f9a2c1b8e04 (branch) (plus 2 similar: naming (mostly)). Looked.',
       ),
     );
     assert.equal(parsed.held, 2);
@@ -446,6 +446,24 @@ describe('parseRoundRecord', () => {
       sha: '9c14ab77e0d1',
       copies: 'matches neither main nor branch',
     });
+  });
+
+  test('takes the definition from the command, not from prose the agent supplied', () => {
+    // review-post interpolates `similar.about` unchanged, so an agent that
+    // writes a well-formed definition segment into it is writing the one fact
+    // on the record it does not get to assert. The segment is read before the
+    // held-back group for that reason.
+    const parsed = parseRoundRecord(
+      record(
+        'review-code',
+        1,
+        '0 blocking, 3 minor · definition deadbeef0001 (matches neither main nor branch)' +
+          ' (plus 2 similar: naming) · definition 3f9a2c1b8e04 (main, branch). and wording). Looked.',
+      ),
+    );
+    assert.equal(parsed.definition.sha, 'deadbeef0001');
+    assert.equal(parsed.definition.copies, 'matches neither main nor branch');
+    assert.equal(parsed.held, 2);
   });
 
   test('reads nothing from a body the command did not write', () => {

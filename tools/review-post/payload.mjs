@@ -93,8 +93,13 @@ function roundBody(round, findings, context) {
         )})`;
   return prefixed(
     round.agent,
-    `round ${round.round} · ${count('blocking')} blocking, ${count('minor')} minor${held}` +
-      `${definitionSegment(context.definition)}. ${required(round.summary, 'summary')}`,
+    // The definition segment goes ahead of the held-back group, which
+    // interpolates `similar.about` unchanged. Behind it, an agent that wrote a
+    // well-formed segment into that prose would supply the one fact on the
+    // record it does not get to assert, and the parser would read the forgery
+    // in preference to the real one.
+    `round ${round.round} · ${count('blocking')} blocking, ${count('minor')} minor` +
+      `${definitionSegment(context.definition)}${held}. ${required(round.summary, 'summary')}`,
   );
 }
 

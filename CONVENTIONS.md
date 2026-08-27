@@ -90,8 +90,8 @@ was a rule in prose that an agent broke at least once. It also records on each
 round which checked-in copy of its definition the agent ran, fingerprinted from
 the instructions the agent quotes rather than from the file on disk, which is
 the branch's copy whichever one a restarted session loaded: an agent asserting
-that in prose once got it wrong and was believed for six rounds. This document says why
-the review works the way it does; those files and that command are what
+that in prose once got it wrong and was believed for six rounds. This document
+says why the review works the way it does; those files and that command are what
 actually runs, so a change to how a review runs is a change to them. Each
 agent runs at a capability level matched to its job, recorded in its
 frontmatter. What a review flags, at what severity, how much of it, and how a

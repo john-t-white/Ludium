@@ -63,8 +63,8 @@ describe('the round review', () => {
     );
     assert.equal(
       review(steps).body.body,
-      '**review-code** — round 1 · 0 blocking, 0 minor (plus 3 similar: wording in the same file)' +
-        ' · definition 3f9a2c1b8e04 (main, branch). Nothing blocking.',
+      '**review-code** — round 1 · 0 blocking, 0 minor · definition 3f9a2c1b8e04 (main, branch)' +
+        ' (plus 3 similar: wording in the same file). Nothing blocking.',
     );
   });
 

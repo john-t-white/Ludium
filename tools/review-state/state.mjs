@@ -19,11 +19,13 @@ const OWNER_PREFIX = /^\s*\*\*(review-[a-z-]+)\*\*/;
 // Read here rather than in check.mjs so the check and the report cannot come
 // to disagree about what a round record says.
 //
-// The held-back group is lazy and the definition segment behind it is rigid,
-// because review-post interpolates `similar.about` unchanged: a summary that
-// mentions "naming (mostly)" is still a body the command wrote.
+// Everything read here is written by the command and precedes the one field an
+// agent supplies as free prose, `similar.about`: that group is lazy, captures
+// nothing, and has only the summary behind it. Read in the other order, prose
+// saying "naming) · definition 3f9a2c1b8e04 (main, branch)." would be taken
+// for the definition the round ran, which is the fact this exists to hold.
 const ROUND_RECORD =
-  /^\s*\*\*(review-[a-z-]+)\*\*\s*[—-]\s*round (\d+) · (\d+) blocking, (\d+) minor(?: \(plus (\d+) similar: (.*?)\))? · definition ([0-9a-f]{12}) \(([^)]*)\)\. /s;
+  /^\s*\*\*(review-[a-z-]+)\*\*\s*[—-]\s*round (\d+) · (\d+) blocking, (\d+) minor · definition ([0-9a-f]{12}) \(([^)]*)\)(?: \(plus (\d+) similar: .*?\))?\. /s;
 const REFERENCE = /#discussion_r(\d+)/g;
 // The form an agent posts a verdict in, and only that form. Matching the bare
 // word anywhere in a body would let a finding that merely discusses a verdict
@@ -50,8 +52,8 @@ export function parseRoundRecord(body) {
     round: Number(match[2]),
     blocking: Number(match[3]),
     minor: Number(match[4]),
-    held: match[5] === undefined ? 0 : Number(match[5]),
-    definition: { sha: match[7], copies: match[8] },
+    definition: { sha: match[5], copies: match[6] },
+    held: match[7] === undefined ? 0 : Number(match[7]),
   };
 }
 

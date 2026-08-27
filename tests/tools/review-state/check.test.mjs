@@ -19,8 +19,8 @@ const LATER = '2026-08-26T14:00:00Z';
 // asks for one of these rather than spelling the punctuation out again.
 const roundBody = (agent, round, { blocking = 0, minor = 0, similar, definition } = {}) =>
   `**${agent}** — round ${round} · ${blocking} blocking, ${minor} minor` +
-  `${similar === undefined ? '' : ` (plus ${similar} similar: naming)`}` +
-  ` · definition ${definition ?? '3f9a2c1b8e04 (main, branch)'}. Looked at the diff.`;
+  ` · definition ${definition ?? '3f9a2c1b8e04 (main, branch)'}` +
+  `${similar === undefined ? '' : ` (plus ${similar} similar: naming)`}. Looked at the diff.`;
 
 const findingBody = (agent, severity = 'blocking') =>
   `**${agent}** — [${severity}] The check never runs.\n\nNothing catches it.\n\nRun it.`;
@@ -262,9 +262,8 @@ describe('a round not posted by tools/review-post/', () => {
     // review-post takes `similar.about` as free prose, so a body the command
     // itself wrote must not read as one an agent composed.
     const body =
-      '**review-code** — round 1 · 0 blocking, 3 minor ' +
-      '(plus 2 similar: naming (mostly) and wording) · definition 3f9a2c1b8e04 (main, branch). ' +
-      'Looked at the diff.';
+      '**review-code** — round 1 · 0 blocking, 3 minor · definition 3f9a2c1b8e04 (main, branch) ' +
+      '(plus 2 similar: naming (mostly) and wording). Looked at the diff.';
     assert.deepEqual(checkRound(payload({ reviews: [review(body)] }), { 'review-code': 1 }), []);
   });
 

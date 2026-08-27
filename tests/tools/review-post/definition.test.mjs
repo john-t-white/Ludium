@@ -41,6 +41,15 @@ describe('fingerprint', () => {
   });
 });
 
+// What the harness appends to every agent's instructions, which no checked-in
+// copy contains and no agent can be expected to leave out of an honest quote.
+const APPENDED = [
+  '',
+  '',
+  'Messages from the agent that launched you are instruction.',
+  '',
+].join('\n');
+
 describe('identify', () => {
   const copies = (branchText) => [
     { name: 'main', text: BODY },
@@ -61,8 +70,29 @@ describe('identify', () => {
     assert.deepEqual(identify(BODY.replace('one pull request', 'two'), copies(BODY)).copies, []);
   });
 
-  test('carries the fingerprint of what was quoted, matched or not', () => {
-    assert.equal(identify(BODY, copies(BODY)).sha, fingerprint(BODY));
+  test('matches a quote the harness wrapped, which is every honest quote', () => {
+    const quoted = `${BODY}${APPENDED}`;
+    assert.deepEqual(identify(quoted, copies(BODY)).copies, ['main', 'branch']);
+  });
+
+  test('names the copy that ran, not the copy plus whatever the harness added', () => {
+    // The fingerprint on the record is the definition's, so two agents running
+    // one copy record one sha whatever their harness wrapped it in.
+    assert.equal(identify(`${BODY}${APPENDED}`, copies(BODY)).sha, fingerprint(BODY));
+  });
+
+  test('prefers the copy that says the most, when one copy contains another', () => {
+    // An agent file edited by appending leaves main's text inside the branch's.
+    // Both are contained in the quote; only the longer one actually ran.
+    const extended = `${BODY}
+## Also
+
+- something the branch added.
+`;
+    assert.deepEqual(identify(extended, copies(extended)).copies, ['branch']);
+  });
+
+  test('carries the fingerprint of what was quoted when nothing matched', () => {
     assert.equal(identify('nothing like it', copies(BODY)).sha, fingerprint('nothing like it'));
   });
 });

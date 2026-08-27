@@ -11,7 +11,6 @@
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 
 import { identify } from './definition.mjs';
 import { AGENTS, SEVERITIES, plan } from './payload.mjs';
@@ -37,7 +36,9 @@ round that omits one:
                  Quote what you are running on: do not read your definition file
                  off disk, which is the branch's copy whichever one you loaded.
                  The command fingerprints it and records which checked-in copy
-                 it matches, so nobody has to take your word for it",
+                 it matches, so nobody has to take your word for it. Anything
+                 your harness wrapped around it is ignored; escaping is not, so
+                 a backslash lost to JSON reads as a definition nobody has",
     "similar":  {"count": 3, "about": "one line"},        // optional, round 1
                                                           // only: minor findings
                                                           // the cap held back
@@ -63,9 +64,9 @@ round that omits one:
 The command adds your name prefix and the severity tag, renders the sibling
 link, records which copy of your definition you ran, and resolves a thread you
 RESOLVE. From round two it takes only blocking findings, on every material the
-round sees — a minor one, posted or held back, is a round it refuses. Ids are checked for shape, not just presence. Findings
-post as one review, so a line outside the diff rejects the round: fix the
-anchor and run it again.`;
+round sees — a minor one, posted or held back, is a round it refuses. Ids are
+checked for shape, not just presence. Findings post as one review, so a line
+outside the diff rejects the round: fix the anchor and run it again.`;
 
 const argv = process.argv.slice(2);
 
@@ -107,34 +108,30 @@ const git = (...args) =>
   execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
 /**
- * The checked-in copies of one agent's definition — `main`'s, the branch's,
- * and the working tree's where it has been edited since the last commit.
+ * The checked-in copies of one agent's definition: `main`'s and the branch's.
+ *
+ * The working tree is not among them: naming it `worktree` reads as a copy
+ * somebody could go and look at, and it is not one. An uncommitted edit then
+ * records as `matches neither main nor branch`, which is what it is — unless
+ * the edit only appended, which definition.mjs cannot tell from the harness's
+ * own appended text and reads as the copy it extends. That is the cost of
+ * matching an honest quote at all, and it is the direction that fails safe:
+ * before it, every honest quote read as `matches neither` and the alarm meant
+ * nothing.
  *
  * A copy that cannot be read is left out rather than reported as empty: a new
  * agent file has no copy on `main`, and a round is still worth posting.
  */
 function definitionCopies(agent) {
   const path = `.claude/agents/${agent}.md`;
-  const read = (name, run) => {
+  const read = (name, ref) => {
     try {
-      return { name, text: run() };
+      return { name, text: git('show', `${ref}:${path}`) };
     } catch {
       return undefined;
     }
   };
-  // The agent's own working directory is wherever it was dispatched from, so
-  // the working-tree copy is read from the repository root, not from `.`.
-  const root = read('root', () => git('rev-parse', '--show-toplevel'))?.text.trim() ?? '.';
-  const copies = [
-    read('main', () => git('show', `main:${path}`)),
-    read('branch', () => git('show', `HEAD:${path}`)),
-    read('worktree', () => readFileSync(join(root, path), 'utf8')),
-  ].filter((copy) => copy !== undefined);
-
-  // The working tree is a copy of its own only where it has been edited: an
-  // untouched file is the branch's, and naming it twice says nothing.
-  const branch = copies.find((copy) => copy.name === 'branch');
-  return copies.filter((copy) => copy.name !== 'worktree' || copy.text !== branch?.text);
+  return [read('main', 'main'), read('branch', 'HEAD')].filter((copy) => copy !== undefined);
 }
 
 const { owner, name } = JSON.parse(gh('repo', 'view', '--json', 'owner,name'));
