@@ -9,7 +9,7 @@
 // Pure: everything below reads the GraphQL payload it is handed and the
 // dispatch it was told about, and nothing else.
 
-import { anchor, linkedGroups, postedBy, reviewState } from './state.mjs';
+import { anchor, linkedGroups, parseRoundRecord, postedBy, reviewState } from './state.mjs';
 
 // REVIEW.md's cap on one round's minor findings. Beyond it an agent
 // summarizes the rest as "plus N similar" in the round body; held back or
@@ -17,18 +17,10 @@ import { anchor, linkedGroups, postedBy, reviewState } from './state.mjs';
 // below counts.
 const MINOR_CAP = 3;
 
-// The round record tools/review-post/ writes. Matching it is what says the
-// round went out through the command: a body in any other form is one an
-// agent composed itself, and nothing then guarantees its findings were
-// anchored, prefixed, or tagged.
-//
-// The held-back group takes anything up to the last close paren, because
-// review-post documents `similar.about` as free prose and interpolates it
-// unchanged — a summary that mentions "naming (mostly)" is a body the command
-// wrote, and a check that read it as hand-composed would be refusing its own
-// output.
-const ROUND =
-  /^\s*\*\*review-[a-z-]+\*\*\s*[—-]\s*round (\d+) · \d+ blocking, (\d+) minor(?: \(plus (\d+) similar:.*\))?\. /s;
+// The round record tools/review-post/ writes is read by state.mjs, and a body
+// it cannot read is one an agent composed itself: nothing then guarantees its
+// findings were anchored, prefixed, or tagged, or that the definition it ran is
+// recorded anywhere.
 
 // The severity tag the command writes on a finding's first line, and the
 // marker that distinguishes a finding with no line to anchor to from one
@@ -137,8 +129,8 @@ function checkRoundRecord(agent, round, reviews, reviewAccount, failures) {
     return;
   }
 
-  const match = ROUND.exec(posted[round - 1].body);
-  if (match === null) {
+  const record = parseRoundRecord(posted[round - 1].body);
+  if (record === null) {
     failures.push({
       kind: 'hand-posted',
       agent,
@@ -146,11 +138,11 @@ function checkRoundRecord(agent, round, reviews, reviewAccount, failures) {
     });
     return;
   }
-  if (Number(match[1]) !== round) {
+  if (record.round !== round) {
     failures.push({
       kind: 'wrong-round',
       agent,
-      detail: `the round record says round ${match[1]}, dispatched to run round ${round}`,
+      detail: `the round record says round ${record.round}, dispatched to run round ${round}`,
     });
     return;
   }
@@ -159,8 +151,7 @@ function checkRoundRecord(agent, round, reviews, reviewAccount, failures) {
   // the check above is what says the command wrote it. A held-back finding
   // counts as raised here: it reached the round record, which is where a
   // reader meets it.
-  const minor = Number(match[2]);
-  const held = match[3] === undefined ? 0 : Number(match[3]);
+  const { minor, held } = record;
   if (round > 1 && minor + held > 0) {
     // Not also reported as over-cap: from round two the cap is beside the
     // point, because the bar is nothing minor at all.

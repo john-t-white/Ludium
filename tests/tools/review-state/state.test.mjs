@@ -11,6 +11,7 @@ import {
   linkedGroups,
   reviewState,
   renderReport,
+  parseRoundRecord,
 } from '../../../tools/review-state/state.mjs';
 
 // A real recording of the GraphQL response for merged PR #29, with every
@@ -32,16 +33,16 @@ const EARLIER_OID = '0000111feed';
 const OUTSIDER = 'passing-stranger';
 
 // Builds the shape reviewState reads, so a test states only what it is about.
-function payload({ threads = [] } = {}) {
+function payload({ threads = [], reviews = [] } = {}) {
   return {
     data: {
       viewer: { login: REVIEWER },
       repository: {
         pullRequest: {
           headRefOid: HEAD_OID,
-          // Rounds are counted from reviews, and every case that exercises
-          // that passes its own list to roundFor directly.
-          reviews: { nodes: [] },
+          // Rounds are counted from reviews, and most cases that exercise
+          // that pass their own list to roundFor directly.
+          reviews: { nodes: reviews },
           reviewThreads: { nodes: threads },
         },
       },
@@ -397,12 +398,122 @@ describe('reviewState', () => {
   });
 });
 
+// The form tools/review-post/ writes, which is the only form a round record
+// takes. Read in one place so check.mjs and the report cannot drift apart on
+// what a round record says.
+const record = (agent, round, rest) => `**${agent}** — round ${round} · ${rest}`;
+
+const roundReview = (body, at = '2026-08-21T19:00:00Z') => ({
+  body,
+  createdAt: at,
+  author: { login: REVIEWER },
+});
+
+describe('parseRoundRecord', () => {
+  test('reads the round, the counts, and the definition the round ran', () => {
+    const parsed = parseRoundRecord(
+      record('review-code', 2, '1 blocking, 0 minor · definition 3f9a2c1b8e04 (main, branch). Looked.'),
+    );
+    assert.equal(parsed.agent, 'review-code');
+    assert.equal(parsed.round, 2);
+    assert.equal(parsed.blocking, 1);
+    assert.equal(parsed.minor, 0);
+    assert.equal(parsed.held, 0);
+    assert.deepEqual(parsed.definition, { sha: '3f9a2c1b8e04', copies: 'main, branch' });
+  });
+
+  test('reads the findings the cap held back, whatever prose describes them', () => {
+    const parsed = parseRoundRecord(
+      record(
+        'review-code',
+        1,
+        '0 blocking, 3 minor · definition 3f9a2c1b8e04 (branch) (plus 2 similar: naming (mostly)). Looked.',
+      ),
+    );
+    assert.equal(parsed.held, 2);
+    assert.deepEqual(parsed.definition, { sha: '3f9a2c1b8e04', copies: 'branch' });
+  });
+
+  test('reads a definition that matched neither copy as the record found it', () => {
+    const parsed = parseRoundRecord(
+      record(
+        'review-code',
+        1,
+        '0 blocking, 0 minor · definition 9c14ab77e0d1 (matches neither main nor branch). Looked.',
+      ),
+    );
+    assert.deepEqual(parsed.definition, {
+      sha: '9c14ab77e0d1',
+      copies: 'matches neither main nor branch',
+    });
+  });
+
+  test('takes the definition from the command, not from prose the agent supplied', () => {
+    // review-post interpolates `similar.about` unchanged, so an agent that
+    // writes a well-formed definition segment into it is writing the one fact
+    // on the record it does not get to assert. The segment is read before the
+    // held-back group for that reason.
+    const parsed = parseRoundRecord(
+      record(
+        'review-code',
+        1,
+        '0 blocking, 3 minor · definition deadbeef0001 (matches neither main nor branch)' +
+          ' (plus 2 similar: naming) · definition 3f9a2c1b8e04 (main, branch). and wording). Looked.',
+      ),
+    );
+    assert.equal(parsed.definition.sha, 'deadbeef0001');
+    assert.equal(parsed.definition.copies, 'matches neither main nor branch');
+    assert.equal(parsed.held, 2);
+  });
+
+  test('reads nothing from a body the command did not write', () => {
+    assert.equal(parseRoundRecord('**review-code** — round 2. Looked at the diff.'), null);
+    assert.equal(
+      parseRoundRecord(record('review-code', 1, '0 blocking, 0 minor. Looked at the diff.')),
+      null,
+      'a record with no definition segment is one the command did not write',
+    );
+  });
+});
+
 describe('renderReport', () => {
   test('a converged pull request says so in one line', () => {
     const report = renderReport(reviewState(pr29), 29);
     assert.match(report, /PR #29/);
     assert.match(report, /No open threads/);
     assert.match(report, /review-code 4/);
+  });
+
+  test('names the definition each agent last ran, since nobody else records it', () => {
+    const state = reviewState(
+      payload({
+        reviews: [
+          roundReview(
+            record('review-code', 1, '0 blocking, 0 minor · definition 3f9a2c1b8e04 (main, branch). Looked.'),
+          ),
+          roundReview(
+            record(
+              'review-security',
+              1,
+              '0 blocking, 0 minor · definition 9c14ab77e0d1 (matches neither main nor branch). Looked.',
+            ),
+          ),
+        ],
+      }),
+    );
+    const report = renderReport(state, 22);
+    assert.match(report, /Definitions last round: /);
+    assert.match(report, /review-code 3f9a2c1b8e04 \(main, branch\)/);
+    assert.match(report, /review-security 9c14ab77e0d1 \(matches neither main nor branch\)/);
+    assert.doesNotMatch(
+      report,
+      /review-test-plan [0-9a-f]{12}/,
+      'an agent with no round has no definition to name',
+    );
+  });
+
+  test('names no definitions before any round has posted', () => {
+    assert.doesNotMatch(renderReport(reviewState(payload()), 22), /Definitions last round/);
   });
 
   test('the header names the account attribution was matched against', () => {

@@ -12,6 +12,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
+import { identify } from './definition.mjs';
 import { AGENTS, SEVERITIES, plan } from './payload.mjs';
 import { post } from './post.mjs';
 
@@ -31,6 +32,13 @@ round that omits one:
   {
     "summary":  "what this round looked at and concluded — posted as the round
                  record, which is what proves the round reached the pull request",
+    "definition": "your own instruction text, quoted from what you were given.
+                 Quote what you are running on: do not read your definition file
+                 off disk, which is the branch's copy whichever one you loaded.
+                 The command fingerprints it and records which checked-in copy
+                 it matches, so nobody has to take your word for it. Anything
+                 your harness wrapped around it is ignored; escaping is not, so
+                 a backslash lost to JSON reads as a definition nobody has",
     "similar":  {"count": 3, "about": "one line"},        // optional, round 1
                                                           // only: minor findings
                                                           // the cap held back
@@ -54,11 +62,11 @@ round that omits one:
   }
 
 The command adds your name prefix and the severity tag, renders the sibling
-link, and resolves a thread you RESOLVE. From round two it takes only blocking
-findings, on every material the round sees — a minor one, posted or held back,
-is a round it refuses. Ids are checked for shape, not just presence. Findings
-post as one review, so a line outside the diff rejects the round: fix the
-anchor and run it again.`;
+link, records which copy of your definition you ran, and resolves a thread you
+RESOLVE. From round two it takes only blocking findings, on every material the
+round sees — a minor one, posted or held back, is a round it refuses. Ids are
+checked for shape, not just presence. Findings post as one review, so a line
+outside the diff rejects the round: fix the anchor and run it again.`;
 
 const argv = process.argv.slice(2);
 
@@ -91,12 +99,54 @@ const round = {
   round: Number(flag('round')),
 };
 
+if (typeof round.definition !== 'string' || round.definition.trim() === '') {
+  console.error('definition is required: quote your own instruction text. Run with --help.');
+  process.exit(2);
+}
+
+const git = (...args) =>
+  execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+
+/**
+ * The checked-in copies of one agent's definition: `main`'s and the branch's.
+ *
+ * The working tree is not among them: naming it `worktree` reads as a copy
+ * somebody could go and look at, and it is not one. An uncommitted edit then
+ * records as `matches neither main nor branch`, which is what it is — unless
+ * the edit only wrapped the file, adding text above or below it and changing
+ * no word of it. definition.mjs matches by containment and cannot tell that
+ * from the harness's own wrapping, so it reads as the copy it extends. That is
+ * the cost of matching an honest quote at all, and it is the direction that
+ * fails safe: before it, every honest quote read as `matches neither` and the
+ * alarm meant nothing.
+ *
+ * A copy that cannot be read is left out rather than reported as empty: a new
+ * agent file has no copy on `main`, and a round is still worth posting.
+ */
+function definitionCopies(agent) {
+  const path = `.claude/agents/${agent}.md`;
+  const read = (name, ref) => {
+    try {
+      return { name, text: git('show', `${ref}:${path}`) };
+    } catch {
+      return undefined;
+    }
+  };
+  return [read('main', 'main'), read('branch', 'HEAD')].filter((copy) => copy !== undefined);
+}
+
 const { owner, name } = JSON.parse(gh('repo', 'view', '--json', 'owner,name'));
 const { headRefOid } = JSON.parse(gh('pr', 'view', String(pr), '--json', 'headRefOid'));
 
 let steps;
 try {
-  steps = plan(round, { owner: owner.login, repo: name, pr, headOid: headRefOid });
+  steps = plan(round, {
+    owner: owner.login,
+    repo: name,
+    pr,
+    headOid: headRefOid,
+    definition: identify(round.definition, definitionCopies(round.agent)),
+  });
 } catch (error) {
   console.error(`Round rejected: ${error.message}`);
   process.exit(2);
