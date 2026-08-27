@@ -17,9 +17,10 @@ const LATER = '2026-08-26T14:00:00Z';
 
 // The forms tools/review-post/ writes. A case that wants a compliant round
 // asks for one of these rather than spelling the punctuation out again.
-const roundBody = (agent, round, { blocking = 0, minor = 0, similar } = {}) =>
+const roundBody = (agent, round, { blocking = 0, minor = 0, similar, definition } = {}) =>
   `**${agent}** — round ${round} · ${blocking} blocking, ${minor} minor` +
-  `${similar === undefined ? '' : ` (plus ${similar} similar: naming)`}. Looked at the diff.`;
+  `${similar === undefined ? '' : ` (plus ${similar} similar: naming)`}` +
+  ` · definition ${definition ?? '3f9a2c1b8e04 (main, branch)'}. Looked at the diff.`;
 
 const findingBody = (agent, severity = 'blocking') =>
   `**${agent}** — [${severity}] The check never runs.\n\nNothing catches it.\n\nRun it.`;
@@ -223,6 +224,26 @@ describe('a round not posted by tools/review-post/', () => {
     assert.equal(failures[0].agent, 'review-code');
   });
 
+  test('is a failure when the record names no definition, which only the command writes', () => {
+    const state = payload({
+      reviews: [review('**review-code** — round 1 · 0 blocking, 0 minor. Looked at the diff.')],
+    });
+    assert.deepEqual(kinds(checkRound(state, { 'review-code': 1 })), ['hand-posted']);
+  });
+
+  test('passes a round whose definition matched neither copy, which is recorded, not refused', () => {
+    const state = payload({
+      reviews: [
+        review(
+          roundBody('review-code', 1, {
+            definition: '9c14ab77e0d1 (matches neither main nor branch)',
+          }),
+        ),
+      ],
+    });
+    assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
+  });
+
   test('a round record numbering a different round is its own failure', () => {
     // The command wrote this body; what is wrong is the number it was given,
     // so saying it was not posted through the command would be untrue.
@@ -242,7 +263,8 @@ describe('a round not posted by tools/review-post/', () => {
     // itself wrote must not read as one an agent composed.
     const body =
       '**review-code** — round 1 · 0 blocking, 3 minor ' +
-      '(plus 2 similar: naming (mostly) and wording). Looked at the diff.';
+      '(plus 2 similar: naming (mostly) and wording) · definition 3f9a2c1b8e04 (main, branch). ' +
+      'Looked at the diff.';
     assert.deepEqual(checkRound(payload({ reviews: [review(body)] }), { 'review-code': 1 }), []);
   });
 

@@ -68,7 +68,21 @@ function findingBody(agent, finding, context) {
   return parts.join('\n\n');
 }
 
-function roundBody(round, findings) {
+/**
+ * Which copy of its definition the round ran, as the round record says it.
+ *
+ * definition.mjs settles this from the instruction text the agent quoted, and
+ * a round that matched neither copy says so rather than naming one: the fact
+ * worth recording is that the round ran something not checked in.
+ */
+function definitionSegment(definition) {
+  required(definition, 'context.definition');
+  const { sha, copies } = definition;
+  const matched = copies.length === 0 ? 'matches neither main nor branch' : copies.join(', ');
+  return ` · definition ${required(sha, 'context.definition.sha')} (${matched})`;
+}
+
+function roundBody(round, findings, context) {
   const count = (severity) => findings.filter((finding) => finding.severity === severity).length;
   const held =
     round.similar === undefined
@@ -79,8 +93,8 @@ function roundBody(round, findings) {
         )})`;
   return prefixed(
     round.agent,
-    `round ${round.round} · ${count('blocking')} blocking, ${count('minor')} minor${held}. ` +
-      `${required(round.summary, 'summary')}`,
+    `round ${round.round} · ${count('blocking')} blocking, ${count('minor')} minor${held}` +
+      `${definitionSegment(context.definition)}. ${required(round.summary, 'summary')}`,
   );
 }
 
@@ -138,7 +152,7 @@ export function plan(round, context) {
     kind: 'review',
     label: `round ${round.round} review (${anchored.length} anchored)`,
     endpoint: `${pulls}/reviews`,
-    body: { event: 'COMMENT', body: roundBody(round, findings), comments: anchored },
+    body: { event: 'COMMENT', body: roundBody(round, findings, context), comments: anchored },
   });
 
   // A file-level comment cannot ride in the review batch, so it is its own

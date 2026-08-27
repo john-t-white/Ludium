@@ -15,6 +15,15 @@ export const AGENTS = [
 ];
 
 const OWNER_PREFIX = /^\s*\*\*(review-[a-z-]+)\*\*/;
+// The round record tools/review-post/ writes, and the only form a round takes.
+// Read here rather than in check.mjs so the check and the report cannot come
+// to disagree about what a round record says.
+//
+// The held-back group is lazy and the definition segment behind it is rigid,
+// because review-post interpolates `similar.about` unchanged: a summary that
+// mentions "naming (mostly)" is still a body the command wrote.
+const ROUND_RECORD =
+  /^\s*\*\*(review-[a-z-]+)\*\*\s*[—-]\s*round (\d+) · (\d+) blocking, (\d+) minor(?: \(plus (\d+) similar: (.*?)\))? · definition ([0-9a-f]{12}) \(([^)]*)\)\. /s;
 const REFERENCE = /#discussion_r(\d+)/g;
 // The form an agent posts a verdict in, and only that form. Matching the bare
 // word anywhere in a body would let a finding that merely discusses a verdict
@@ -24,6 +33,27 @@ const VERDICT = /^\s*(?:\*\*review-[a-z-]+\*\*\s*[—-]\s*)?(DON'T\s+)?RESOLVE\b
 // Agents write DON'T with a typewriter apostrophe; GitHub clients sometimes
 // substitute a curly one. Both mean the same verdict.
 const normalize = (body) => (body ?? '').replace(/’/g, "'");
+
+/**
+ * What a round record says, or null for a body the command did not write.
+ *
+ * `definition.copies` is the record's own words for which checked-in copy the
+ * round ran — the names that matched, or that it matched neither. What the
+ * agent quoted was fingerprinted before the round posted; this only reads back
+ * what was recorded.
+ */
+export function parseRoundRecord(body) {
+  const match = ROUND_RECORD.exec(normalize(body));
+  if (match === null) return null;
+  return {
+    agent: match[1],
+    round: Number(match[2]),
+    blocking: Number(match[3]),
+    minor: Number(match[4]),
+    held: match[5] === undefined ? 0 : Number(match[5]),
+    definition: { sha: match[7], copies: match[8] },
+  };
+}
 
 /** The agent a comment's bold prefix claims, or null when it claims none. */
 export function ownerOf(body) {
@@ -191,6 +221,16 @@ export function reviewState(payload) {
     AGENTS.map((agent) => [agent, roundFor(agent, reviews, reviewAccount)]),
   );
 
+  // The definition each agent's latest round recorded running. Nothing else
+  // knows it: an agent's loaded instructions are gone once its round ends, and
+  // the file on disk is the branch's whichever copy ran.
+  const definitions = {};
+  for (const agent of AGENTS) {
+    const posted = reviews.filter((review) => postedBy(review, reviewAccount) === agent);
+    const record = parseRoundRecord(posted.at(-1)?.body);
+    if (record !== null) definitions[agent] = record.definition;
+  }
+
   // A resolved thread is kept in a group that still has an open one: a human
   // reading the open thread is shown the other angle on the same problem,
   // whether or not that one is settled.
@@ -202,6 +242,7 @@ export function reviewState(payload) {
     headOid: pr.headRefOid,
     reviewAccount,
     rounds,
+    definitions,
     threads,
     openGroups,
     owed,
@@ -227,8 +268,17 @@ export function renderReport(state, prNumber) {
   const lines = [
     `PR #${prNumber} — head ${state.headOid.slice(0, 7)} · review account ${state.reviewAccount}`,
     `Next round: ${AGENTS.map((agent) => `${agent} ${state.rounds[agent]}`).join(', ')}`,
-    '',
   ];
+
+  const definitions = Object.entries(state.definitions);
+  if (definitions.length > 0) {
+    lines.push(
+      `Definitions last round: ${definitions
+        .map(([agent, { sha, copies }]) => `${agent} ${sha} (${copies})`)
+        .join(', ')}`,
+    );
+  }
+  lines.push('');
 
   if (state.openGroups.length === 0) {
     lines.push('No open threads.');

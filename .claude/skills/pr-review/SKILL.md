@@ -164,6 +164,9 @@ From the final state report, tell the human:
 - Which verdicts are still owed, and by whom.
 - What this round found overall, and anything an agent flagged that has no
   thread of its own.
+- Any agent whose `Definitions last round` entry says its definition matches
+  neither `main` nor the branch: that round ran instructions that are not
+  checked in anywhere, so what it looked for is not what its file says.
 
 **The loop has ended** when no thread is open and the latest round raised
 nothing blocking. Say so plainly: that is the review finishing, not a step

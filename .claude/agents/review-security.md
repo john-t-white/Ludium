@@ -62,7 +62,8 @@ confirm it, rather than asserting a vulnerability you have not traced.
 
     node tools/review-post/review-post.mjs round --pr <n> \
       --agent review-security --round <r> <<'JSON'
-    {"summary": "...", "findings": [...], "replies": [...], "verdicts": [...]}
+    {"summary": "...", "definition": "...", "findings": [...], "replies": [...],
+     "verdicts": [...]}
     JSON
 
 The heredoc must be quoted, and nothing inside it is interpreted. Nothing you
