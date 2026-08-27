@@ -155,11 +155,10 @@ seven. The posting command now refuses a minor finding after round one, so the
 bar holds without being remembered. That a fix falls short of the finding its
 thread already holds is always said, but it keeps the thread open only if the
 shortfall would itself block merging. A thread can also close without a
-resolve verdict: the human declines the finding, or
-its owning agent withdraws it, or that agent will not run again and the
-human closes it. The loop ends when no thread is open and the latest round
-raised nothing blocking — that is the review finishing, not a step being
-skipped.
+resolve verdict: the human declines the finding, or its owning agent
+withdraws it, or that agent will not run again and the human closes it. The
+loop ends when no thread is open and the latest round raised nothing
+blocking — that is the review finishing, not a step being skipped.
 
 **A finding is three parts.** What is wrong, what it causes where an example
 clarifies it, and a recommendation, kept short: volume buries the thing the

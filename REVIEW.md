@@ -106,7 +106,4 @@ than to the review of the pull request carrying it.
 From round two on, raise only what would block merging — a finding you would
 not merge without — on everything the round sees, material a fix newly added
 included. A nit a fix introduced is not raised at all; a problem it introduced
-that blocks is a finding in its own right. The posting command refuses a round
-carrying a minor finding after round one, held-back ones included, so a round
-that breaks this is stopped before it reaches the pull request rather than
-after.
+that blocks is a finding in its own right.

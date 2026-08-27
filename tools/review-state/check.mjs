@@ -11,8 +11,10 @@
 
 import { anchor, linkedGroups, postedBy, reviewState } from './state.mjs';
 
-// REVIEW.md's cap. Beyond this an agent summarizes the rest as "plus N
-// similar" in the round body, which is why a held-back count is not a breach.
+// REVIEW.md's cap on one round's minor findings. Beyond it an agent
+// summarizes the rest as "plus N similar" in the round body; held back or
+// not, those are findings the round raised, which is what the round-two bar
+// below counts.
 const MINOR_CAP = 3;
 
 // The round record tools/review-post/ writes. Matching it is what says the
