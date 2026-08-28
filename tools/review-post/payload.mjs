@@ -68,21 +68,7 @@ function findingBody(agent, finding, context) {
   return parts.join('\n\n');
 }
 
-/**
- * Which copy of its definition the round ran, as the round record says it.
- *
- * definition.mjs settles this from the instruction text the agent quoted, and
- * a round that matched neither copy says so rather than naming one: the fact
- * worth recording is that the round ran something not checked in.
- */
-function definitionSegment(definition) {
-  required(definition, 'context.definition');
-  const { sha, copies } = definition;
-  const matched = copies.length === 0 ? 'matches neither main nor branch' : copies.join(', ');
-  return ` · definition ${required(sha, 'context.definition.sha')} (${matched})`;
-}
-
-function roundBody(round, findings, context) {
+function roundBody(round, findings) {
   const count = (severity) => findings.filter((finding) => finding.severity === severity).length;
   const held =
     round.similar === undefined
@@ -93,13 +79,8 @@ function roundBody(round, findings, context) {
         )})`;
   return prefixed(
     round.agent,
-    // The definition segment goes ahead of the held-back group, which
-    // interpolates `similar.about` unchanged. Behind it, an agent that wrote a
-    // well-formed segment into that prose would supply the one fact on the
-    // record it does not get to assert, and the parser would read the forgery
-    // in preference to the real one.
     `round ${round.round} · ${count('blocking')} blocking, ${count('minor')} minor` +
-      `${definitionSegment(context.definition)}${held}. ${required(round.summary, 'summary')}`,
+      `${held}. ${required(round.summary, 'summary')}`,
   );
 }
 
@@ -157,7 +138,7 @@ export function plan(round, context) {
     kind: 'review',
     label: `round ${round.round} review (${anchored.length} anchored)`,
     endpoint: `${pulls}/reviews`,
-    body: { event: 'COMMENT', body: roundBody(round, findings, context), comments: anchored },
+    body: { event: 'COMMENT', body: roundBody(round, findings), comments: anchored },
   });
 
   // A file-level comment cannot ride in the review batch, so it is its own
