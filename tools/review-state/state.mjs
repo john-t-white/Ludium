@@ -263,7 +263,6 @@ export function dispatchSet(state) {
   return { dispatch, skipped };
 }
 
-
 /** How a thread is named in a report: its file, and its line where it has one. */
 export const anchor = (thread) => (thread.line === null ? thread.path : `${thread.path}:${thread.line}`);
 

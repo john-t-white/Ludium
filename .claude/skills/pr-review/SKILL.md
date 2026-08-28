@@ -130,11 +130,11 @@ The report's `Skipped` line names every agent the round does not ask, and why.
 Carry it into step 4's report: a round nobody ran and a round that found
 nothing look identical afterwards.
 
-That line never skips an agent that owes a verdict on a thread it owns, since
-nobody else can render it and the thread cannot close without it. The
-acceptance-criteria reviewer is the case that has to be got right: it is asked
-at step 6 and nowhere else, so owning a thread of its own does not hold it out
-of the round once the other reviewers have answered.
+An agent that owes a verdict is never skipped for good: nobody else can render
+it, and the thread cannot close without it. The acceptance-criteria reviewer is
+the case to get right — it is asked at step 6 and nowhere else, so owning a
+thread holds it out of the round only until the other reviewers have answered,
+never beyond.
 
 ## 3. Check the round
 
