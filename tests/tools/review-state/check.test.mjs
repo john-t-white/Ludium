@@ -201,6 +201,26 @@ describe('an owned thread left unverdicted', () => {
     assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['owes-verdict']);
   });
 
+  test('is a failure when a re-review at the same head never posted', () => {
+    // The author answers a finding with a reason rather than a fix. A reply
+    // moves no commit, so the round record the dying re-review leaves behind
+    // is its own first round's, posted against this same head — the one case
+    // selecting by commit cannot see. What still separates them is the reply:
+    // a record that predates it cannot have answered it.
+    const state = payload({
+      reviews: [review(roundBody('review-code', { blocking: 1 }), { at: AT })],
+      threads: [
+        thread({
+          comments: [
+            comment(findingBody('review-code'), { at: AT }),
+            comment('Not fixing, and here is why.', { at: LATER }),
+          ],
+        }),
+      ],
+    });
+    assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['owes-verdict']);
+  });
+
   test('is not a failure on a thread its owner was not dispatched to answer', () => {
     const state = payload({
       reviews: [review(roundBody('review-code'))],
@@ -428,7 +448,7 @@ describe('a minor finding raised on a re-review', () => {
     assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['minor-on-re-review']);
   });
 
-  test('is not a failure in round one, which takes minor findings', () => {
+  test('is not a failure on a first look, which takes minor findings', () => {
     const state = payload({ reviews: [review(roundBody('review-code', { minor: 3 }))] });
     assert.deepEqual(checkRound(state, ['review-code']), []);
   });

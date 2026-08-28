@@ -89,6 +89,13 @@ function thisRound(reviews, agent, reviewAccount, headOid) {
  * the verdict is owed on the re-review, once a fix has answered it. Counting
  * a round's own findings would fail every first round.
  *
+ * A round the agent did not actually post is the case to get right. Selecting
+ * the record by commit catches it whenever the author pushed, but an answer to
+ * a finding is a reply, and a reply moves no commit — so a dying re-review at
+ * an unchanged head leaves its own earlier record standing here. What still
+ * tells them apart is that the earlier record predates the reply it is being
+ * credited with answering.
+ *
  * An agent whose round record carries no timestamp is reported rather than
  * skipped: the query fetches one on every review, so a payload without it is
  * one this cannot read, and the reading that costs a false failure beats the
@@ -101,7 +108,15 @@ function unverdicted(state, dispatched, reviews, raised, headOid) {
     if (!thread.owesVerdict || !dispatched.includes(thread.owner)) continue;
     const postedAt = records.get(thread.owner)?.createdAt;
     const openedAt = raised.get(thread.id)?.createdAt;
-    if (postedAt !== undefined && openedAt !== undefined && openedAt >= postedAt) continue;
+    // A record that predates something on the thread cannot have answered it,
+    // whatever commit it was posted against. Without this an agent dispatched
+    // to answer a reply — which moves no commit, so the head cannot separate
+    // the rounds — inherits its own earlier record and its dead round reads as
+    // clean. The reply is what separates them, and state.mjs already found it.
+    const answered = thread.latestOtherCommentAt === null || thread.latestOtherCommentAt < postedAt;
+    if (postedAt !== undefined && openedAt !== undefined && openedAt >= postedAt && answered) {
+      continue;
+    }
     failures.push({
       kind: 'owes-verdict',
       agent: thread.owner,
@@ -144,11 +159,15 @@ function checkRoundRecord(agent, reviews, reviewAccount, headOid, failures) {
   for (const review of round) {
     const record = parseRoundRecord(review.body);
     if (record === null) {
-      failures.push({
-        kind: 'hand-posted',
-        agent,
-        detail: 'the round record is not the form tools/review-post/ writes',
-      });
+      // Reported once however many records are unreadable: the agent did not
+      // post through the command, which is one fact about the round.
+      if (!failures.some((failure) => failure.kind === 'hand-posted' && failure.agent === agent)) {
+        failures.push({
+          kind: 'hand-posted',
+          agent,
+          detail: 'the round record is not the form tools/review-post/ writes',
+        });
+      }
       continue;
     }
 
