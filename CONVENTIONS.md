@@ -132,10 +132,10 @@ same problem for different reasons, and each reason has its own test for
 "fixed". Two threads on one problem is the cost of keeping each concern
 independently answerable: every thread has exactly one owning agent, and a fix
 that satisfies one agent's thread leaves the other's open until that agent says
-so itself. This
-decides whose thread a concern goes on, not whether the concern clears the
-bar of the round it is found in — one that does not clear that bar is not
-raised by anyone, which is the bar working rather than an agent deferring.
+so itself. This decides whose thread a concern goes on, not whether the concern
+clears the bar of the round it is found in — one that does not clear that bar
+is not raised by anyone, which is the bar working rather than an agent
+deferring.
 
 **The review loop ends.** Once changes land in response to feedback, the
 same agents review again — and each renders an explicit resolve /

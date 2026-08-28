@@ -124,15 +124,13 @@ function normalizeThread(node, reviewAccount) {
     isResolved: node.isResolved,
     path: node.path,
     line: node.line,
-    // What the thread was posted against, which is not what it is anchored to
-    // now: GitHub nulls `line` once a thread goes outdated, while
-    // `originalLine` and `subjectType` are fixed when the comment is written.
-    originalLine: node.originalLine ?? null,
+    // What the thread was posted as, which is not what it is anchored to now:
+    // GitHub nulls `line` once a thread goes outdated, while `subjectType` is
+    // fixed when the comment is written.
     subjectType: node.subjectType ?? 'LINE',
     owner,
     commentId: first?.databaseId ?? null,
     summary: summarize(first?.body),
-    commentIds: comments.map((comment) => comment.databaseId),
     verdict: verdicts.at(-1) ?? null,
     latestOtherCommentAt: otherDates.length === 0 ? null : otherDates.reduce((a, b) => (a > b ? a : b)),
   };

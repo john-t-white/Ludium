@@ -52,7 +52,6 @@ function thread({
   isResolved = false,
   path = 'tools/review-state/check.mjs',
   line = 10,
-  originalLine = line,
   subjectType = 'LINE',
   comments,
 }) {
@@ -61,7 +60,6 @@ function thread({
     isResolved,
     path,
     line,
-    originalLine,
     subjectType,
     comments: { nodes: comments },
   };
@@ -315,7 +313,6 @@ describe('an unanchored finding', () => {
       threads: [
         thread({
           line: null,
-          originalLine: 42,
           comments: [comment(findingBody('review-code')), comment(verdictBody('review-code'))],
         }),
       ],
