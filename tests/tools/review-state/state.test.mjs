@@ -9,6 +9,7 @@ import {
   verdictIn,
   owesVerdict,
   reviewState,
+  dispatchSet,
   renderReport,
   parseRoundRecord,
 } from '../../../tools/review-state/state.mjs';
@@ -338,6 +339,109 @@ describe('reviewState', () => {
   });
 });
 
+// A round an agent posted, and the commit it was recorded against. What makes
+// a round the acceptance-criteria reviewer's last look is that commit being
+// the head: it is the same server-assigned, frozen value owesVerdict reads.
+const round = (agent, oid = HEAD_OID) => ({
+  body: `**${agent}** — round 1 · 0 blocking, 0 minor. Looked at the diff.`,
+  author: { login: REVIEWER },
+  createdAt: HEAD_AT,
+  commit: { oid },
+});
+
+const OTHERS = ['review-code', 'review-security', 'review-test-plan'];
+const AC = 'review-acceptance-criteria';
+const skippedFor = (set, agent) => set.skipped.find((entry) => entry.agent === agent)?.reason;
+
+describe('dispatchSet', () => {
+  test('a pull request nobody has looked at yet dispatches every reviewer but one', () => {
+    const set = dispatchSet(reviewState(payload()));
+    assert.deepEqual(set.dispatch.sort(), [...OTHERS].sort());
+    assert.match(skippedFor(set, AC), /last/);
+  });
+
+  test('a reviewer holding nothing open is not asked to look again', () => {
+    const set = dispatchSet(
+      reviewState(
+        payload({
+          reviews: OTHERS.map((agent) => round(agent)),
+          threads: [thread({ comments: [['**review-code** — a finding']] })],
+        }),
+      ),
+    );
+    assert.deepEqual(set.dispatch, ['review-code']);
+    assert.match(skippedFor(set, 'review-security'), /nothing open/);
+    assert.match(skippedFor(set, 'review-test-plan'), /nothing open/);
+  });
+
+  test('the acceptance-criteria reviewer looks alone, once the others are finished', () => {
+    const set = dispatchSet(reviewState(payload({ reviews: OTHERS.map((agent) => round(agent)) })));
+    assert.deepEqual(set.dispatch, [AC]);
+    assert.match(skippedFor(set, 'review-code'), /nothing open/);
+  });
+
+  test('a finding from the acceptance-criteria reviewer restarts the loop at step 1', () => {
+    // The author's fix moved the head, so the other three have not looked at
+    // the answer to what it raised. Their earlier rounds are against the
+    // commit that finding was written on.
+    const set = dispatchSet(
+      reviewState(
+        payload({
+          reviews: [...OTHERS.map((agent) => round(agent, EARLIER_OID)), round(AC, EARLIER_OID)],
+          threads: [thread({ comments: [[`**${AC}** — the third criterion is unmet`]] })],
+        }),
+      ),
+    );
+    assert.deepEqual(set.dispatch.sort(), [...OTHERS].sort());
+    assert.match(skippedFor(set, AC), /last/);
+  });
+
+  test('the acceptance-criteria reviewer is asked again while it owns a thread, since nobody else can close it', () => {
+    // The restart has run: the other three have answered at the current head
+    // and hold nothing open, and the thread the acceptance-criteria reviewer
+    // raised is still open. It is the only agent that can render that verdict,
+    // so the round has to reach it.
+    const set = dispatchSet(
+      reviewState(
+        payload({
+          reviews: [...OTHERS.map((agent) => round(agent)), round(AC, EARLIER_OID)],
+          threads: [thread({ comments: [[`**${AC}** — the third criterion is unmet`]] })],
+        }),
+      ),
+    );
+    assert.deepEqual(set.dispatch, [AC]);
+  });
+
+  test('a reviewer that has never looked is not skipped as holding nothing open', () => {
+    const set = dispatchSet(
+      reviewState(
+        payload({
+          reviews: [round('review-code')],
+          threads: [thread({ comments: [['**review-code** — a finding']] })],
+        }),
+      ),
+    );
+    assert.deepEqual(set.dispatch, ['review-code']);
+    assert.match(skippedFor(set, 'review-security'), /not looked/);
+  });
+
+  test('nothing open and the last look already taken is the loop ending', () => {
+    const set = dispatchSet(
+      reviewState(payload({ reviews: [...OTHERS.map((agent) => round(agent)), round(AC)] })),
+    );
+    assert.deepEqual(set.dispatch, []);
+  });
+
+  test('a last look recorded against an earlier commit is not the last look', () => {
+    const set = dispatchSet(
+      reviewState(
+        payload({ reviews: [...OTHERS.map((agent) => round(agent)), round(AC, EARLIER_OID)] }),
+      ),
+    );
+    assert.deepEqual(set.dispatch, [AC]);
+  });
+});
+
 // The form tools/review-post/ writes, which is the only form a round record
 // takes. Read in one place so check.mjs and the report cannot drift apart on
 // what a round record says.
@@ -386,6 +490,38 @@ describe('renderReport', () => {
   test('the header names the account attribution was matched against', () => {
     const report = renderReport(reviewState(payload()), 22);
     assert.match(report, new RegExp(`review account ${REVIEWER}`));
+  });
+
+  test('the report names who is looking this round, and who is not and why', () => {
+    const state = reviewState(
+      payload({
+        reviews: OTHERS.map((agent) => round(agent)),
+        threads: [thread({ comments: [['**review-code** — a finding']] })],
+      }),
+    );
+    const report = renderReport(state, 22);
+    assert.match(report, /Dispatch this round: review-code$/m);
+    assert.match(report, /Skipped: .*review-acceptance-criteria \(runs last[^)]*\)/);
+    assert.match(report, /review-test-plan \(holds nothing open\)/);
+  });
+
+  test('nobody left to ask is not the loop ending while a thread is still open', () => {
+    const state = reviewState(
+      payload({
+        reviews: [...OTHERS.map((agent) => round(agent)), round(AC)],
+        threads: [thread({ comments: [['Not an agent, and nobody owns it']] })],
+      }),
+    );
+    const report = renderReport(state, 22);
+    assert.match(report, /Dispatch this round: none — no reviewer is owed a look/);
+    assert.doesNotMatch(report, /loop has ended/);
+  });
+
+  test('a round with nobody left to ask says the loop has ended', () => {
+    const state = reviewState(
+      payload({ reviews: [...OTHERS.map((agent) => round(agent)), round(AC)] }),
+    );
+    assert.match(renderReport(state, 22), /Dispatch this round: none — .*loop has ended/);
   });
 
   test('an open thread carries what an agent needs to answer it', () => {

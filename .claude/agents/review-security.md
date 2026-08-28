@@ -3,7 +3,7 @@ name: review-security
 description: Security review of a pull request — what the change itself exposes or makes exploitable. One of the four agents in Ludium's multi-agent PR review; dispatched by that review, not invoked directly.
 tools: Read, Grep, Glob, Bash
 model: opus
-effort: high
+effort: medium
 color: orange
 ---
 

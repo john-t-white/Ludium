@@ -73,9 +73,11 @@ a reader could not infer, and the test plan required above. It does not
 restate the issue, re-quote acceptance criteria, or summarize the diff.
 
 **Pull requests are reviewed by a multi-agent process, then a human.** Once
-a PR is open, an automated review runs four agents in parallel — verifying
-the PR's test plan, verifying the linked issue's acceptance criteria, a
-general code review, and a security review. Each posts its own findings as
+a PR is open, an automated review runs the reviewers the loop asks for in
+parallel — a general code review, a security review, and one verifying the
+PR's test plan, with a fourth verifying the linked issue's acceptance
+criteria once the other three hold nothing open, since its answer cannot
+mean anything while the code is still moving. Each posts its own findings as
 inline PR comments under its own name, so a finding reads as the agent that
 raised it wrote it. The four run as subagents spawned for the purpose, from
 checked-in definitions in [.claude/agents/](.claude/agents/) — one file per
@@ -83,21 +85,20 @@ agent, and the source of truth for what each reads and what it looks for,
 within the calibration `REVIEW.md` sets. An agent file holds that judgment and
 nothing else: how a finding is filed is the same for all four, so it is written
 once in `REVIEW.md` and enforced by [tools/review-post/](tools/review-post/),
-the one command an agent posts a round with. The name prefix, the severity
-tag, and the link that pairs two threads on one problem are written by that
-command, and it refuses a finding with no anchor, because every one of those
-was a rule in prose that an agent broke at least once. This document
-says why the review works the way it does; those files and that command are what
-actually runs, so a change to how a review runs is a change to them. Each
-agent runs at a capability level matched to its job, recorded in its
-frontmatter. What a review flags, at what severity, how much of it, and how a
-finding is filed is calibration rather than process, and it lives in
-[REVIEW.md](REVIEW.md), which a review reads and nothing else does. The three
-files divide cleanly: `CLAUDE.md` is context for all work, this document is
-how work is planned and reviewed and why, and `REVIEW.md` is what a review
-does with the change in front of it.
-This review never approves or merges on its own; a human reads the findings,
-responds inline, decides what to act on, and makes the merge call.
+the one command an agent posts a round with. The name prefix and the severity
+tag are written by that command, and it refuses a finding with no anchor,
+because every one of those was a rule in prose that an agent broke at least
+once. This document says why the review works the way it does; those files
+and that command are what actually runs, so a change to how a review runs is
+a change to them. Each agent runs at a capability level matched to its job,
+recorded in its frontmatter. What a review flags, at what severity, how much
+of it, and how a finding is filed is calibration rather than process, and it
+lives in [REVIEW.md](REVIEW.md), which a review reads and nothing else does.
+The three files divide cleanly: `CLAUDE.md` is context for all work, this
+document is how work is planned and reviewed and why, and `REVIEW.md` is what
+a review does with the change in front of it. This review never approves or
+merges on its own; a human reads the findings, responds inline, decides what
+to act on, and makes the merge call.
 
 **A round runs as one command.** The loop the review runs — who looks, in what
 order, and what has to happen before a reviewer is asked again — is stated in
