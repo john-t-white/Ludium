@@ -71,11 +71,6 @@ not post the finding.
   and the severity tag, requires an anchor rather than inventing one, renders
   the sibling link, and resolves what you RESOLVE. Run it with `--help` for
   the fields. Never build a `gh api` call yourself.
-- Pass `definition`: your own instruction text, quoted from what you were
-  given rather than read off disk — the file on disk is the branch's copy
-  whichever one you loaded. The command fingerprints it and records on the
-  round which checked-in copy you ran, so that is a fact the tooling holds
-  rather than one you assert.
 - Post every round, including one that found nothing and one whose only work
   was verdicts. A round that did not post is indistinguishable from a round
   that found nothing.

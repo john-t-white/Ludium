@@ -8,9 +8,6 @@ const CONTEXT = {
   repo: 'Ludium',
   pr: 33,
   headOid: 'abc1234def',
-  // Which copy of its definition the agent's quoted instructions matched,
-  // settled by definition.mjs before the round is built.
-  definition: { sha: '3f9a2c1b8e04', copies: ['main', 'branch'] },
 };
 
 // The smallest round that is still a round: an agent reporting it looked and
@@ -51,8 +48,7 @@ describe('the round review', () => {
     );
     assert.equal(
       review(steps).body.body,
-      '**review-code** — round 1 · 1 blocking, 1 minor · definition 3f9a2c1b8e04 (main, branch). ' +
-        'Nothing blocking.',
+      '**review-code** — round 1 · 1 blocking, 1 minor. Nothing blocking.',
     );
   });
 
@@ -63,7 +59,7 @@ describe('the round review', () => {
     );
     assert.equal(
       review(steps).body.body,
-      '**review-code** — round 1 · 0 blocking, 0 minor · definition 3f9a2c1b8e04 (main, branch)' +
+      '**review-code** — round 1 · 0 blocking, 0 minor' +
         ' (plus 3 similar: wording in the same file). Nothing blocking.',
     );
   });
@@ -273,24 +269,8 @@ describe('the round itself', () => {
     assert.throws(() => plan({ ...ROUND, summary: '' }, CONTEXT), /summary/);
   });
 
-  test('records the copy of its definition the agent ran, so nobody has to assert it', () => {
-    const branchOnly = { ...CONTEXT, definition: { sha: '9c14ab77e0d1', copies: ['branch'] } };
-    assert.match(
-      review(plan(ROUND, branchOnly)).body.body,
-      / · definition 9c14ab77e0d1 \(branch\)\. /,
-    );
-  });
-
-  test('says so when the definition ran is neither copy, rather than naming one', () => {
-    const neither = { ...CONTEXT, definition: { sha: '9c14ab77e0d1', copies: [] } };
-    assert.match(
-      review(plan(ROUND, neither)).body.body,
-      / · definition 9c14ab77e0d1 \(matches neither main nor branch\)\. /,
-    );
-  });
-
-  test('is rejected without a definition, so a round cannot post unattributed', () => {
-    assert.throws(() => plan(ROUND, { ...CONTEXT, definition: undefined }), /definition/);
+  test('records nothing about which copy of its definition the agent ran', () => {
+    assert.doesNotMatch(review(plan(ROUND, CONTEXT)).body.body, /definition/);
   });
 
   test('is rejected without a round number', () => {
