@@ -44,10 +44,6 @@ it; anything that serves none is not part of the review.
    others missed against what the issue asked for.
 7. If it finds something missed, the loop starts again from step 1.
 
-The procedure below does not yet run step 3 as written: it does not require
-the author to have answered a finding before its reviewer looks again. #41 is
-closing that, one part at a time, and this paragraph goes with the last of it.
-
 ## 1. Establish the state
 
     node tools/review-state/review-state.mjs --pr <number>
@@ -136,6 +132,11 @@ the case to get right — it is asked at step 6 and nowhere else, so owning a
 thread holds it out of the round only until the other reviewers have answered,
 never beyond.
 
+A reviewer is also held out while the author owes an answer on a thread it
+owns — step 3 before step 4, for all four of them. The report says so and names
+the threads; the hold ends when the author replies on each, which is the
+author's move to make rather than a reason to dispatch anyone anyway.
+
 ## 3. Check the round
 
 Re-run the state command for the state the round left behind, then check the
@@ -190,6 +191,7 @@ From the final state report, tell the human:
 
 - Which threads are still open, who owns each, and what each owner is waiting
   for.
+- Which threads are waiting on an answer from the author, and what each asked.
 - Which verdicts are still owed, and by whom.
 - Which reviewers this round skipped, and the reason the report gave.
 - What this round found overall, and anything an agent flagged that has no

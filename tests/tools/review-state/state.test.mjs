@@ -8,6 +8,7 @@ import {
   roundFor,
   verdictIn,
   owesVerdict,
+  awaitsAuthor,
   reviewState,
   dispatchSet,
   renderReport,
@@ -217,6 +218,43 @@ describe('owesVerdict', () => {
   });
 });
 
+describe('awaitsAuthor', () => {
+  const RAISED = '2026-08-21T18:00:00Z';
+  const ANSWERED = '2026-08-21T19:00:00Z';
+  const waiting = (extra = {}) => ({
+    isResolved: false,
+    owner: 'review-code',
+    latestOwnerCommentAt: RAISED,
+    latestOtherCommentAt: null,
+    ...extra,
+  });
+
+  test('a finding nobody has replied to is waiting on the author', () => {
+    assert.equal(awaitsAuthor(waiting()), true);
+  });
+
+  test('a reply after the finding is the answer step 3 asks for', () => {
+    assert.equal(awaitsAuthor(waiting({ latestOtherCommentAt: ANSWERED })), false);
+  });
+
+  test('an owner that has spoken since the answer is waiting again', () => {
+    // The owner said the fix falls short and kept the thread open; that is a
+    // new problem raised, which step 3 answers before step 4 looks again.
+    assert.equal(
+      awaitsAuthor(waiting({ latestOtherCommentAt: ANSWERED, latestOwnerCommentAt: HEAD_AT })),
+      true,
+    );
+  });
+
+  test('a resolved thread waits for nothing', () => {
+    assert.equal(awaitsAuthor(waiting({ isResolved: true })), false);
+  });
+
+  test('a thread no agent owns is nobody to answer to', () => {
+    assert.equal(awaitsAuthor(waiting({ owner: null, latestOwnerCommentAt: null })), false);
+  });
+});
+
 describe('reviewState', () => {
   test('the head commit and the review account come off the payload', () => {
     const state = reviewState(payload());
@@ -353,6 +391,16 @@ const OTHERS = ['review-code', 'review-security', 'review-test-plan'];
 const AC = 'review-acceptance-criteria';
 const skippedFor = (set, agent) => set.skipped.find((entry) => entry.agent === agent)?.reason;
 
+// A finding, and the author's answer to it. The answer carries no agent name
+// prefix, which is the only thing separating the two: the review runs on the
+// author's account, so both comments are authored by REVIEWER.
+const RAISED_AT = '2026-08-21T18:00:00Z';
+const ANSWERED_AT = '2026-08-21T19:00:00Z';
+const raised = (agent, body = 'a finding') => [`**${agent}** — ${body}`, RAISED_AT];
+const ANSWER = ['fixed in 1234abc', ANSWERED_AT];
+const answered = (agent, body) => thread({ comments: [raised(agent, body), ANSWER] });
+const unanswered = (agent, body) => thread({ comments: [raised(agent, body)] });
+
 describe('dispatchSet', () => {
   test('a pull request nobody has looked at yet dispatches every reviewer but one', () => {
     const set = dispatchSet(reviewState(payload()));
@@ -365,7 +413,7 @@ describe('dispatchSet', () => {
       reviewState(
         payload({
           reviews: OTHERS.map((agent) => round(agent)),
-          threads: [thread({ comments: [['**review-code** — a finding']] })],
+          threads: [answered('review-code')],
         }),
       ),
     );
@@ -383,12 +431,15 @@ describe('dispatchSet', () => {
   test('a finding from the acceptance-criteria reviewer restarts the loop at step 1', () => {
     // The author's fix moved the head, so the other three have not looked at
     // the answer to what it raised. Their earlier rounds are against the
-    // commit that finding was written on.
+    // commit that finding was written on. The thread is unanswered, which is
+    // deliberate: an author's answer gates step 4, where a reviewer is asked
+    // again about its own thread, not step 1, where the others take a look
+    // they have never taken at this code.
     const set = dispatchSet(
       reviewState(
         payload({
           reviews: [...OTHERS.map((agent) => round(agent, EARLIER_OID)), round(AC, EARLIER_OID)],
-          threads: [thread({ comments: [[`**${AC}** — the third criterion is unmet`]] })],
+          threads: [unanswered(AC, 'the third criterion is unmet')],
         }),
       ),
     );
@@ -405,7 +456,7 @@ describe('dispatchSet', () => {
       reviewState(
         payload({
           reviews: [...OTHERS.map((agent) => round(agent)), round(AC, EARLIER_OID)],
-          threads: [thread({ comments: [[`**${AC}** — the third criterion is unmet`]] })],
+          threads: [answered(AC, 'the third criterion is unmet')],
         }),
       ),
     );
@@ -417,7 +468,7 @@ describe('dispatchSet', () => {
       reviewState(
         payload({
           reviews: [round('review-code')],
-          threads: [thread({ comments: [['**review-code** — a finding']] })],
+          threads: [answered('review-code')],
         }),
       ),
     );
@@ -428,6 +479,62 @@ describe('dispatchSet', () => {
   test('nothing open and the last look already taken is the loop ending', () => {
     const set = dispatchSet(
       reviewState(payload({ reviews: [...OTHERS.map((agent) => round(agent)), round(AC)] })),
+    );
+    assert.deepEqual(set.dispatch, []);
+  });
+
+  test('a reviewer is not asked again while the author owes an answer', () => {
+    const set = dispatchSet(
+      reviewState(
+        payload({
+          reviews: OTHERS.map((agent) => round(agent)),
+          threads: [unanswered('review-code')],
+        }),
+      ),
+    );
+    assert.deepEqual(set.dispatch, []);
+  });
+
+  test('one answered thread does not release a reviewer holding another unanswered', () => {
+    const set = dispatchSet(
+      reviewState(
+        payload({
+          reviews: OTHERS.map((agent) => round(agent)),
+          threads: [answered('review-code', 'the first'), unanswered('review-code', 'the second')],
+        }),
+      ),
+    );
+    assert.deepEqual(set.dispatch, []);
+  });
+
+  test('only the reviewer whose findings were answered looks again', () => {
+    // And the round does not fall past step 4 to the last look while another
+    // reviewer is still holding a finding open.
+    const set = dispatchSet(
+      reviewState(
+        payload({
+          reviews: OTHERS.map((agent) => round(agent)),
+          threads: [answered('review-code'), unanswered('review-security')],
+        }),
+      ),
+    );
+    assert.deepEqual(set.dispatch, ['review-code']);
+    assert.match(skippedFor(set, AC), /last/);
+    // Not "holds nothing open", which is what it was skipped as before the
+    // author's answer became a reason of its own.
+    assert.match(skippedFor(set, 'review-security'), /author has not answered/);
+  });
+
+  test('the last look waits on the author too', () => {
+    // The others hold nothing open and have looked at the head, so only the
+    // acceptance-criteria reviewer is left — and its own finding is unanswered.
+    const set = dispatchSet(
+      reviewState(
+        payload({
+          reviews: [...OTHERS.map((agent) => round(agent)), round(AC, EARLIER_OID)],
+          threads: [unanswered(AC, 'the third criterion is unmet')],
+        }),
+      ),
     );
     assert.deepEqual(set.dispatch, []);
   });
@@ -496,7 +603,7 @@ describe('renderReport', () => {
     const state = reviewState(
       payload({
         reviews: OTHERS.map((agent) => round(agent)),
-        threads: [thread({ comments: [['**review-code** — a finding']] })],
+        threads: [answered('review-code')],
       }),
     );
     const report = renderReport(state, 22);
@@ -517,6 +624,19 @@ describe('renderReport', () => {
     assert.doesNotMatch(report, /loop has ended/);
   });
 
+  test('a round waiting on the author says so, and does not say the loop has ended', () => {
+    const state = reviewState(
+      payload({
+        reviews: OTHERS.map((agent) => round(agent)),
+        threads: [unanswered('review-code')],
+      }),
+    );
+    const report = renderReport(state, 22);
+    assert.match(report, /Dispatch this round: none — the author owes an answer on 1 thread/);
+    assert.doesNotMatch(report, /loop has ended/);
+    assert.match(report, /awaiting the author's answer/);
+  });
+
   test('a round with nobody left to ask says the loop has ended', () => {
     const state = reviewState(
       payload({ reviews: [...OTHERS.map((agent) => round(agent)), round(AC)] }),
@@ -531,7 +651,10 @@ describe('renderReport', () => {
           thread({
             path: 'REVIEW.md',
             line: 24,
-            comments: [['**review-code** — the blocking list has no bullet for a missing test plan']],
+            comments: [
+              raised('review-code', 'the blocking list has no bullet for a missing test plan'),
+              ANSWER,
+            ],
           }),
         ],
       }),

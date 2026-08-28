@@ -88,6 +88,10 @@ not post the finding.
 - On every re-review, render `RESOLVE` or `DON'T RESOLVE` on each thread you
   own — never leave it to be inferred. That a fix falls short is always said,
   but keeps the thread open only if the shortfall would itself block merging.
+- An answer may be a reason not to fix rather than a fix. Accept it or do not,
+  and say which: accepting is `RESOLVE` on your own thread — closing your own
+  finding is how a reason not to fix ends, and nobody else can close it — and
+  not accepting is `DON'T RESOLVE` saying what would still satisfy you.
 - Say plainly when you are unsure. An uncertain finding, marked uncertain, is
   useful; an overstated one wastes a round.
 - Do nothing else to the pull request: no approving, merging, pushing, editing

@@ -27,6 +27,7 @@ const OTHERS = AGENTS.filter((agent) => agent !== ACCEPTANCE);
 const LAST_LOOK = 'runs last, after the other reviewers finish';
 const NOTHING_OPEN = 'holds nothing open';
 const NOT_YET = 'has not looked at this pull request yet';
+const AWAITING_AUTHOR = 'the author has not answered a finding it raised';
 
 const OWNER_PREFIX = /^\s*\*\*(review-[a-z-]+)\*\*/;
 // The round record tools/review-post/ writes, and the only form a round takes.
@@ -125,6 +126,29 @@ export function owesVerdict(thread, headOid) {
   return thread.latestOtherCommentAt !== null && thread.verdict.at < thread.latestOtherCommentAt;
 }
 
+/**
+ * Whether the thread is waiting on the author — step 3 of the loop, which
+ * comes before the reviewer that raised the finding is asked to look again.
+ *
+ * The answer is a reply on the thread, not a new commit. A push says nothing
+ * about which findings it addresses, so counting one would answer every open
+ * thread at once, including the ones it did not touch; the conventions ask for
+ * a fix to be answered inline on each thread it addresses, and this reads that
+ * reply. It is the same signal owesVerdict already reads for the other half of
+ * the exchange.
+ *
+ * The author and the review account are the same person here, so what marks a
+ * comment as the author's is the absence of an agent's name prefix — the
+ * distinction normalizeThread already draws.
+ */
+export function awaitsAuthor(thread) {
+  if (thread.isResolved || thread.owner === null) return false;
+  return (
+    thread.latestOtherCommentAt === null ||
+    thread.latestOtherCommentAt < thread.latestOwnerCommentAt
+  );
+}
+
 function normalizeThread(node, reviewAccount) {
   const comments = node.comments.nodes;
   const first = comments[0];
@@ -145,7 +169,9 @@ function normalizeThread(node, reviewAccount) {
       answeredFor: comment.pullRequestReview?.commit?.oid ?? null,
     }));
 
+  const latest = (dates) => (dates.length === 0 ? null : dates.reduce((a, b) => (a > b ? a : b)));
   const otherDates = comments.filter((comment) => !fromOwner(comment)).map((c) => c.createdAt);
+  const ownerDates = comments.filter(fromOwner).map((c) => c.createdAt);
 
   return {
     id: node.id,
@@ -160,7 +186,8 @@ function normalizeThread(node, reviewAccount) {
     commentId: first?.databaseId ?? null,
     summary: summarize(first?.body),
     verdict: verdicts.at(-1) ?? null,
-    latestOtherCommentAt: otherDates.length === 0 ? null : otherDates.reduce((a, b) => (a > b ? a : b)),
+    latestOtherCommentAt: latest(otherDates),
+    latestOwnerCommentAt: latest(ownerDates),
   };
 }
 
@@ -178,6 +205,7 @@ export function reviewState(payload) {
 
   for (const thread of threads) {
     thread.owesVerdict = owesVerdict(thread, pr.headRefOid);
+    thread.awaitsAuthor = awaitsAuthor(thread);
   }
 
   const owed = {};
@@ -202,6 +230,7 @@ export function reviewState(payload) {
     lookedAtHead: looked,
     threads,
     open,
+    unanswered: open.filter((thread) => thread.awaitsAuthor),
     owed,
   };
 }
@@ -228,11 +257,20 @@ export function dispatchSet(state) {
   const owns = (agent) => state.open.some((thread) => thread.owner === agent);
   const looked = (agent) => state.lookedAtHead[agent];
   const unposted = (agent) => state.rounds[agent] === 1;
+  // Step 3: the author answers every problem raised, before step 4 asks the
+  // reviewer that raised it to look again. Every thread, not the one being
+  // looked at — a reviewer looks at its threads together, and one of them
+  // with no answer on it is a reviewer with nothing new to read.
+  const answered = (agent) => !state.unanswered.some((thread) => thread.owner === agent);
 
   let dispatch;
   if (OTHERS.some(owns)) {
-    // Step 4: only the reviewers that raised something.
-    dispatch = OTHERS.filter(owns);
+    // Step 4: only the reviewers that raised something, and only once the
+    // author has answered them. This branch fires on owning a thread rather
+    // than on being ready to look, so that a reviewer still waiting on the
+    // author holds the round here instead of letting it fall through to the
+    // last look — the empty dispatch is the loop waiting on step 3.
+    dispatch = OTHERS.filter((agent) => owns(agent) && answered(agent));
   } else if (owns(ACCEPTANCE) && OTHERS.some((agent) => !looked(agent))) {
     // Step 7: it found something, so the loop restarts at step 1 — for the
     // reviewers that have not yet looked at the answer to it.
@@ -240,7 +278,7 @@ export function dispatchSet(state) {
   } else if (OTHERS.some(unposted)) {
     // Step 1: the first look.
     dispatch = OTHERS.filter(unposted);
-  } else if (!looked(ACCEPTANCE)) {
+  } else if (!looked(ACCEPTANCE) && answered(ACCEPTANCE)) {
     // Step 6: the last look, now the others are finished. This is the only
     // branch that dispatches it, and the only way a thread it owns can be
     // closed, since no other agent may render that verdict — so it has to be
@@ -257,7 +295,14 @@ export function dispatchSet(state) {
       ? []
       : AGENTS.filter((agent) => !dispatch.includes(agent)).map((agent) => ({
           agent,
-          reason: agent === ACCEPTANCE ? LAST_LOOK : unposted(agent) ? NOT_YET : NOTHING_OPEN,
+          reason:
+            agent === ACCEPTANCE
+              ? LAST_LOOK
+              : unposted(agent)
+                ? NOT_YET
+                : answered(agent)
+                  ? NOTHING_OPEN
+                  : AWAITING_AUTHOR,
         }));
 
   return { dispatch, skipped };
@@ -269,6 +314,9 @@ export const anchor = (thread) => (thread.line === null ? thread.path : `${threa
 function status(thread) {
   if (thread.isResolved) return 'resolved';
   if (thread.owner === null) return 'no owning agent';
+  // Said ahead of the verdict, which such a thread almost always owes too: the
+  // author's answer is what the owner's next verdict has to answer.
+  if (thread.awaitsAuthor) return "awaiting the author's answer";
   if (thread.owesVerdict) {
     return thread.verdict === null
       ? 'awaiting verdict'
@@ -284,6 +332,14 @@ function status(thread) {
  */
 function dispatchLines(state, { dispatch, skipped }) {
   if (dispatch.length === 0) {
+    // The loop is at step 3, and step 3 is the author's. Said before the two
+    // cases below, because it is the one an action ends: a reviewer that
+    // answered nothing is not a reviewer with nothing left to say.
+    if (state.unanswered.length > 0) {
+      return [
+        `Dispatch this round: none — the author owes an answer on ${state.unanswered.length} thread(s) below, and step 3 comes before step 4.`,
+      ];
+    }
     // Nobody being owed a look is not the same as every finding being closed.
     // A thread whose owner has already answered for the code as it stands, and
     // a thread nobody owns, both leave the round with no one to dispatch —
