@@ -12,7 +12,7 @@ const CONTEXT = {
 
 // The smallest round that is still a round: an agent reporting it looked and
 // found nothing. Every case below starts from this and adds one thing.
-const ROUND = { agent: 'review-code', round: 1, summary: 'Nothing blocking.' };
+const ROUND = { agent: 'review-code', firstLook: true, summary: 'Nothing blocking.' };
 
 const finding = (extra = {}) => ({
   path: 'tools/review-post/payload.mjs',
@@ -42,16 +42,16 @@ describe('the round review', () => {
   });
 
   // The body is asserted whole rather than matched against, so a round record
-  // that grew a segment back — the definition provenance #41 removed, say —
-  // fails here rather than passing a looser check.
-  test('carries the name prefix, the round, and what the round found', () => {
+  // that grew a segment back — the definition provenance or the ordinal #41
+  // removed, say — fails here rather than passing a looser check.
+  test('carries the name prefix and what the round found', () => {
     const steps = plan(
       { ...ROUND, findings: [finding(), finding({ line: 7, severity: 'minor' })] },
       CONTEXT,
     );
     assert.equal(
       review(steps).body.body,
-      '**review-code** — round 1 · 1 blocking, 1 minor. Nothing blocking.',
+      '**review-code** — 1 blocking, 1 minor. Nothing blocking.',
     );
   });
 
@@ -62,7 +62,7 @@ describe('the round review', () => {
     );
     assert.equal(
       review(steps).body.body,
-      '**review-code** — round 1 · 0 blocking, 0 minor' +
+      '**review-code** — 0 blocking, 0 minor' +
         ' (plus 3 similar: wording in the same file). Nothing blocking.',
     );
   });
@@ -141,20 +141,31 @@ describe('a finding', () => {
     );
   });
 
-  test('is rejected as minor after round one, whatever the fix newly added', () => {
+  test('is rejected as minor on a re-review, whatever the fix newly added', () => {
     assert.throws(
-      () => plan({ ...ROUND, round: 2, findings: [finding({ severity: 'minor' })] }, CONTEXT),
+      () => plan({ ...ROUND, firstLook: false, findings: [finding({ severity: 'minor' })] }, CONTEXT),
       /minor/,
     );
   });
 
-  test('is still minor in round one, which is the only round that takes one', () => {
+  test('is rejected as minor when the round does not say it is a first look', () => {
+    // The flag is named for the permissive case on purpose: forgetting it
+    // refuses a minor finding the round was entitled to raise, which is loud,
+    // rather than letting one through on a re-review, which is silent.
+    const { firstLook, ...unflagged } = ROUND;
+    assert.throws(
+      () => plan({ ...unflagged, findings: [finding({ severity: 'minor' })] }, CONTEXT),
+      /minor/,
+    );
+  });
+
+  test('is still minor on a first look, which is the only look that takes one', () => {
     const steps = plan({ ...ROUND, findings: [finding({ severity: 'minor' })] }, CONTEXT);
     assert.match(review(steps).body.comments[0].body, /\[minor\]/);
   });
 
-  test('is blocking after round one, which is what a re-review raises', () => {
-    const steps = plan({ ...ROUND, round: 2, findings: [finding()] }, CONTEXT);
+  test('is blocking on a re-review, which is what a re-review raises', () => {
+    const steps = plan({ ...ROUND, firstLook: false, findings: [finding()] }, CONTEXT);
     assert.equal(review(steps).body.comments.length, 1);
   });
 });
@@ -248,13 +259,9 @@ describe('the round itself', () => {
     assert.throws(() => plan({ ...ROUND, summary: '' }, CONTEXT), /summary/);
   });
 
-  test('is rejected without a round number', () => {
-    assert.throws(() => plan({ ...ROUND, round: 0 }, CONTEXT), /round/);
-  });
-
-  test('is rejected with findings held back after round one, since those are minor too', () => {
+  test('is rejected with findings held back on a re-review, since those are minor too', () => {
     assert.throws(
-      () => plan({ ...ROUND, round: 2, similar: { count: 2, about: 'wording' } }, CONTEXT),
+      () => plan({ ...ROUND, firstLook: false, similar: { count: 2, about: 'wording' } }, CONTEXT),
       /minor/,
     );
   });

@@ -31,10 +31,11 @@ bullets that turn on it.
 
 ## Cap the minor findings
 
-Post at most three minor findings per agent in round one, the only round that
-takes any — see "After the first round". Beyond three, say "plus N similar" in
-that round's review body, with one line on what they were about — summarized
-rather than silently dropped. A round with nothing blocking leads with that.
+Post at most three minor findings per agent on your first look at a pull
+request, the only round that takes any — see "After the first round". Beyond
+three, say "plus N similar" in that round's review body, with one line on what
+they were about — summarized rather than silently dropped. A round with
+nothing blocking leads with that.
 
 ## Do not report
 
@@ -66,17 +67,17 @@ not post the finding.
 ## How a finding is filed
 
 - Post with `node tools/review-post/review-post.mjs round --pr <n> --agent
-  <you> --round <r>`, one call per round, the round as JSON on stdin from a
-  quoted heredoc — nothing you have writes a file. It adds your name prefix
-  and the severity tag, requires an anchor rather than inventing one, and
-  resolves what you RESOLVE. Run it with `--help` for the fields. Never build
-  a `gh api` call yourself.
+  <you>`, one call per round, the round as JSON on stdin from a quoted
+  heredoc — nothing you have writes a file. Add `--first-look` only when your
+  dispatch said (first look). It adds your name prefix and the severity tag,
+  requires an anchor rather than inventing one, and resolves what you RESOLVE.
+  Run it with `--help` for the fields. Never build a `gh api` call yourself.
 - Post every round, including one that found nothing and one whose only work
   was verdicts. A round that did not post is indistinguishable from a round
   that found nothing.
 - A finding is three parts: what is wrong, what it causes, a recommendation.
-- From round two the command takes only `blocking`. A minor finding, or minor
-  findings held back as `similar`, is a round it refuses to build.
+- Without `--first-look` the command takes only `blocking`. A minor finding,
+  or minor findings held back as `similar`, is a round it refuses to build.
 - One finding, one thread, from first raise until it is resolved. A follow-up
   about that finding is a reply on its thread; a separate problem a fix
   introduced is a finding of its own.
@@ -107,7 +108,8 @@ than to the review of the pull request carrying it.
 
 ## After the first round
 
-From round two on, raise only what would block merging — a finding you would
-not merge without — on everything the round sees, material a fix newly added
-included. A nit a fix introduced is not raised at all; a problem it introduced
-that blocks is a finding in its own right.
+From your second look at a pull request on, raise only what would block
+merging — a finding you would not merge without — on everything the round
+sees, material a fix newly added included. A nit a fix introduced is not
+raised at all; a problem it introduced that blocks is a finding in its own
+right.

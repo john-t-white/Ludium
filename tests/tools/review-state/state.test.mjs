@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import {
   ownerOf,
   postedBy,
-  roundFor,
+  hasPosted,
   verdictIn,
   owesVerdict,
   awaitsAuthor,
@@ -41,8 +41,8 @@ function payload({ threads = [], reviews = [] } = {}) {
       repository: {
         pullRequest: {
           headRefOid: HEAD_OID,
-          // Rounds are counted from reviews, and most cases that exercise
-          // that pass their own list to roundFor directly.
+          // Whether an agent has posted is read from reviews, and most cases
+          // that exercise that pass their own list to hasPosted directly.
           reviews: { nodes: reviews },
           reviewThreads: { nodes: threads },
         },
@@ -106,39 +106,33 @@ describe('postedBy', () => {
   });
 });
 
-describe('roundFor', () => {
+describe('hasPosted', () => {
   const review = (body, login = REVIEWER) => ({ body, author: { login } });
 
-  test('the next round is one past the rounds an agent has posted', () => {
+  test('an agent that has posted a round is told from one that has not', () => {
     const reviews = [
-      review('**review-code** — round 1. Two findings.'),
-      review('**review-security** — round 1. No findings.'),
-      review('**review-code** — round 2. One finding.'),
+      review('**review-code** — 2 blocking, 0 minor. Two findings.'),
+      review('**review-security** — 0 blocking, 0 minor. No findings.'),
     ];
-    assert.equal(roundFor('review-code', reviews, REVIEWER), 3);
-    assert.equal(roundFor('review-security', reviews, REVIEWER), 2);
-    assert.equal(roundFor('review-test-plan', reviews, REVIEWER), 1);
+    assert.equal(hasPosted('review-code', reviews, REVIEWER), true);
+    assert.equal(hasPosted('review-security', reviews, REVIEWER), true);
+    assert.equal(hasPosted('review-test-plan', reviews, REVIEWER), false);
   });
 
   test('the empty-bodied reviews GitHub records for replies are not rounds', () => {
-    const reviews = [review(''), review('**review-code** — round 1.'), review('')];
-    assert.equal(roundFor('review-code', reviews, REVIEWER), 2);
+    assert.equal(hasPosted('review-code', [review(''), review('')], REVIEWER), false);
   });
 
-  test('a review by anyone else cannot advance an agent past round 1', () => {
-    const reviews = [
-      review('**review-code** — round 1.', OUTSIDER),
-      review('**review-code** — round 2.', OUTSIDER),
-    ];
-    assert.equal(roundFor('review-code', reviews, REVIEWER), 1);
+  test('a review by anyone else is not that agent having posted', () => {
+    const reviews = [review('**review-code** — 1 blocking, 0 minor.', OUTSIDER)];
+    assert.equal(hasPosted('review-code', reviews, REVIEWER), false);
   });
 
-  test('agents count their own rounds independently on the real PR #29', () => {
+  test('every agent had posted on the real PR #29', () => {
     const reviews = pr29.data.repository.pullRequest.reviews.nodes;
-    assert.equal(roundFor('review-code', reviews, REVIEWER), 4);
-    assert.equal(roundFor('review-security', reviews, REVIEWER), 3);
-    assert.equal(roundFor('review-acceptance-criteria', reviews, REVIEWER), 3);
-    assert.equal(roundFor('review-test-plan', reviews, REVIEWER), 3);
+    for (const agent of ['review-code', 'review-security', 'review-test-plan']) {
+      assert.equal(hasPosted(agent, reviews, REVIEWER), true);
+    }
   });
 });
 
@@ -390,7 +384,7 @@ describe('reviewState', () => {
     assert.equal(state.threads.length, 9);
     assert.deepEqual(state.open, []);
     assert.deepEqual(state.owed, {});
-    assert.equal(state.rounds['review-code'], 4);
+    assert.equal(state.posted['review-code'], true);
   });
 });
 
@@ -398,7 +392,7 @@ describe('reviewState', () => {
 // a round the acceptance-criteria reviewer's last look is that commit being
 // the head: it is the same server-assigned, frozen value owesVerdict reads.
 const round = (agent, oid = HEAD_OID) => ({
-  body: `**${agent}** — round 1 · 0 blocking, 0 minor. Looked at the diff.`,
+  body: `**${agent}** — 0 blocking, 0 minor. Looked at the diff.`,
   author: { login: REVIEWER },
   createdAt: HEAD_AT,
   commit: { oid },
@@ -583,32 +577,39 @@ describe('dispatchSet', () => {
 // The form tools/review-post/ writes, which is the only form a round record
 // takes. Read in one place so check.mjs and the report cannot drift apart on
 // what a round record says.
-const record = (agent, round, rest) => `**${agent}** — round ${round} · ${rest}`;
+const record = (agent, rest) => `**${agent}** — ${rest}`;
 
 describe('parseRoundRecord', () => {
   test('reads the findings the cap held back, whatever prose describes them', () => {
     const parsed = parseRoundRecord(
-      record('review-code', 1, '0 blocking, 3 minor (plus 2 similar: naming (mostly)). Looked.'),
+      record('review-code', '0 blocking, 3 minor (plus 2 similar: naming (mostly)). Looked.'),
     );
     assert.equal(parsed.held, 2);
   });
 
-  test('reads the round and the counts', () => {
-    const parsed = parseRoundRecord(record('review-code', 2, '1 blocking, 0 minor. Looked.'));
+  test('reads the agent and the counts', () => {
+    const parsed = parseRoundRecord(record('review-code', '1 blocking, 0 minor. Looked.'));
     assert.equal(parsed.agent, 'review-code');
-    assert.equal(parsed.round, 2);
     assert.equal(parsed.blocking, 1);
     assert.equal(parsed.minor, 0);
     assert.equal(parsed.held, 0);
   });
 
-  test('reads a record from before the definition segment was dropped', () => {
-    // Round records already on GitHub carry it. Reading them is what lets the
-    // segment stop being written without the rounds under way going unreadable.
+  test('reads a record from before the ordinal was dropped', () => {
+    // Round records already on GitHub carry it, as they carry the definition
+    // segment dropped before it. Reading both is what lets a piece stop being
+    // written without the reviews under way going unreadable.
     const parsed = parseRoundRecord(
-      record('review-code', 2, '1 blocking, 0 minor · definition 3f9a2c1b8e04 (main, branch). Looked.'),
+      record('review-code', 'round 2 · 1 blocking, 0 minor. Looked.'),
     );
-    assert.equal(parsed.round, 2);
+    assert.equal(parsed.blocking, 1);
+    assert.equal(parsed.minor, 0);
+  });
+
+  test('reads a record from before the definition segment was dropped', () => {
+    const parsed = parseRoundRecord(
+      record('review-code', 'round 2 · 1 blocking, 0 minor · definition 3f9a2c1b8e04 (main, branch). Looked.'),
+    );
     assert.equal(parsed.blocking, 1);
   });
 
@@ -622,7 +623,6 @@ describe('renderReport', () => {
     const report = renderReport(reviewState(pr29), 29);
     assert.match(report, /PR #29/);
     assert.match(report, /No open threads/);
-    assert.match(report, /review-code 4/);
   });
 
   test('the header names the account attribution was matched against', () => {
@@ -638,9 +638,19 @@ describe('renderReport', () => {
       }),
     );
     const report = renderReport(state, 22);
-    assert.match(report, /Dispatch this round: review-code$/m);
+    assert.match(report, /Dispatch this round: review-code \(re-review\)$/m);
     assert.match(report, /Skipped: .*review-acceptance-criteria \(runs last[^)]*\)/);
     assert.match(report, /review-test-plan \(holds nothing open\)/);
+  });
+
+  test('the dispatch line says which of a first look and a re-review each is', () => {
+    // What the number used to carry, and all a dispatch needs of it: the bar
+    // from the second look on takes only blocking findings.
+    const state = reviewState(payload({ reviews: [round('review-code')] }));
+    const report = renderReport(state, 22);
+    assert.match(report, /review-security \(first look\)/);
+    assert.match(report, /review-test-plan \(first look\)/);
+    assert.match(report, /Skipped: .*review-code \(holds nothing open\)/);
   });
 
   test('nobody left to ask is not the loop ending while a thread is still open', () => {

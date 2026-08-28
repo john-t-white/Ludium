@@ -59,7 +59,7 @@ the diff merely touches.
 `REVIEW.md`'s "How a finding is filed" governs. One command per round:
 
     node tools/review-post/review-post.mjs round --pr <n> \
-      --agent review-code --round <r> <<'JSON'
+      --agent review-code [--first-look] <<'JSON'
     {"summary": "...", "findings": [...], "replies": [...], "verdicts": [...]}
     JSON
 

@@ -61,7 +61,7 @@ against the file whose change it is about and quote the criterion.
 `REVIEW.md`'s "How a finding is filed" governs. One command per round:
 
     node tools/review-post/review-post.mjs round --pr <n> \
-      --agent review-acceptance-criteria --round <r> <<'JSON'
+      --agent review-acceptance-criteria [--first-look] <<'JSON'
     {"summary": "...", "findings": [...], "replies": [...], "verdicts": [...]}
     JSON
 

@@ -1,8 +1,8 @@
 // Establishes the facts a review round needs: whose thread is whose, which
-// are still open, who owes a verdict on each, and which round each agent is
-// on. All of it is mechanical — a flag, an author, a name prefix, a commit
-// identity — so it is settled here rather than by an agent reading the pull
-// request.
+// are still open, who owes a verdict on each, and which agents have posted on
+// this pull request before. All of it is mechanical — a flag, an author, a
+// name prefix, a commit identity — so it is settled here rather than by an
+// agent reading the pull request.
 //
 // Pure: everything below reads the GraphQL payload it is handed and nothing
 // else. Fetching that payload is review-state.mjs's job.
@@ -34,11 +34,11 @@ const OWNER_PREFIX = /^\s*\*\*(review-[a-z-]+)\*\*/;
 // Read here rather than in check.mjs so the check and the report cannot come
 // to disagree about what a round record says.
 //
-// The definition segment is optional because rounds posted before it stopped
-// being written still carry it, and a review under way when that lands must
-// stay readable. Nothing reads what it says.
+// The ordinal and the definition segment are optional because rounds posted
+// before each stopped being written still carry it, and a review under way
+// when one lands must stay readable. Nothing reads what either says.
 const ROUND_RECORD =
-  /^\s*\*\*(review-[a-z-]+)\*\*\s*[—-]\s*round (\d+) · (\d+) blocking, (\d+) minor(?: · definition [0-9a-f]{12} \([^)]*\))?(?: \(plus (\d+) similar: .*?\))?\. /s;
+  /^\s*\*\*(review-[a-z-]+)\*\*\s*[—-]\s*(?:round \d+ · )?(\d+) blocking, (\d+) minor(?: · definition [0-9a-f]{12} \([^)]*\))?(?: \(plus (\d+) similar: .*?\))?\. /s;
 // The form an agent posts a verdict in, and only that form. Matching the bare
 // word anywhere in a body would let a finding that merely discusses a verdict
 // count as one, retiring a thread its owner never answered.
@@ -54,10 +54,9 @@ export function parseRoundRecord(body) {
   if (match === null) return null;
   return {
     agent: match[1],
-    round: Number(match[2]),
-    blocking: Number(match[3]),
-    minor: Number(match[4]),
-    held: match[5] === undefined ? 0 : Number(match[5]),
+    blocking: Number(match[2]),
+    minor: Number(match[3]),
+    held: match[4] === undefined ? 0 : Number(match[4]),
   };
 }
 
@@ -77,9 +76,14 @@ export function postedBy(comment, reviewAccount) {
   return comment.author?.login === reviewAccount ? ownerOf(comment.body) : null;
 }
 
-/** The round an agent is about to run: one past the rounds it has posted. */
-export function roundFor(agent, reviews, reviewAccount) {
-  return reviews.filter((review) => postedBy(review, reviewAccount) === agent).length + 1;
+/**
+ * Whether an agent has posted a round on this pull request already, which is
+ * the whole of what the loop needs from how many it has posted: a reviewer
+ * looking again raises only what would block merging, and one looking for the
+ * first time may raise minor findings up to the cap.
+ */
+export function hasPosted(agent, reviews, reviewAccount) {
+  return reviews.some((review) => postedBy(review, reviewAccount) === agent);
 }
 
 /**
@@ -226,8 +230,8 @@ export function reviewState(payload) {
     if (thread.owesVerdict) owed[thread.owner] = (owed[thread.owner] ?? 0) + 1;
   }
 
-  const rounds = Object.fromEntries(
-    AGENTS.map((agent) => [agent, roundFor(agent, reviews, reviewAccount)]),
+  const posted = Object.fromEntries(
+    AGENTS.map((agent) => [agent, hasPosted(agent, reviews, reviewAccount)]),
   );
 
   const open = threads.filter((thread) => !thread.isResolved);
@@ -239,7 +243,7 @@ export function reviewState(payload) {
   return {
     headOid: pr.headRefOid,
     reviewAccount,
-    rounds,
+    posted,
     lookedAtHead: looked,
     threads,
     open,
@@ -269,7 +273,7 @@ export function dispatchSet(state) {
   // that reviewer skipped, with the reason given as holding nothing open.
   const owns = (agent) => state.open.some((thread) => thread.owner === agent);
   const looked = (agent) => state.lookedAtHead[agent];
-  const unposted = (agent) => state.rounds[agent] === 1;
+  const unposted = (agent) => !state.posted[agent];
   // Step 3: the author answers every problem raised, before step 4 asks the
   // reviewer that raised it to look again. Every thread, not the one being
   // looked at — a reviewer looks at its threads together, and one of them
@@ -370,7 +374,13 @@ function dispatchLines(state, { dispatch, skipped }) {
           `Dispatch this round: none — no reviewer is owed a look at the code as it stands, and ${state.open.length} thread(s) below are still open.`,
         ];
   }
-  const lines = [`Dispatch this round: ${dispatch.join(', ')}`];
+  // Each name carries which of a first look and a re-review this is for that
+  // reviewer, because that is all the dispatch needs of how many rounds it has
+  // run: from the second look on it raises only what would block merging.
+  const look = (agent) => (state.posted[agent] ? 're-review' : 'first look');
+  const lines = [
+    `Dispatch this round: ${dispatch.map((agent) => `${agent} (${look(agent)})`).join(', ')}`,
+  ];
   if (skipped.length > 0) {
     lines.push(`Skipped: ${skipped.map(({ agent, reason }) => `${agent} (${reason})`).join(', ')}`);
   }
@@ -381,7 +391,6 @@ function dispatchLines(state, { dispatch, skipped }) {
 export function renderReport(state, prNumber) {
   const lines = [
     `PR #${prNumber} — head ${state.headOid.slice(0, 7)} · review account ${state.reviewAccount}`,
-    `Next round: ${AGENTS.map((agent) => `${agent} ${state.rounds[agent]}`).join(', ')}`,
     ...dispatchLines(state, dispatchSet(state)),
     '',
   ];

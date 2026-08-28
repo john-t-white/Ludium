@@ -29,10 +29,10 @@ const SEVERITY = /^\s*\*\*review-[a-z-]+\*\*\s*[—-]\s*\[(?:blocking|minor)( ·
 /**
  * What went wrong with one round, or an empty list.
  *
- * `dispatched` maps each agent the round actually ran to the round number it
- * was told to run. An agent left out on purpose is absent from it, so a round
- * nobody ran stops looking like a round that found nothing — which is the
- * distinction the skill could previously only make in prose.
+ * `dispatched` is the agents the round actually ran. An agent left out on
+ * purpose is absent from it, so a round nobody ran stops looking like a round
+ * that found nothing — which is the distinction the skill could previously
+ * only make in prose.
  */
 export function checkRound(payload, dispatched) {
   const state = reviewState(payload);
@@ -40,8 +40,8 @@ export function checkRound(payload, dispatched) {
   const raised = firstComments(payload);
   const failures = [];
 
-  for (const [agent, round] of Object.entries(dispatched)) {
-    checkRoundRecord(agent, round, reviews, state.reviewAccount, failures);
+  for (const agent of dispatched) {
+    checkRoundRecord(agent, reviews, state.reviewAccount, failures);
   }
 
   failures.push(...unverdicted(state, dispatched, reviews, raised));
@@ -55,9 +55,9 @@ export function checkRound(payload, dispatched) {
  */
 function roundRecords(reviews, dispatched, reviewAccount) {
   const records = new Map();
-  for (const [agent, round] of Object.entries(dispatched)) {
+  for (const agent of dispatched) {
     const posted = reviews.filter((review) => postedBy(review, reviewAccount) === agent);
-    records.set(agent, posted[round - 1]);
+    records.set(agent, posted.at(-1));
   }
   return records;
 }
@@ -78,7 +78,7 @@ function unverdicted(state, dispatched, reviews, raised) {
   const records = roundRecords(reviews, dispatched, state.reviewAccount);
   const failures = [];
   for (const thread of state.threads) {
-    if (!thread.owesVerdict || dispatched[thread.owner] === undefined) continue;
+    if (!thread.owesVerdict || !dispatched.includes(thread.owner)) continue;
     const postedAt = records.get(thread.owner)?.createdAt;
     const openedAt = raised.get(thread.id)?.createdAt;
     if (postedAt !== undefined && openedAt !== undefined && openedAt >= postedAt) continue;
@@ -104,30 +104,21 @@ function firstComments(payload) {
   return first;
 }
 
-function checkRoundRecord(agent, round, reviews, reviewAccount, failures) {
+function checkRoundRecord(agent, reviews, reviewAccount, failures) {
   const posted = reviews.filter((review) => postedBy(review, reviewAccount) === agent);
 
-  // A review the state tool cannot count is not a round, however much it
-  // reads like one: no name prefix, or somebody other than the review account
+  // A review the state tool cannot read is not a round, however much it reads
+  // like one: no name prefix, or somebody other than the review account
   // writing the prefix.
-  if (posted.length < round) {
-    failures.push({
-      kind: 'no-round',
-      agent,
-      detail: `dispatched to run round ${round} and has posted ${posted.length}`,
-    });
-    return;
-  }
-  if (posted.length > round) {
-    failures.push({
-      kind: 'extra-round',
-      agent,
-      detail: `dispatched to run round ${round} and has posted ${posted.length} rounds`,
-    });
+  if (posted.length === 0) {
+    failures.push({ kind: 'no-round', agent, detail: 'dispatched and has posted no round' });
     return;
   }
 
-  const record = parseRoundRecord(posted[round - 1].body);
+  // The round being checked is the agent's latest, because the check runs on
+  // the round that has just finished. Every earlier one is history, already
+  // checked when it ran.
+  const record = parseRoundRecord(posted.at(-1).body);
   if (record === null) {
     failures.push({
       kind: 'hand-posted',
@@ -136,27 +127,22 @@ function checkRoundRecord(agent, round, reviews, reviewAccount, failures) {
     });
     return;
   }
-  if (record.round !== round) {
-    failures.push({
-      kind: 'wrong-round',
-      agent,
-      detail: `the round record says round ${record.round}, dispatched to run round ${round}`,
-    });
-    return;
-  }
 
-  // The counts are the command's own, written from the findings it posted, and
-  // the check above is what says the command wrote it. A held-back finding
-  // counts as raised here: it reached the round record, which is where a
-  // reader meets it.
+  // Whether this was a re-review, read off the pull request rather than taken
+  // from what the agent asserted: a record before this one is a look before
+  // this one. The counts are the command's own, written from the findings it
+  // posted, and the check above is what says the command wrote it. A held-back
+  // finding counts as raised here: it reached the round record, which is where
+  // a reader meets it.
+  const again = posted.length > 1;
   const { minor, held } = record;
-  if (round > 1 && minor + held > 0) {
+  if (again && minor + held > 0) {
     // Not also reported as over-cap: from round two the cap is beside the
     // point, because the bar is nothing minor at all.
     failures.push({
       kind: 'minor-after-round-one',
       agent,
-      detail: `${minor + held} minor findings in round ${round}, which takes only blocking ones`,
+      detail: `${minor + held} minor findings on a re-review, which takes only blocking ones`,
     });
   } else if (minor > MINOR_CAP) {
     failures.push({
@@ -203,9 +189,7 @@ function malformed(state, raised) {
 // covering two failures states something untrue about one of them.
 const LABEL = {
   'no-round': 'did not post its round',
-  'extra-round': 'posted more rounds than it was dispatched to run',
   'hand-posted': 'did not post through tools/review-post/',
-  'wrong-round': 'posted a round record numbering a different round',
   'owes-verdict': 'left a thread it owns unverdicted',
   untagged: 'posted a finding with no severity tag',
   unanchored: 'posted a finding with no anchor and no file-level marker',

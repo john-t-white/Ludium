@@ -17,8 +17,8 @@ const LATER = '2026-08-26T14:00:00Z';
 
 // The forms tools/review-post/ writes. A case that wants a compliant round
 // asks for one of these rather than spelling the punctuation out again.
-const roundBody = (agent, round, { blocking = 0, minor = 0, similar } = {}) =>
-  `**${agent}** — round ${round} · ${blocking} blocking, ${minor} minor` +
+const roundBody = (agent, { blocking = 0, minor = 0, similar } = {}) =>
+  `**${agent}** — ${blocking} blocking, ${minor} minor` +
   `${similar === undefined ? '' : ` (plus ${similar} similar: naming)`}. Looked at the diff.`;
 
 const findingBody = (agent, severity = 'blocking') =>
@@ -88,9 +88,9 @@ const kinds = (failures) => failures.map((failure) => failure.kind);
 function cleanRound() {
   const finding = comment(findingBody('review-code'));
   return {
-    dispatched: { 'review-code': 1 },
+    dispatched: ['review-code'],
     payload: payload({
-      reviews: [review(roundBody('review-code', 1, { blocking: 1 }))],
+      reviews: [review(roundBody('review-code', { blocking: 1 }))],
       threads: [thread({ comments: [finding, comment(verdictBody('review-code'))] })],
     }),
   };
@@ -103,14 +103,14 @@ describe('a round that broke no rule', () => {
   });
 
   test('passes when the agent posted a round and opened no thread', () => {
-    const state = payload({ reviews: [review(roundBody('review-test-plan', 1))] });
-    assert.deepEqual(checkRound(state, { 'review-test-plan': 1 }), []);
+    const state = payload({ reviews: [review(roundBody('review-test-plan'))] });
+    assert.deepEqual(checkRound(state, ['review-test-plan']), []);
   });
 
   test('says nothing about an agent that was not dispatched', () => {
-    const state = payload({ reviews: [review(roundBody('review-code', 1))] });
+    const state = payload({ reviews: [review(roundBody('review-code'))] });
     // review-security was left out of the round on purpose, so it owes nothing.
-    assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
+    assert.deepEqual(checkRound(state, ['review-code']), []);
   });
 });
 
@@ -118,8 +118,8 @@ describe('a dispatched agent that did not post', () => {
   test('is a failure when the round left no review behind', () => {
     // The failure #32 opens with: an agent returns findings to the session and
     // they exist nowhere but in that reply.
-    const state = payload({ reviews: [review(roundBody('review-code', 1))] });
-    const failures = checkRound(state, { 'review-code': 1, 'review-security': 1 });
+    const state = payload({ reviews: [review(roundBody('review-code'))] });
+    const failures = checkRound(state, ['review-code', 'review-security']);
     assert.deepEqual(kinds(failures), ['no-round']);
     assert.equal(failures[0].agent, 'review-security');
   });
@@ -128,38 +128,29 @@ describe('a dispatched agent that did not post', () => {
     // An unprefixed review is one tools/review-state/ cannot count, so it is
     // not a round however much it reads like one.
     const state = payload({ reviews: [review('round 1 · 0 blocking, 0 minor. Looked.')] });
-    assert.deepEqual(kinds(checkRound(state, { 'review-code': 1 })), ['no-round']);
+    assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['no-round']);
   });
 
   test('is a failure when the review is somebody else writing the prefix', () => {
     const state = payload({
-      reviews: [review(roundBody('review-code', 1), { login: 'passing-stranger' })],
+      reviews: [review(roundBody('review-code'), { login: 'passing-stranger' })],
     });
-    assert.deepEqual(kinds(checkRound(state, { 'review-code': 1 })), ['no-round']);
-  });
-
-  test('posting twice for one dispatch is its own failure', () => {
-    const state = payload({
-      reviews: [review(roundBody('review-code', 1)), review(roundBody('review-code', 2))],
-    });
-    const failures = checkRound(state, { 'review-code': 1 });
-    assert.deepEqual(kinds(failures), ['extra-round']);
-    assert.match(failures[0].detail, /2 rounds/);
+    assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['no-round']);
   });
 });
 
 describe('an owned thread left unverdicted', () => {
   test('is a failure when the agent never rendered one', () => {
     const state = payload({
-      reviews: [review(roundBody('review-code', 1, { blocking: 1 }))],
+      reviews: [review(roundBody('review-code', { blocking: 1 }))],
       threads: [thread({ comments: [comment(findingBody('review-code'))] })],
     });
-    assert.deepEqual(kinds(checkRound(state, { 'review-code': 1 })), ['owes-verdict']);
+    assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['owes-verdict']);
   });
 
   test('is a failure when the verdict answered an earlier commit', () => {
     const state = payload({
-      reviews: [review(roundBody('review-code', 1, { blocking: 1 }))],
+      reviews: [review(roundBody('review-code', { blocking: 1 }))],
       threads: [
         thread({
           comments: [
@@ -169,7 +160,7 @@ describe('an owned thread left unverdicted', () => {
         }),
       ],
     });
-    assert.deepEqual(kinds(checkRound(state, { 'review-code': 1 })), ['owes-verdict']);
+    assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['owes-verdict']);
   });
 
   test('is not a failure on a thread the round itself raised', () => {
@@ -177,37 +168,37 @@ describe('an owned thread left unverdicted', () => {
     // a verdict on a finding it has just written — verdicts are owed on the
     // re-review. Reported as owed, every first round would fail this check.
     const state = payload({
-      reviews: [review(roundBody('review-code', 1, { blocking: 1 }))],
+      reviews: [review(roundBody('review-code', { blocking: 1 }))],
       threads: [thread({ comments: [comment(findingBody('review-code'), { at: LATER })] })],
     });
-    assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
+    assert.deepEqual(checkRound(state, ['review-code']), []);
   });
 
   test('is a failure on a thread raised in an earlier round', () => {
     const state = payload({
       reviews: [
-        review(roundBody('review-code', 1, { blocking: 1 }), { at: AT }),
-        review(roundBody('review-code', 2), { at: LATER }),
+        review(roundBody('review-code', { blocking: 1 }), { at: AT }),
+        review(roundBody('review-code'), { at: LATER }),
       ],
       threads: [thread({ comments: [comment(findingBody('review-code'), { at: AT })] })],
     });
-    assert.deepEqual(kinds(checkRound(state, { 'review-code': 2 })), ['owes-verdict']);
+    assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['owes-verdict']);
   });
 
   test('is not a failure on a thread its owner was not dispatched to answer', () => {
     const state = payload({
-      reviews: [review(roundBody('review-code', 1))],
+      reviews: [review(roundBody('review-code'))],
       threads: [thread({ comments: [comment(findingBody('review-security'))] })],
     });
-    assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
+    assert.deepEqual(checkRound(state, ['review-code']), []);
   });
 
   test('is not a failure on a resolved thread', () => {
     const state = payload({
-      reviews: [review(roundBody('review-code', 1))],
+      reviews: [review(roundBody('review-code'))],
       threads: [thread({ isResolved: true, comments: [comment(findingBody('review-code'))] })],
     });
-    assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
+    assert.deepEqual(checkRound(state, ['review-code']), []);
   });
 });
 
@@ -216,14 +207,14 @@ describe('a round not posted by tools/review-post/', () => {
     // What every round before #33 looked like, and what a hand-built gh call
     // would look like again.
     const state = payload({ reviews: [review('**review-code** — round 1. Two findings.')] });
-    const failures = checkRound(state, { 'review-code': 1 });
+    const failures = checkRound(state, ['review-code']);
     assert.deepEqual(kinds(failures), ['hand-posted']);
     assert.equal(failures[0].agent, 'review-code');
   });
 
-  test('passes a round posted before the definition segment was dropped', () => {
-    // A review under way when that landed has records carrying the segment,
-    // and its later rounds are still checked against them.
+  test('passes a round posted before the ordinal and the definition were dropped', () => {
+    // A review under way when either landed has records carrying it, and its
+    // later rounds are still checked against them.
     const state = payload({
       reviews: [
         review(
@@ -232,21 +223,12 @@ describe('a round not posted by tools/review-post/', () => {
         ),
       ],
     });
-    assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
-  });
-
-  test('a round record numbering a different round is its own failure', () => {
-    // The command wrote this body; what is wrong is the number it was given,
-    // so saying it was not posted through the command would be untrue.
-    const state = payload({ reviews: [review(roundBody('review-code', 4))] });
-    const failures = checkRound(state, { 'review-code': 1 });
-    assert.deepEqual(kinds(failures), ['wrong-round']);
-    assert.match(failures[0].detail, /round 4/);
+    assert.deepEqual(checkRound(state, ['review-code']), []);
   });
 
   test('reads a round whose cap held back findings', () => {
-    const state = payload({ reviews: [review(roundBody('review-code', 1, { minor: 3, similar: 2 }))] });
-    assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
+    const state = payload({ reviews: [review(roundBody('review-code', { minor: 3, similar: 2 }))] });
+    assert.deepEqual(checkRound(state, ['review-code']), []);
   });
 
   test('reads a round whose held-back summary contains a paren', () => {
@@ -255,25 +237,26 @@ describe('a round not posted by tools/review-post/', () => {
     const body =
       '**review-code** — round 1 · 0 blocking, 3 minor ' +
       '(plus 2 similar: naming (mostly) and wording). Looked at the diff.';
-    assert.deepEqual(checkRound(payload({ reviews: [review(body)] }), { 'review-code': 1 }), []);
+    assert.deepEqual(checkRound(payload({ reviews: [review(body)] }), ['review-code']), []);
   });
 
-  test('checks only the round the agent was dispatched to run', () => {
-    // An earlier round predating the command is history, not this round.
+  test('checks the round the agent just posted, not the ones before it', () => {
+    // An earlier round predating the command is history, not this round. The
+    // round being checked is the agent's latest, which is what it just ran.
     const state = payload({
       reviews: [
         review('**review-code** — round 1. Two findings.'),
-        review(roundBody('review-code', 2)),
+        review(roundBody('review-code')),
       ],
     });
-    assert.deepEqual(checkRound(state, { 'review-code': 2 }), []);
+    assert.deepEqual(checkRound(state, ['review-code']), []);
   });
 });
 
 describe('an unanchored finding', () => {
   test('is a failure when the thread carries no severity tag', () => {
     const state = payload({
-      reviews: [review(roundBody('review-code', 1, { blocking: 1 }))],
+      reviews: [review(roundBody('review-code', { blocking: 1 }))],
       threads: [
         thread({
           comments: [
@@ -283,7 +266,7 @@ describe('an unanchored finding', () => {
         }),
       ],
     });
-    const failures = checkRound(state, { 'review-code': 1 });
+    const failures = checkRound(state, ['review-code']);
     // The thread is anchored; what it lacks is the tag, and the two are
     // different failures.
     assert.deepEqual(kinds(failures), ['untagged']);
@@ -291,7 +274,7 @@ describe('an unanchored finding', () => {
 
   test('is a failure when a thread with no line is not marked file-level', () => {
     const state = payload({
-      reviews: [review(roundBody('review-code', 1, { blocking: 1 }))],
+      reviews: [review(roundBody('review-code', { blocking: 1 }))],
       threads: [
         thread({
           line: null,
@@ -300,7 +283,7 @@ describe('an unanchored finding', () => {
         }),
       ],
     });
-    assert.deepEqual(kinds(checkRound(state, { 'review-code': 1 })), ['unanchored']);
+    assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['unanchored']);
   });
 
   test('is not a failure on a thread that has merely gone outdated', () => {
@@ -309,7 +292,7 @@ describe('an unanchored finding', () => {
     // is `subjectType`, and a posted comment cannot be re-anchored — read as
     // unanchored, an outdated thread fails a round nobody can fix.
     const state = payload({
-      reviews: [review(roundBody('review-code', 1, { blocking: 1 }))],
+      reviews: [review(roundBody('review-code', { blocking: 1 }))],
       threads: [
         thread({
           line: null,
@@ -317,12 +300,12 @@ describe('an unanchored finding', () => {
         }),
       ],
     });
-    assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
+    assert.deepEqual(checkRound(state, ['review-code']), []);
   });
 
   test('is not a failure on a file-level finding that says so', () => {
     const state = payload({
-      reviews: [review(roundBody('review-code', 1, { minor: 1 }))],
+      reviews: [review(roundBody('review-code', { minor: 1 }))],
       threads: [
         thread({
           line: null,
@@ -334,37 +317,37 @@ describe('an unanchored finding', () => {
         }),
       ],
     });
-    assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
+    assert.deepEqual(checkRound(state, ['review-code']), []);
   });
 
   test('is not a failure on a thread nobody claimed', () => {
     // A human's own comment on the diff is not a finding and has no form.
     const state = payload({
-      reviews: [review(roundBody('review-code', 1))],
+      reviews: [review(roundBody('review-code'))],
       threads: [thread({ comments: [comment('Why does this loop run twice?')] })],
     });
-    assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
+    assert.deepEqual(checkRound(state, ['review-code']), []);
   });
 });
 
 describe('a round over the minor-findings cap', () => {
   test('is a failure at four minor findings', () => {
-    const state = payload({ reviews: [review(roundBody('review-code', 1, { minor: 4 }))] });
-    const failures = checkRound(state, { 'review-code': 1 });
+    const state = payload({ reviews: [review(roundBody('review-code', { minor: 4 }))] });
+    const failures = checkRound(state, ['review-code']);
     assert.deepEqual(kinds(failures), ['over-cap']);
     assert.match(failures[0].detail, /4/);
   });
 
   test('is not a failure at three, however many were held back', () => {
     const state = payload({
-      reviews: [review(roundBody('review-code', 1, { minor: 3, similar: 9 }))],
+      reviews: [review(roundBody('review-code', { minor: 3, similar: 9 }))],
     });
-    assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
+    assert.deepEqual(checkRound(state, ['review-code']), []);
   });
 
   test('does not cap blocking findings', () => {
-    const state = payload({ reviews: [review(roundBody('review-code', 1, { blocking: 7 }))] });
-    assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
+    const state = payload({ reviews: [review(roundBody('review-code', { blocking: 7 }))] });
+    assert.deepEqual(checkRound(state, ['review-code']), []);
   });
 });
 
@@ -372,65 +355,65 @@ describe('a minor finding raised after round one', () => {
   test('is a failure, whatever material it was raised on', () => {
     const state = payload({
       reviews: [
-        review(roundBody('review-code', 1)),
-        review(roundBody('review-code', 2, { minor: 1 })),
+        review(roundBody('review-code')),
+        review(roundBody('review-code', { minor: 1 })),
       ],
     });
-    const failures = checkRound(state, { 'review-code': 2 });
+    const failures = checkRound(state, ['review-code']);
     assert.deepEqual(kinds(failures), ['minor-after-round-one']);
   });
 
   test('is reported once, not also as the cap it went over', () => {
     const state = payload({
       reviews: [
-        review(roundBody('review-code', 1)),
-        review(roundBody('review-code', 2, { minor: 4 })),
+        review(roundBody('review-code')),
+        review(roundBody('review-code', { minor: 4 })),
       ],
     });
-    assert.deepEqual(kinds(checkRound(state, { 'review-code': 2 })), ['minor-after-round-one']);
+    assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['minor-after-round-one']);
   });
 
   test('is a failure when the cap merely held it back', () => {
     const state = payload({
       reviews: [
-        review(roundBody('review-code', 1)),
-        review(roundBody('review-code', 2, { similar: 2 })),
+        review(roundBody('review-code')),
+        review(roundBody('review-code', { similar: 2 })),
       ],
     });
-    assert.deepEqual(kinds(checkRound(state, { 'review-code': 2 })), ['minor-after-round-one']);
+    assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['minor-after-round-one']);
   });
 
   test('is not a failure in round one, which takes minor findings', () => {
-    const state = payload({ reviews: [review(roundBody('review-code', 1, { minor: 3 }))] });
-    assert.deepEqual(checkRound(state, { 'review-code': 1 }), []);
+    const state = payload({ reviews: [review(roundBody('review-code', { minor: 3 }))] });
+    assert.deepEqual(checkRound(state, ['review-code']), []);
   });
 
   test('leaves a re-review raising only blocking findings alone', () => {
     const state = payload({
       reviews: [
-        review(roundBody('review-code', 1)),
-        review(roundBody('review-code', 2, { blocking: 2 })),
+        review(roundBody('review-code')),
+        review(roundBody('review-code', { blocking: 2 })),
       ],
     });
-    assert.deepEqual(checkRound(state, { 'review-code': 2 }), []);
+    assert.deepEqual(checkRound(state, ['review-code']), []);
   });
 });
 
 describe('a round that broke several rules', () => {
   test('reports every one of them', () => {
     const state = payload({
-      reviews: [review(roundBody('review-code', 1, { minor: 5 }))],
+      reviews: [review(roundBody('review-code', { minor: 5 }))],
       threads: [thread({ comments: [comment('**review-code** — the check never runs.')] })],
     });
-    const failures = checkRound(state, { 'review-code': 1, 'review-test-plan': 1 });
+    const failures = checkRound(state, ['review-code', 'review-test-plan']);
     assert.deepEqual(kinds(failures).sort(), ['no-round', 'over-cap', 'owes-verdict', 'untagged']);
   });
 });
 
 describe('renderCheck', () => {
   test('names the agent and what it broke, one line at a time', () => {
-    const state = payload({ reviews: [review(roundBody('review-code', 1, { minor: 4 }))] });
-    const report = renderCheck(checkRound(state, { 'review-code': 1, 'review-security': 1 }));
+    const state = payload({ reviews: [review(roundBody('review-code', { minor: 4 }))] });
+    const report = renderCheck(checkRound(state, ['review-code', 'review-security']));
     assert.match(report, /review-security/);
     assert.match(report, /review-code/);
     assert.match(report, /4 minor/);

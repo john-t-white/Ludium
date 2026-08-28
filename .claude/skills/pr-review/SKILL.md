@@ -87,8 +87,8 @@ teardown, and nothing to verify before trusting it. Use this form rather than a
 worktree, which has all three of those failure modes and must be checked
 against `main` and removed.
 
-This report is the authority on what round each agent is on, which threads are
-open, who owns each, and who owes a verdict. **Do not re-derive any of it by
+This report is the authority on which agents have looked before, which threads
+are open, who owns each, and who owes a verdict. **Do not re-derive any of it by
 reading the pull request** — that is the work this step exists to replace, and
 an agent working it out costs several calls a round and can get it wrong.
 
@@ -106,10 +106,11 @@ so do not add an agent to it or drop one from it.
 Give each a dispatch carrying only what it cannot get from its own definition:
 
 - The pull request number, and the head commit the report named.
-- **Its round number**, from the report. A round above 1 is a re-review, and
-  `REVIEW.md` tells the agent what that changes about the bar it applies. The
-  agent also passes the number to `tools/review-post/`, which records it on the
-  round it posts.
+- **Whether this is its first look or a re-review**, from the report's
+  dispatch line. `REVIEW.md` tells the agent what a re-review changes about the
+  bar it applies, and the agent passes `--first-look` to `tools/review-post/`
+  on a first look, which is what makes that bar hold rather than be
+  remembered.
 - **Every unresolved thread it owns** — thread id, first comment id, and what
   the finding was about — and which of those it owes a verdict on. The
   report's `awaiting verdict` lines are what say which.
@@ -144,7 +145,7 @@ round against it. Both run the copy step 1 chose, for the reason step 1 gives:
 the check is a gate, so a branch that could supply it could pass itself.
 
     node tools/review-state/review-state.mjs --pr <number>
-    node tools/review-state/review-state.mjs check --pr <number> --dispatched review-code=2,review-security=2
+    node tools/review-state/review-state.mjs check --pr <number> --dispatched review-code,review-security
 
 **When the diff touches `tools/review-state/`, run `main`'s copy of both**, as
 step 1 did. `$T` did not survive the dispatches, so extract it again — a fresh
@@ -153,7 +154,7 @@ step 1 did. `$T` did not survive the dispatches, so extract it again — a fresh
     T=$(mktemp -d) &&
     git archive main tools/review-state | tar -x -C "$T" &&
     node "$T/tools/review-state/review-state.mjs" --pr <number> &&
-    node "$T/tools/review-state/review-state.mjs" check --pr <number> --dispatched review-code=2,review-security=2
+    node "$T/tools/review-state/review-state.mjs" check --pr <number> --dispatched review-code,review-security
 
 A branch adding a check `main` does not have yet is the one case this cannot
 run: say so in the report and check the round by hand, rather than reaching
@@ -163,14 +164,13 @@ round passed, which is the whole of what step 1 exists to prevent.
 The report is what step 4 reads. The check exits 0, or exits non-zero naming
 what broke — an agent that did not post, a thread its owner left unverdicted, a
 round not posted through `tools/review-post/`, a finding with no anchor, a
-round over the minor-findings cap, a minor finding raised after round one.
+round over the minor-findings cap, a minor finding raised on a re-review.
 **Do not judge any of that by reading the pull request** yourself; that is what
 this step exists to replace.
 
-`--dispatched` is the agents you actually dispatched and the round number you
-gave each — the same set step 2 took from the report. An agent the report
-skipped is left out here too, which is what tells a round nobody ran from a
-round that found nothing.
+`--dispatched` is the agents you actually dispatched — the same set step 2 took
+from the report. An agent the report skipped is left out here too, which is
+what tells a round nobody ran from a round that found nothing.
 
 **`did not post its round`** means that agent's findings exist nowhere but in
 its reply to you. This has happened. Dispatch that agent once more, telling it
@@ -182,8 +182,7 @@ silent failure read as a clean round.
 nobody else can render that verdict and the thread cannot close without it.
 Dispatch it again for the threads the check names.
 
-Run the check again after any re-dispatch, raising that agent's number in the
-spec if its earlier round did post.
+Run the check again after any re-dispatch.
 
 ## 4. Report
 
