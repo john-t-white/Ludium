@@ -24,7 +24,6 @@ const OWNER_PREFIX = /^\s*\*\*(review-[a-z-]+)\*\*/;
 // stay readable. Nothing reads what it says.
 const ROUND_RECORD =
   /^\s*\*\*(review-[a-z-]+)\*\*\s*[—-]\s*round (\d+) · (\d+) blocking, (\d+) minor(?: · definition [0-9a-f]{12} \([^)]*\))?(?: \(plus (\d+) similar: .*?\))?\. /s;
-const REFERENCE = /#discussion_r(\d+)/g;
 // The form an agent posts a verdict in, and only that form. Matching the bare
 // word anywhere in a body would let a finding that merely discusses a verdict
 // count as one, retiring a thread its owner never answered.
@@ -98,47 +97,6 @@ export function owesVerdict(thread, headOid) {
   return thread.latestOtherCommentAt !== null && thread.verdict.at < thread.latestOtherCommentAt;
 }
 
-/**
- * Threads grouped by the problem they are about. Two agents raising one
- * problem file two threads by design, and the second names the first by
- * linking its comment; that link is what joins them here. Threads nothing
- * links stand alone, and input order is kept.
- */
-export function linkedGroups(threads) {
-  const byComment = new Map();
-  for (const thread of threads) {
-    for (const commentId of thread.commentIds) byComment.set(commentId, thread.id);
-  }
-
-  const neighbours = new Map(threads.map((thread) => [thread.id, new Set()]));
-  for (const thread of threads) {
-    for (const reference of thread.references) {
-      const other = byComment.get(reference);
-      if (other === undefined || other === thread.id) continue;
-      neighbours.get(thread.id).add(other);
-      neighbours.get(other).add(thread.id);
-    }
-  }
-
-  const byId = new Map(threads.map((thread) => [thread.id, thread]));
-  const seen = new Set();
-  const groups = [];
-  for (const thread of threads) {
-    if (seen.has(thread.id)) continue;
-    const group = [];
-    const pending = [thread.id];
-    while (pending.length > 0) {
-      const id = pending.shift();
-      if (seen.has(id)) continue;
-      seen.add(id);
-      group.push(byId.get(id));
-      for (const next of neighbours.get(id)) pending.push(next);
-    }
-    groups.push(group);
-  }
-  return groups;
-}
-
 function normalizeThread(node, reviewAccount) {
   const comments = node.comments.nodes;
   const first = comments[0];
@@ -150,13 +108,6 @@ function normalizeThread(node, reviewAccount) {
   // without it cannot be told from the author answering their own thread, so
   // it is not read as one.
   const fromOwner = (comment) => owner !== null && postedBy(comment, reviewAccount) === owner;
-
-  const references = [];
-  for (const comment of comments.filter(fromOwner)) {
-    for (const match of normalize(comment.body).matchAll(REFERENCE)) {
-      references.push(Number(match[1]));
-    }
-  }
 
   const verdicts = comments
     .filter((comment) => fromOwner(comment) && verdictIn(comment.body) !== null)
@@ -173,16 +124,13 @@ function normalizeThread(node, reviewAccount) {
     isResolved: node.isResolved,
     path: node.path,
     line: node.line,
-    // What the thread was posted against, which is not what it is anchored to
-    // now: GitHub nulls `line` once a thread goes outdated, while
-    // `originalLine` and `subjectType` are fixed when the comment is written.
-    originalLine: node.originalLine ?? null,
+    // What the thread was posted as, which is not what it is anchored to now:
+    // GitHub nulls `line` once a thread goes outdated, while `subjectType` is
+    // fixed when the comment is written.
     subjectType: node.subjectType ?? 'LINE',
     owner,
     commentId: first?.databaseId ?? null,
     summary: summarize(first?.body),
-    commentIds: comments.map((comment) => comment.databaseId),
-    references,
     verdict: verdicts.at(-1) ?? null,
     latestOtherCommentAt: otherDates.length === 0 ? null : otherDates.reduce((a, b) => (a > b ? a : b)),
   };
@@ -213,19 +161,14 @@ export function reviewState(payload) {
     AGENTS.map((agent) => [agent, roundFor(agent, reviews, reviewAccount)]),
   );
 
-  // A resolved thread is kept in a group that still has an open one: a human
-  // reading the open thread is shown the other angle on the same problem,
-  // whether or not that one is settled.
-  const openGroups = linkedGroups(threads).filter((group) =>
-    group.some((thread) => !thread.isResolved),
-  );
+  const open = threads.filter((thread) => !thread.isResolved);
 
   return {
     headOid: pr.headRefOid,
     reviewAccount,
     rounds,
     threads,
-    openGroups,
+    open,
     owed,
   };
 }
@@ -252,19 +195,15 @@ export function renderReport(state, prNumber) {
     '',
   ];
 
-  if (state.openGroups.length === 0) {
+  if (state.open.length === 0) {
     lines.push('No open threads.');
   } else {
-    lines.push(`Open threads (${state.openGroups.length}):`, '');
-    state.openGroups.forEach((group, index) => {
-      const heading = group.map(anchor).join(' + ');
-      const suffix = group.length > 1 ? ` — same problem, ${group.length} threads` : '';
-      lines.push(`  [${index + 1}] ${heading}${suffix}`);
-      for (const thread of group) {
-        lines.push(`      ${thread.owner ?? 'unowned'} — ${status(thread)}`);
-        lines.push(`        thread ${thread.id} · comment r${thread.commentId}`);
-        lines.push(`        quoted: ${thread.summary}`);
-      }
+    lines.push(`Open threads (${state.open.length}):`, '');
+    state.open.forEach((thread, index) => {
+      lines.push(`  [${index + 1}] ${anchor(thread)}`);
+      lines.push(`      ${thread.owner ?? 'unowned'} — ${status(thread)}`);
+      lines.push(`        thread ${thread.id} · comment r${thread.commentId}`);
+      lines.push(`        quoted: ${thread.summary}`);
       lines.push('');
     });
     // The quoted lines are somebody's comment on the pull request. Anything a

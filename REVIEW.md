@@ -68,9 +68,9 @@ not post the finding.
 - Post with `node tools/review-post/review-post.mjs round --pr <n> --agent
   <you> --round <r>`, one call per round, the round as JSON on stdin from a
   quoted heredoc — nothing you have writes a file. It adds your name prefix
-  and the severity tag, requires an anchor rather than inventing one, renders
-  the sibling link, and resolves what you RESOLVE. Run it with `--help` for
-  the fields. Never build a `gh api` call yourself.
+  and the severity tag, requires an anchor rather than inventing one, and
+  resolves what you RESOLVE. Run it with `--help` for the fields. Never build
+  a `gh api` call yourself.
 - Post every round, including one that found nothing and one whose only work
   was verdicts. A round that did not post is indistinguishable from a round
   that found nothing.
@@ -82,9 +82,9 @@ not post the finding.
   introduced is a finding of its own.
 - Every thread has one owning agent. Never post to, reply to, or resolve
   another agent's.
-- A problem another agent already raised still gets your own thread: pass that
-  thread's first comment id as `sibling` and say what would satisfy you. Your
-  concern is not settled by another agent's verdict.
+- A problem another agent already raised still gets your own thread: say what
+  you found and what would satisfy you. Your concern is not settled by another
+  agent's verdict.
 - On every re-review, render `RESOLVE` or `DON'T RESOLVE` on each thread you
   own — never leave it to be inferred. That a fix falls short is always said,
   but keeps the thread open only if the shortfall would itself block merging.

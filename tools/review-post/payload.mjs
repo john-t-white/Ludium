@@ -1,7 +1,7 @@
 // Turns one review round into the API calls that post it. Every rule an agent
 // used to be told to remember — the name prefix, the severity tag, the anchor,
-// the sibling link, the verdict form, one review per round — is applied here,
-// so a round that omits one cannot be built rather than being caught later.
+// the verdict form, one review per round — is applied here, so a round that
+// omits one cannot be built rather than being caught later.
 //
 // Pure: this decides what to post. review-post.mjs posts it.
 
@@ -42,7 +42,7 @@ function commentId(value, field) {
   return value;
 }
 
-function findingBody(agent, finding, context) {
+function findingBody(agent, finding) {
   const severity = required(finding.severity, 'finding.severity');
   if (!SEVERITIES.includes(severity)) {
     throw new Error(`finding.severity must be one of ${SEVERITIES.join(', ')}`);
@@ -54,17 +54,6 @@ function findingBody(agent, finding, context) {
     required(finding.causes, 'finding.causes'),
     required(finding.recommend, 'finding.recommend'),
   ];
-
-  // The link is what pairs two threads on one problem in the review's report;
-  // the comment id written as prose does not, which is how #30's pair came
-  // back reported separately.
-  if (finding.sibling !== undefined) {
-    commentId(finding.sibling, 'finding.sibling');
-    const { owner, repo, pr } = context;
-    parts.push(
-      `Same problem as https://github.com/${owner}/${repo}/pull/${pr}#discussion_r${finding.sibling}`,
-    );
-  }
   return parts.join('\n\n');
 }
 
@@ -123,7 +112,7 @@ export function plan(round, context) {
   const fileLevel = [];
   for (const finding of findings) {
     const path = required(finding.path, 'finding.path');
-    const body = findingBody(round.agent, finding, context);
+    const body = findingBody(round.agent, finding);
     if (finding.fileLevel === true) {
       fileLevel.push({ path, body });
     } else {
