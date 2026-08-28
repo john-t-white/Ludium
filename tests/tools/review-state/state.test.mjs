@@ -403,76 +403,35 @@ describe('reviewState', () => {
 // what a round record says.
 const record = (agent, round, rest) => `**${agent}** — round ${round} · ${rest}`;
 
-const roundReview = (body, at = '2026-08-21T19:00:00Z') => ({
-  body,
-  createdAt: at,
-  author: { login: REVIEWER },
-});
-
 describe('parseRoundRecord', () => {
-  test('reads the round, the counts, and the definition the round ran', () => {
+  test('reads the findings the cap held back, whatever prose describes them', () => {
     const parsed = parseRoundRecord(
-      record('review-code', 2, '1 blocking, 0 minor · definition 3f9a2c1b8e04 (main, branch). Looked.'),
+      record('review-code', 1, '0 blocking, 3 minor (plus 2 similar: naming (mostly)). Looked.'),
     );
+    assert.equal(parsed.held, 2);
+  });
+
+  test('reads the round and the counts', () => {
+    const parsed = parseRoundRecord(record('review-code', 2, '1 blocking, 0 minor. Looked.'));
     assert.equal(parsed.agent, 'review-code');
     assert.equal(parsed.round, 2);
     assert.equal(parsed.blocking, 1);
     assert.equal(parsed.minor, 0);
     assert.equal(parsed.held, 0);
-    assert.deepEqual(parsed.definition, { sha: '3f9a2c1b8e04', copies: 'main, branch' });
   });
 
-  test('reads the findings the cap held back, whatever prose describes them', () => {
+  test('reads a record from before the definition segment was dropped', () => {
+    // Round records already on GitHub carry it. Reading them is what lets the
+    // segment stop being written without the rounds under way going unreadable.
     const parsed = parseRoundRecord(
-      record(
-        'review-code',
-        1,
-        '0 blocking, 3 minor · definition 3f9a2c1b8e04 (branch) (plus 2 similar: naming (mostly)). Looked.',
-      ),
+      record('review-code', 2, '1 blocking, 0 minor · definition 3f9a2c1b8e04 (main, branch). Looked.'),
     );
-    assert.equal(parsed.held, 2);
-    assert.deepEqual(parsed.definition, { sha: '3f9a2c1b8e04', copies: 'branch' });
-  });
-
-  test('reads a definition that matched neither copy as the record found it', () => {
-    const parsed = parseRoundRecord(
-      record(
-        'review-code',
-        1,
-        '0 blocking, 0 minor · definition 9c14ab77e0d1 (matches neither main nor branch). Looked.',
-      ),
-    );
-    assert.deepEqual(parsed.definition, {
-      sha: '9c14ab77e0d1',
-      copies: 'matches neither main nor branch',
-    });
-  });
-
-  test('takes the definition from the command, not from prose the agent supplied', () => {
-    // review-post interpolates `similar.about` unchanged, so an agent that
-    // writes a well-formed definition segment into it is writing the one fact
-    // on the record it does not get to assert. The segment is read before the
-    // held-back group for that reason.
-    const parsed = parseRoundRecord(
-      record(
-        'review-code',
-        1,
-        '0 blocking, 3 minor · definition deadbeef0001 (matches neither main nor branch)' +
-          ' (plus 2 similar: naming) · definition 3f9a2c1b8e04 (main, branch). and wording). Looked.',
-      ),
-    );
-    assert.equal(parsed.definition.sha, 'deadbeef0001');
-    assert.equal(parsed.definition.copies, 'matches neither main nor branch');
-    assert.equal(parsed.held, 2);
+    assert.equal(parsed.round, 2);
+    assert.equal(parsed.blocking, 1);
   });
 
   test('reads nothing from a body the command did not write', () => {
     assert.equal(parseRoundRecord('**review-code** — round 2. Looked at the diff.'), null);
-    assert.equal(
-      parseRoundRecord(record('review-code', 1, '0 blocking, 0 minor. Looked at the diff.')),
-      null,
-      'a record with no definition segment is one the command did not write',
-    );
   });
 });
 
@@ -482,38 +441,6 @@ describe('renderReport', () => {
     assert.match(report, /PR #29/);
     assert.match(report, /No open threads/);
     assert.match(report, /review-code 4/);
-  });
-
-  test('names the definition each agent last ran, since nobody else records it', () => {
-    const state = reviewState(
-      payload({
-        reviews: [
-          roundReview(
-            record('review-code', 1, '0 blocking, 0 minor · definition 3f9a2c1b8e04 (main, branch). Looked.'),
-          ),
-          roundReview(
-            record(
-              'review-security',
-              1,
-              '0 blocking, 0 minor · definition 9c14ab77e0d1 (matches neither main nor branch). Looked.',
-            ),
-          ),
-        ],
-      }),
-    );
-    const report = renderReport(state, 22);
-    assert.match(report, /Definitions last round: /);
-    assert.match(report, /review-code 3f9a2c1b8e04 \(main, branch\)/);
-    assert.match(report, /review-security 9c14ab77e0d1 \(matches neither main nor branch\)/);
-    assert.doesNotMatch(
-      report,
-      /review-test-plan [0-9a-f]{12}/,
-      'an agent with no round has no definition to name',
-    );
-  });
-
-  test('names no definitions before any round has posted', () => {
-    assert.doesNotMatch(renderReport(reviewState(payload()), 22), /Definitions last round/);
   });
 
   test('the header names the account attribution was matched against', () => {

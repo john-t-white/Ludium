@@ -103,27 +103,28 @@ does with the change in front of it.
 This review never approves or merges on its own; a human reads the findings,
 responds inline, decides what to act on, and makes the merge call.
 
-**A round runs as one command.** The loop around the agents — dispatching all
-four, telling each what round it is on and which of its threads are open,
-checking that each round actually posted, and reporting what is left — is
-[.claude/skills/pr-review/](.claude/skills/pr-review/), and running it is
-what a review round is. Assembling that loop by hand each time made two runs
-of "the same" review not the same review, which is the problem the checked-in
-agent definitions already solved for the agents themselves. The parts of a
-round that are facts rather than judgments — who owns a thread, which are
-unresolved, who still owes a verdict, what round each agent is on — are
-settled by [tools/review-state/](tools/review-state/) before any agent runs,
-because an agent working them out spends calls on it every round and can get
-it wrong, while a check returns the same answer every time. A thread that a
-second agent opened on a problem already raised is reported together with the
-first, so a human reading one is shown the other rather than having to notice
-the connection. What the round then owed is checked by that same tool rather
-than read for: an agent that did not post, a thread its owner left unverdicted,
-a finding with no anchor, a sibling thread left unlinked, a round over the
-minor-findings cap, and a minor finding raised after round one each fail a
-check that exits non-zero. Every one of those was a rule that lived in prose
-and was broken while it did. As with the agent files, this document says why;
-the skill is what runs.
+**A round runs as one command.** The loop the review runs — who looks, in what
+order, and what has to happen before a reviewer is asked again — is stated in
+[.claude/skills/pr-review/](.claude/skills/pr-review/), which is also what
+runs it: dispatching the agents, telling each what round it is on and which of
+its threads are open, checking that each round actually posted, and reporting
+what is left. Running that command is what a review round is. Assembling that
+loop by hand each time made two runs of "the same" review not the same review,
+which is the problem the checked-in agent definitions already solved for the
+agents themselves. The parts of a round that are facts rather than judgments —
+who owns a thread, which are unresolved, who still owes a verdict, what round
+each agent is on — are settled by [tools/review-state/](tools/review-state/)
+before any agent runs, because an agent working them out spends calls on it
+every round and can get it wrong, while a check returns the same answer every
+time. A thread that a second agent opened on a problem already raised is
+reported together with the first, so a human reading one is shown the other
+rather than having to notice the connection. What the round then owed is
+checked by that same tool rather than read for: an agent that did not post, a
+thread its owner left unverdicted, a finding with no anchor, a sibling thread
+left unlinked, a round over the minor-findings cap, and a minor finding raised
+after round one each fail a check that exits non-zero. Every one of those was
+a rule that lived in prose and was broken while it did. As with the agent
+files, this document says why; the skill is what runs.
 
 **A finding gets one thread.** A finding stays on the thread it was first
 raised on, from that first raise until it is resolved. A follow-up about
