@@ -144,9 +144,10 @@ again, and each renders an explicit resolve / don't-resolve verdict on the
 threads it owns, rather than the orchestrating process inferring resolution on
 their behalf. The answer is what the next verdict answers, so a reviewer is not
 asked again until it has one; a push says nothing about which findings it
-addresses, which is why the reply rather than the commit is what counts. A thread that closes, by
-verdict or by any of the routes below, is marked resolved on the pull
-request, so the threads left open are the unfinished ones. Each such pass is
+addresses, which is why the reply rather than the commit is what counts. A
+thread that closes, by verdict or by any of the routes below, is marked
+resolved on the pull request, so the threads left open are the unfinished
+ones. Each such pass is
 a round, and from the second one on, agents raise only findings that would
 block merging — ones the agent would not merge without — on everything that
 round sees, including material a fix newly added, so a fix cannot pull the

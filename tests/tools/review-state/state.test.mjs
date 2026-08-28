@@ -225,7 +225,7 @@ describe('awaitsAuthor', () => {
     isResolved: false,
     owner: 'review-code',
     latestOwnerCommentAt: RAISED,
-    latestOtherCommentAt: null,
+    latestAuthorCommentAt: null,
     ...extra,
   });
 
@@ -234,14 +234,14 @@ describe('awaitsAuthor', () => {
   });
 
   test('a reply after the finding is the answer step 3 asks for', () => {
-    assert.equal(awaitsAuthor(waiting({ latestOtherCommentAt: ANSWERED })), false);
+    assert.equal(awaitsAuthor(waiting({ latestAuthorCommentAt: ANSWERED })), false);
   });
 
   test('an owner that has spoken since the answer is waiting again', () => {
     // The owner said the fix falls short and kept the thread open; that is a
     // new problem raised, which step 3 answers before step 4 looks again.
     assert.equal(
-      awaitsAuthor(waiting({ latestOtherCommentAt: ANSWERED, latestOwnerCommentAt: HEAD_AT })),
+      awaitsAuthor(waiting({ latestAuthorCommentAt: ANSWERED, latestOwnerCommentAt: HEAD_AT })),
       true,
     );
   });
@@ -252,6 +252,23 @@ describe('awaitsAuthor', () => {
 
   test('a thread no agent owns is nobody to answer to', () => {
     assert.equal(awaitsAuthor(waiting({ owner: null, latestOwnerCommentAt: null })), false);
+  });
+
+  test('a passing stranger on a public repository does not answer for the author', () => {
+    const state = reviewState(
+      payload({
+        threads: [
+          thread({
+            comments: [
+              ['**review-code** — a finding', RAISED],
+              ['drive-by two cents', ANSWERED, OUTSIDER],
+            ],
+          }),
+        ],
+      }),
+    );
+    assert.equal(state.threads[0].awaitsAuthor, true);
+    assert.equal(state.unanswered.length, 1);
   });
 });
 
@@ -537,6 +554,20 @@ describe('dispatchSet', () => {
       ),
     );
     assert.deepEqual(set.dispatch, []);
+  });
+
+  test('the last look is asked again on a thread it owns, having already looked at this head', () => {
+    // Its verdict is the only thing that can close its thread, and a reply
+    // moves no commit — so gating the branch on the head alone would leave
+    // that verdict owed with no round that could ever render it.
+    const at = (threads) =>
+      dispatchSet(
+        reviewState(payload({ reviews: [...OTHERS, AC].map((agent) => round(agent)), threads })),
+      );
+    assert.deepEqual(at([answered(AC, 'the third criterion is unmet')]).dispatch, [AC]);
+    // And it stops there: its own DON'T RESOLVE puts the thread back to
+    // awaiting the author, which is the loop waiting rather than spinning.
+    assert.deepEqual(at([unanswered(AC, 'the third criterion is unmet')]).dispatch, []);
   });
 
   test('a last look recorded against an earlier commit is not the last look', () => {

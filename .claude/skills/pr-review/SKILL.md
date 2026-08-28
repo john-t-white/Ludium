@@ -191,7 +191,6 @@ From the final state report, tell the human:
 
 - Which threads are still open, who owns each, and what each owner is waiting
   for.
-- Which threads are waiting on an answer from the author, and what each asked.
 - Which verdicts are still owed, and by whom.
 - Which reviewers this round skipped, and the reason the report gave.
 - What this round found overall, and anything an agent flagged that has no

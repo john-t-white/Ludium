@@ -138,14 +138,18 @@ export function owesVerdict(thread, headOid) {
  * the exchange.
  *
  * The author and the review account are the same person here, so what marks a
- * comment as the author's is the absence of an agent's name prefix — the
- * distinction normalizeThread already draws.
+ * comment as the author's is that account writing without an agent's name
+ * prefix — the distinction normalizeThread already draws. It has to be the
+ * author specifically rather than anyone who is not the owning agent: this
+ * repository is public, so a comment from a passing stranger would otherwise
+ * release the reviewer on a finding nobody answered. owesVerdict reads the
+ * looser signal, where a stranger's comment only ever causes more review.
  */
 export function awaitsAuthor(thread) {
   if (thread.isResolved || thread.owner === null) return false;
   return (
-    thread.latestOtherCommentAt === null ||
-    thread.latestOtherCommentAt < thread.latestOwnerCommentAt
+    thread.latestAuthorCommentAt === null ||
+    thread.latestAuthorCommentAt < thread.latestOwnerCommentAt
   );
 }
 
@@ -172,6 +176,14 @@ function normalizeThread(node, reviewAccount) {
   const latest = (dates) => (dates.length === 0 ? null : dates.reduce((a, b) => (a > b ? a : b)));
   const otherDates = comments.filter((comment) => !fromOwner(comment)).map((c) => c.createdAt);
   const ownerDates = comments.filter(fromOwner).map((c) => c.createdAt);
+  // The author, not everyone who is not the owner: the review account writing
+  // without an agent's prefix. See awaitsAuthor.
+  const authorDates = comments
+    .filter(
+      (comment) =>
+        comment.author?.login === reviewAccount && postedBy(comment, reviewAccount) === null,
+    )
+    .map((c) => c.createdAt);
 
   return {
     id: node.id,
@@ -188,6 +200,7 @@ function normalizeThread(node, reviewAccount) {
     verdict: verdicts.at(-1) ?? null,
     latestOtherCommentAt: latest(otherDates),
     latestOwnerCommentAt: latest(ownerDates),
+    latestAuthorCommentAt: latest(authorDates),
   };
 }
 
@@ -278,12 +291,18 @@ export function dispatchSet(state) {
   } else if (OTHERS.some(unposted)) {
     // Step 1: the first look.
     dispatch = OTHERS.filter(unposted);
-  } else if (!looked(ACCEPTANCE) && answered(ACCEPTANCE)) {
+  } else if ((!looked(ACCEPTANCE) || owns(ACCEPTANCE)) && answered(ACCEPTANCE)) {
     // Step 6: the last look, now the others are finished. This is the only
     // branch that dispatches it, and the only way a thread it owns can be
     // closed, since no other agent may render that verdict — so it has to be
     // reachable while it owns one, which is why owning a thread does not send
     // the round back to step 7 once the others have answered.
+    //
+    // `owns` is why it is not the head alone. An answer to a finding is a
+    // reply, and a reply moves no commit, so having looked at this head would
+    // otherwise be permanent: the thread would sit open with its verdict owed
+    // and no round left that could render it. This still terminates, because
+    // a DON'T RESOLVE puts the thread back to awaiting the author.
     dispatch = [ACCEPTANCE];
   } else {
     // Nobody is owed a look at the code as it stands.
