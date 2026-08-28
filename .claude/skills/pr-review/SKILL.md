@@ -1,6 +1,6 @@
 ---
 name: pr-review
-description: Run one round of Ludium's multi-agent pull request review — establish thread state deterministically, dispatch the four review agents, check the round they posted, and report what is still open. Use when asked to review a pull request in this repository, or to re-review one after fixes have landed.
+description: Run one round of Ludium's multi-agent pull request review — establish thread state deterministically, dispatch the reviewers the loop asks for, check the round they posted, and report what is still open. Use when asked to review a pull request in this repository, or to re-review one after fixes have landed.
 ---
 
 # Running a review round
@@ -44,11 +44,9 @@ it; anything that serves none is not part of the review.
    others missed against what the issue asked for.
 7. If it finds something missed, the loop starts again from step 1.
 
-The procedure below does not yet run steps 1, 4, and 6 as written: it
-dispatches all four agents every round, the acceptance-criteria reviewer
-included, and does not require the author to have answered a finding before
-its reviewer looks again. #41 is closing that, one part at a time, and this
-paragraph goes with the last of it.
+The procedure below does not yet run step 3 as written: it does not require
+the author to have answered a finding before its reviewer looks again. #41 is
+closing that, one part at a time, and this paragraph goes with the last of it.
 
 ## 1. Establish the state
 
@@ -100,11 +98,14 @@ an agent working it out costs several calls a round and can get it wrong.
 
 Beyond that one lookup, read the report and nothing else at this stage.
 
-## 2. Dispatch the four agents
+## 2. Dispatch the agents the report named
 
-Spawn all four in parallel, one Agent call each, in a single message:
-`review-acceptance-criteria`, `review-code`, `review-security`,
-`review-test-plan`.
+Spawn exactly the agents on the report's `Dispatch this round` line, in
+parallel, one Agent call each, in a single message. That line is the loop
+deciding who looks — the reviewers holding something open at step 4, the
+three that are not the acceptance-criteria reviewer on a first look or a
+restart at step 1, and the acceptance-criteria reviewer alone at step 6 —
+so do not add an agent to it or drop one from it.
 
 Give each a dispatch carrying only what it cannot get from its own definition:
 
@@ -125,11 +126,9 @@ Do not restate what the agent's file already says, and do not tell an agent
 what to conclude. Each agent posts its own findings, replies and resolutions
 itself; nothing is transcribed on its behalf.
 
-An agent whose territory the round cannot have touched may be left out — but
-never one the report says owes a verdict, since nobody else can render it and
-its thread cannot close without it. When you do leave an agent out, say so in
-the report, because a round nobody ran and a round that found nothing look
-identical afterwards.
+The report's `Skipped` line names every agent the round does not ask, and why.
+Carry it into step 4's report: a round nobody ran and a round that found
+nothing look identical afterwards.
 
 ## 3. Check the round
 
@@ -162,8 +161,9 @@ round over the minor-findings cap, a minor finding raised after round one.
 this step exists to replace.
 
 `--dispatched` is the agents you actually dispatched and the round number you
-gave each. An agent you left out of the round is left out here, which is what
-tells a round nobody ran from a round that found nothing.
+gave each — the same set step 2 took from the report. An agent the report
+skipped is left out here too, which is what tells a round nobody ran from a
+round that found nothing.
 
 **`did not post its round`** means that agent's findings exist nowhere but in
 its reply to you. This has happened. Dispatch that agent once more, telling it
@@ -185,12 +185,14 @@ From the final state report, tell the human:
 - Which threads are still open, who owns each, and what each owner is waiting
   for.
 - Which verdicts are still owed, and by whom.
+- Which reviewers this round skipped, and the reason the report gave.
 - What this round found overall, and anything an agent flagged that has no
   thread of its own.
 
-**The loop has ended** when no thread is open and the latest round raised
-nothing blocking. Say so plainly: that is the review finishing, not a step
-being skipped.
+**The loop has ended** when the report's `Dispatch this round` line says there
+is nobody left to ask: every finding is closed and the acceptance-criteria
+reviewer has taken its look at the current head. Say so plainly — that is the
+review finishing, not a step being skipped.
 
 Then stop. This command never approves, never merges, never pushes to the
 branch, never edits the pull request description, and never ticks an

@@ -73,9 +73,11 @@ a reader could not infer, and the test plan required above. It does not
 restate the issue, re-quote acceptance criteria, or summarize the diff.
 
 **Pull requests are reviewed by a multi-agent process, then a human.** Once
-a PR is open, an automated review runs four agents in parallel — verifying
-the PR's test plan, verifying the linked issue's acceptance criteria, a
-general code review, and a security review. Each posts its own findings as
+a PR is open, an automated review runs the reviewers the loop asks for in
+parallel — a general code review, a security review, and one verifying the
+PR's test plan, with a fourth verifying the linked issue's acceptance
+criteria once the other three hold nothing open, since its answer cannot
+mean anything while the code is still moving. Each posts its own findings as
 inline PR comments under its own name, so a finding reads as the agent that
 raised it wrote it. The four run as subagents spawned for the purpose, from
 checked-in definitions in [.claude/agents/](.claude/agents/) — one file per

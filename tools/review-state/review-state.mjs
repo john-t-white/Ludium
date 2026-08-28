@@ -25,7 +25,7 @@ query($owner:String!,$repo:String!,$pr:Int!){
   repository(owner:$owner,name:$repo){
     pullRequest(number:$pr){
       headRefOid
-      reviews(first:100){nodes{author{login} body createdAt}}
+      reviews(first:100){nodes{author{login} body createdAt commit{oid}}}
       reviewThreads(first:100){nodes{
         id isResolved path line subjectType
         comments(first:50){nodes{databaseId createdAt body author{login} pullRequestReview{commit{oid}}}}
