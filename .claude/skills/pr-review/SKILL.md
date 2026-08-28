@@ -130,6 +130,12 @@ The report's `Skipped` line names every agent the round does not ask, and why.
 Carry it into step 4's report: a round nobody ran and a round that found
 nothing look identical afterwards.
 
+That line never skips an agent that owes a verdict on a thread it owns, since
+nobody else can render it and the thread cannot close without it. The
+acceptance-criteria reviewer is the case that has to be got right: it is asked
+at step 6 and nowhere else, so owning a thread of its own does not hold it out
+of the round once the other reviewers have answered.
+
 ## 3. Check the round
 
 Re-run the state command for the state the round left behind, then check the
@@ -189,10 +195,13 @@ From the final state report, tell the human:
 - What this round found overall, and anything an agent flagged that has no
   thread of its own.
 
-**The loop has ended** when the report's `Dispatch this round` line says there
-is nobody left to ask: every finding is closed and the acceptance-criteria
-reviewer has taken its look at the current head. Say so plainly — that is the
-review finishing, not a step being skipped.
+**The loop has ended** when the report's `Dispatch this round` line says so in
+those words: every finding is closed and the acceptance-criteria reviewer has
+taken its look at the current head. Say it plainly — that is the review
+finishing, not a step being skipped. Nobody being left to ask is not the same
+thing, and the line distinguishes them: a thread whose owner has already
+answered for the code as it stands, and a thread no agent owns, both leave the
+round with nobody to dispatch while the finding is still open.
 
 Then stop. This command never approves, never merges, never pushes to the
 branch, never edits the pull request description, and never ticks an

@@ -26,6 +26,7 @@ const OTHERS = AGENTS.filter((agent) => agent !== ACCEPTANCE);
 // same afterwards.
 const LAST_LOOK = 'runs last, after the other reviewers finish';
 const NOTHING_OPEN = 'holds nothing open';
+const NOT_YET = 'has not looked at this pull request yet';
 
 const OWNER_PREFIX = /^\s*\*\*(review-[a-z-]+)\*\*/;
 // The round record tools/review-post/ writes, and the only form a round takes.
@@ -217,20 +218,38 @@ export function reviewState(payload) {
  * to the start.
  */
 export function dispatchSet(state) {
+  // `isResolved` is the one input here that is not authenticated to the review
+  // account: anyone with write access can resolve a conversation, and the
+  // author is one of them. Everything else funnels through postedBy. That
+  // holds while the author and the review account are the same person, which
+  // is the same condition SKILL.md step 1 states for running the branch's own
+  // copy of this tool — an author who resolved a reviewer's thread would have
+  // that reviewer skipped, with the reason given as holding nothing open.
   const owns = (agent) => state.open.some((thread) => thread.owner === agent);
+  const looked = (agent) => state.lookedAtHead[agent];
   const unposted = (agent) => state.rounds[agent] === 1;
 
   let dispatch;
-  if (owns(ACCEPTANCE)) {
-    dispatch = OTHERS; // Step 7: it found something, so the loop restarts at step 1.
-  } else if (OTHERS.some(owns)) {
-    dispatch = OTHERS.filter(owns); // Step 4: only the reviewers that raised something.
+  if (OTHERS.some(owns)) {
+    // Step 4: only the reviewers that raised something.
+    dispatch = OTHERS.filter(owns);
+  } else if (owns(ACCEPTANCE) && OTHERS.some((agent) => !looked(agent))) {
+    // Step 7: it found something, so the loop restarts at step 1 — for the
+    // reviewers that have not yet looked at the answer to it.
+    dispatch = OTHERS.filter((agent) => !looked(agent));
   } else if (OTHERS.some(unposted)) {
-    dispatch = OTHERS.filter(unposted); // Step 1: the first look.
-  } else if (!state.lookedAtHead[ACCEPTANCE]) {
-    dispatch = [ACCEPTANCE]; // Step 6: the last look, now the others are finished.
+    // Step 1: the first look.
+    dispatch = OTHERS.filter(unposted);
+  } else if (!looked(ACCEPTANCE)) {
+    // Step 6: the last look, now the others are finished. This is the only
+    // branch that dispatches it, and the only way a thread it owns can be
+    // closed, since no other agent may render that verdict — so it has to be
+    // reachable while it owns one, which is why owning a thread does not send
+    // the round back to step 7 once the others have answered.
+    dispatch = [ACCEPTANCE];
   } else {
-    dispatch = []; // Every finding is closed and the last look is taken.
+    // Nobody is owed a look at the code as it stands.
+    dispatch = [];
   }
 
   const skipped =
@@ -238,11 +257,12 @@ export function dispatchSet(state) {
       ? []
       : AGENTS.filter((agent) => !dispatch.includes(agent)).map((agent) => ({
           agent,
-          reason: agent === ACCEPTANCE ? LAST_LOOK : NOTHING_OPEN,
+          reason: agent === ACCEPTANCE ? LAST_LOOK : unposted(agent) ? NOT_YET : NOTHING_OPEN,
         }));
 
   return { dispatch, skipped };
 }
+
 
 /** How a thread is named in a report: its file, and its line where it has one. */
 export const anchor = (thread) => (thread.line === null ? thread.path : `${thread.path}:${thread.line}`);
@@ -263,9 +283,18 @@ function status(thread) {
  * to the dispatch, so a reviewer that was skipped is on the record a human
  * reads instead of resting on whoever ran the round remembering to mention it.
  */
-function dispatchLines({ dispatch, skipped }) {
+function dispatchLines(state, { dispatch, skipped }) {
   if (dispatch.length === 0) {
-    return ['Dispatch this round: none — every finding is closed and the loop has ended.'];
+    // Nobody being owed a look is not the same as every finding being closed.
+    // A thread whose owner has already answered for the code as it stands, and
+    // a thread nobody owns, both leave the round with no one to dispatch —
+    // saying the loop has ended while the report prints one below would be
+    // false. What closes those is the author, or whoever opened them.
+    return state.open.length === 0
+      ? ['Dispatch this round: none — every finding is closed and the loop has ended.']
+      : [
+          `Dispatch this round: none — no reviewer is owed a look at the code as it stands, and ${state.open.length} thread(s) below are still open.`,
+        ];
   }
   const lines = [`Dispatch this round: ${dispatch.join(', ')}`];
   if (skipped.length > 0) {
@@ -279,7 +308,7 @@ export function renderReport(state, prNumber) {
   const lines = [
     `PR #${prNumber} — head ${state.headOid.slice(0, 7)} · review account ${state.reviewAccount}`,
     `Next round: ${AGENTS.map((agent) => `${agent} ${state.rounds[agent]}`).join(', ')}`,
-    ...dispatchLines(dispatchSet(state)),
+    ...dispatchLines(state, dispatchSet(state)),
     '',
   ];
 
