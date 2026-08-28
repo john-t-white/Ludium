@@ -26,10 +26,14 @@ const findingBody = (agent, severity = 'blocking') =>
 
 const verdictBody = (agent, verdict = 'RESOLVE') => `**${agent}** — ${verdict} — the fix holds.`;
 
-const review = (body, { login = REVIEWER, at = ROUND_AT } = {}) => ({
+// `oid` is the commit GitHub freezes on a review, and what says which round a
+// record belongs to. A case that wants a record from an earlier round passes
+// an earlier one.
+const review = (body, { login = REVIEWER, at = ROUND_AT, oid = HEAD_OID } = {}) => ({
   body,
   createdAt: at,
   author: { login },
+  commit: { oid },
 });
 
 let nextId = 1;
@@ -129,6 +133,18 @@ describe('a dispatched agent that did not post', () => {
     // not a round however much it reads like one.
     const state = payload({ reviews: [review('round 1 · 0 blocking, 0 minor. Looked.')] });
     assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['no-round']);
+  });
+
+  test('is a failure when an earlier round posted and this one did not', () => {
+    // The failure the ordinal used to catch by counting. An agent dispatched
+    // to look again that dies before posting leaves its previous round's
+    // record standing, and nothing but the commit that record answers for
+    // tells the two apart.
+    const state = payload({
+      reviews: [review(roundBody('review-code'), { oid: EARLIER_OID })],
+      threads: [thread({ comments: [comment(findingBody('review-code'), { at: AT })] })],
+    });
+    assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['no-round', 'owes-verdict']);
   });
 
   test('is a failure when the review is somebody else writing the prefix', () => {
@@ -351,7 +367,7 @@ describe('a round over the minor-findings cap', () => {
   });
 });
 
-describe('a minor finding raised after round one', () => {
+describe('a minor finding raised on a re-review', () => {
   test('is a failure, whatever material it was raised on', () => {
     const state = payload({
       reviews: [
@@ -360,7 +376,7 @@ describe('a minor finding raised after round one', () => {
       ],
     });
     const failures = checkRound(state, ['review-code']);
-    assert.deepEqual(kinds(failures), ['minor-after-round-one']);
+    assert.deepEqual(kinds(failures), ['minor-on-re-review']);
   });
 
   test('is reported once, not also as the cap it went over', () => {
@@ -370,7 +386,7 @@ describe('a minor finding raised after round one', () => {
         review(roundBody('review-code', { minor: 4 })),
       ],
     });
-    assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['minor-after-round-one']);
+    assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['minor-on-re-review']);
   });
 
   test('is a failure when the cap merely held it back', () => {
@@ -380,7 +396,21 @@ describe('a minor finding raised after round one', () => {
         review(roundBody('review-code', { similar: 2 })),
       ],
     });
-    assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['minor-after-round-one']);
+    assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['minor-on-re-review']);
+  });
+
+  test('is a failure on a round record posted twice, which is the safe error', () => {
+    // A duplicate reads as a re-review. Refusing minor findings on a round
+    // that duplicated itself is loud and wrong in the direction that costs a
+    // re-run; reading it as a first look would let a minor finding through on
+    // a genuine second look with nothing saying so.
+    const state = payload({
+      reviews: [
+        review(roundBody('review-code', { minor: 2 })),
+        review(roundBody('review-code', { minor: 2 })),
+      ],
+    });
+    assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['minor-on-re-review']);
   });
 
   test('is not a failure in round one, which takes minor findings', () => {

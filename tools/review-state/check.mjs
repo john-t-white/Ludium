@@ -13,7 +13,7 @@ import { anchor, parseRoundRecord, postedBy, reviewState } from './state.mjs';
 
 // REVIEW.md's cap on one round's minor findings. Beyond it an agent
 // summarizes the rest as "plus N similar" in the round body; held back or
-// not, those are findings the round raised, which is what the round-two bar
+// not, those are findings the round raised, which is what the re-review bar
 // below counts.
 const MINOR_CAP = 3;
 
@@ -37,14 +37,15 @@ const SEVERITY = /^\s*\*\*review-[a-z-]+\*\*\s*[—-]\s*\[(?:blocking|minor)( ·
 export function checkRound(payload, dispatched) {
   const state = reviewState(payload);
   const reviews = payload.data.repository.pullRequest.reviews.nodes;
+  const headOid = payload.data.repository.pullRequest.headRefOid;
   const raised = firstComments(payload);
   const failures = [];
 
   for (const agent of dispatched) {
-    checkRoundRecord(agent, reviews, state.reviewAccount, failures);
+    checkRoundRecord(agent, reviews, state.reviewAccount, headOid, failures);
   }
 
-  failures.push(...unverdicted(state, dispatched, reviews, raised));
+  failures.push(...unverdicted(state, dispatched, reviews, raised, headOid));
   failures.push(...malformed(state, raised));
   return failures;
 }
@@ -53,13 +54,32 @@ export function checkRound(payload, dispatched) {
  * The round record each dispatched agent posted, by agent. Its timestamp is
  * what separates the threads a round inherited from the ones it opened.
  */
-function roundRecords(reviews, dispatched, reviewAccount) {
+function roundRecords(reviews, dispatched, reviewAccount, headOid) {
   const records = new Map();
   for (const agent of dispatched) {
-    const posted = reviews.filter((review) => postedBy(review, reviewAccount) === agent);
-    records.set(agent, posted.at(-1));
+    records.set(agent, thisRound(reviews, agent, reviewAccount, headOid).at(-1));
   }
   return records;
+}
+
+/**
+ * The rounds an agent posted against the commit the pull request is on now —
+ * this round's, since a round is checked as soon as it finishes.
+ *
+ * Selecting by commit rather than by "the latest one" is what tells a round
+ * this agent just posted from one it posted before. GitHub freezes that commit
+ * on the review, the same server-assigned value state.mjs reads, so a re-review
+ * that died before posting leaves nothing here and is reported, rather than
+ * inheriting its previous round's record and passing as clean.
+ *
+ * A reviewer asked to look again at a head it has already answered for — a
+ * reply with no push moves no commit — posts a second record against that same
+ * commit, so this can hold more than one. The last is the round just run.
+ */
+function thisRound(reviews, agent, reviewAccount, headOid) {
+  return reviews.filter(
+    (review) => postedBy(review, reviewAccount) === agent && review.commit?.oid === headOid,
+  );
 }
 
 /**
@@ -74,8 +94,8 @@ function roundRecords(reviews, dispatched, reviewAccount) {
  * one this cannot read, and the reading that costs a false failure beats the
  * one that drops a verdict nobody then renders.
  */
-function unverdicted(state, dispatched, reviews, raised) {
-  const records = roundRecords(reviews, dispatched, state.reviewAccount);
+function unverdicted(state, dispatched, reviews, raised, headOid) {
+  const records = roundRecords(reviews, dispatched, state.reviewAccount, headOid);
   const failures = [];
   for (const thread of state.threads) {
     if (!thread.owesVerdict || !dispatched.includes(thread.owner)) continue;
@@ -104,21 +124,20 @@ function firstComments(payload) {
   return first;
 }
 
-function checkRoundRecord(agent, reviews, reviewAccount, failures) {
+function checkRoundRecord(agent, reviews, reviewAccount, headOid, failures) {
   const posted = reviews.filter((review) => postedBy(review, reviewAccount) === agent);
+  const round = thisRound(reviews, agent, reviewAccount, headOid);
 
   // A review the state tool cannot read is not a round, however much it reads
   // like one: no name prefix, or somebody other than the review account
-  // writing the prefix.
-  if (posted.length === 0) {
+  // writing the prefix. Nor is one answering a commit this round did not look
+  // at — see thisRound.
+  if (round.length === 0) {
     failures.push({ kind: 'no-round', agent, detail: 'dispatched and has posted no round' });
     return;
   }
 
-  // The round being checked is the agent's latest, because the check runs on
-  // the round that has just finished. Every earlier one is history, already
-  // checked when it ran.
-  const record = parseRoundRecord(posted.at(-1).body);
+  const record = parseRoundRecord(round.at(-1).body);
   if (record === null) {
     failures.push({
       kind: 'hand-posted',
@@ -129,18 +148,27 @@ function checkRoundRecord(agent, reviews, reviewAccount, failures) {
   }
 
   // Whether this was a re-review, read off the pull request rather than taken
-  // from what the agent asserted: a record before this one is a look before
-  // this one. The counts are the command's own, written from the findings it
-  // posted, and the check above is what says the command wrote it. A held-back
-  // finding counts as raised here: it reached the round record, which is where
-  // a reader meets it.
+  // from what the agent asserted: any record but this one is a look this is
+  // not the first of. A reviewer asked to look again at a head it has already
+  // answered for is why this counts records rather than commits.
+  //
+  // A round record posted twice therefore reads as a re-review. That is the
+  // safe direction — it can only refuse minor findings, loudly, on a round
+  // that duplicated itself; the other reading would let one through on a
+  // genuine second look, silently. #41 accepts the duplicate as noise on the
+  // record, which is what leaves this the cheaper of the two errors.
+  //
+  // The counts are the command's own, written from the findings it posted, and
+  // the check above is what says the command wrote it. A held-back finding
+  // counts as raised here: it reached the round record, which is where a
+  // reader meets it.
   const again = posted.length > 1;
   const { minor, held } = record;
   if (again && minor + held > 0) {
-    // Not also reported as over-cap: from round two the cap is beside the
+    // Not also reported as over-cap: on a re-review the cap is beside the
     // point, because the bar is nothing minor at all.
     failures.push({
-      kind: 'minor-after-round-one',
+      kind: 'minor-on-re-review',
       agent,
       detail: `${minor + held} minor findings on a re-review, which takes only blocking ones`,
     });
@@ -194,7 +222,7 @@ const LABEL = {
   untagged: 'posted a finding with no severity tag',
   unanchored: 'posted a finding with no anchor and no file-level marker',
   'over-cap': 'went over the minor-findings cap',
-  'minor-after-round-one': 'raised a minor finding after round one',
+  'minor-on-re-review': 'raised a minor finding on a re-review',
 };
 
 /** The result as one report. The caller decides the exit code. */
