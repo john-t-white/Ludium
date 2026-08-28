@@ -249,9 +249,8 @@ export function renderReport(state, prNumber) {
   const lines = [
     `PR #${prNumber} — head ${state.headOid.slice(0, 7)} · review account ${state.reviewAccount}`,
     `Next round: ${AGENTS.map((agent) => `${agent} ${state.rounds[agent]}`).join(', ')}`,
+    '',
   ];
-
-  lines.push('');
 
   if (state.openGroups.length === 0) {
     lines.push('No open threads.');

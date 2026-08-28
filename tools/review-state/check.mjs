@@ -19,8 +19,7 @@ const MINOR_CAP = 3;
 
 // The round record tools/review-post/ writes is read by state.mjs, and a body
 // it cannot read is one an agent composed itself: nothing then guarantees its
-// findings were anchored, prefixed, or tagged, or that the definition it ran is
-// recorded anywhere.
+// findings were anchored, prefixed, or tagged.
 
 // The severity tag the command writes on a finding's first line, and the
 // marker that distinguishes a finding with no line to anchor to from one
