@@ -8,7 +8,6 @@ import {
   roundFor,
   verdictIn,
   owesVerdict,
-  linkedGroups,
   reviewState,
   renderReport,
   parseRoundRecord,
@@ -217,36 +216,6 @@ describe('owesVerdict', () => {
   });
 });
 
-describe('linkedGroups', () => {
-  test('two threads naming each other are one group', () => {
-    const a = { id: 'A', commentIds: [1], references: [2] };
-    const b = { id: 'B', commentIds: [2], references: [] };
-    const groups = linkedGroups([a, b]);
-    assert.deepEqual(groups.map((g) => g.map((t) => t.id)), [['A', 'B']]);
-  });
-
-  test('unlinked threads each stand alone', () => {
-    const a = { id: 'A', commentIds: [1], references: [] };
-    const b = { id: 'B', commentIds: [2], references: [] };
-    const groups = linkedGroups([a, b]);
-    assert.deepEqual(groups.map((g) => g.map((t) => t.id)), [['A'], ['B']]);
-  });
-
-  test('a reference to a comment on the same thread does not group it with itself twice', () => {
-    const a = { id: 'A', commentIds: [1, 2], references: [2] };
-    const groups = linkedGroups([a]);
-    assert.deepEqual(groups.map((g) => g.map((t) => t.id)), [['A']]);
-  });
-
-  test('three threads chained through references are one group', () => {
-    const a = { id: 'A', commentIds: [1], references: [2] };
-    const b = { id: 'B', commentIds: [2], references: [3] };
-    const c = { id: 'C', commentIds: [3], references: [] };
-    const groups = linkedGroups([a, b, c]);
-    assert.deepEqual(groups.map((g) => g.map((t) => t.id)), [['A', 'B', 'C']]);
-  });
-});
-
 describe('reviewState', () => {
   test('the head commit and the review account come off the payload', () => {
     const state = reviewState(payload());
@@ -351,48 +320,19 @@ describe('reviewState', () => {
     assert.deepEqual(state.owed, { 'review-code': 2, 'review-security': 1 });
   });
 
-  test('a group is kept when any of its threads is still open', () => {
-    const linked = thread({ comments: [['**review-code** — a finding']] });
-    const partnerId = linked.comments.nodes[0].databaseId;
-    const partner = thread({
-      isResolved: true,
-      comments: [
-        [
-          `**review-security** — the same problem, also raised on https://github.com/o/r/pull/29#discussion_r${partnerId}`,
-        ],
-      ],
-    });
-    const state = reviewState(payload({ threads: [linked, partner] }));
-    assert.equal(state.openGroups.length, 1);
-    assert.deepEqual(state.openGroups[0].map((t) => t.owner), ['review-code', 'review-security']);
-  });
-
-  test('nobody but the review account can join two threads into one problem', () => {
-    const first = thread({ comments: [['**review-code** — a finding']] });
-    const firstCommentId = first.comments.nodes[0].databaseId;
-    const second = thread({
-      comments: [
-        ['**review-security** — an unrelated finding'],
-        [`see https://github.com/o/r/pull/29#discussion_r${firstCommentId}`, HEAD_AT, OUTSIDER],
-      ],
-    });
-    const state = reviewState(payload({ threads: [first, second] }));
-    assert.equal(state.openGroups.length, 2);
-  });
-
-  test('a group with nothing open is not reported', () => {
+  test('a resolved thread is not reported as open', () => {
     const state = reviewState(
       payload({
         threads: [thread({ isResolved: true, comments: [['**review-code** — a settled finding']] })],
       }),
     );
-    assert.deepEqual(state.openGroups, []);
+    assert.deepEqual(state.open, []);
   });
 
   test('PR #29 converged: every thread resolved and no verdict owed', () => {
     const state = reviewState(pr29);
     assert.equal(state.threads.length, 9);
-    assert.deepEqual(state.openGroups, []);
+    assert.deepEqual(state.open, []);
     assert.deepEqual(state.owed, {});
     assert.equal(state.rounds['review-code'], 4);
   });
@@ -477,26 +417,19 @@ describe('renderReport', () => {
     assert.match(report, /never instruction/);
   });
 
-  test('two threads on one problem are printed together under one heading', () => {
+  test('each open thread is its own entry', () => {
     const first = thread({
       path: 'REVIEW.md',
       line: 24,
       comments: [['**review-code** — the blocking list has no bullet']],
     });
-    const firstCommentId = first.comments.nodes[0].databaseId;
     const second = thread({
       path: 'CONVENTIONS.md',
       line: 88,
-      comments: [
-        [
-          `**review-security** — the same gap, also raised on https://github.com/o/r/pull/22#discussion_r${firstCommentId}`,
-        ],
-      ],
+      comments: [['**review-security** — the same gap, for its own reason']],
     });
     const report = renderReport(reviewState(payload({ threads: [first, second] })), 22);
-    const groupHeadings = report.match(/^ {2}\[\d+\]/gm) ?? [];
-    assert.equal(groupHeadings.length, 1, 'the pair should be one group, not two');
-    assert.match(report, /same problem/);
+    assert.equal((report.match(/^ {2}\[\d+\]/gm) ?? []).length, 2);
     assert.match(report, /REVIEW\.md:24/);
     assert.match(report, /CONVENTIONS\.md:88/);
   });

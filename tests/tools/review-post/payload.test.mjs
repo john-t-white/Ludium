@@ -88,16 +88,6 @@ describe('a finding', () => {
     );
   });
 
-  test('names a sibling thread as a link, which is what pairs the two', () => {
-    const [comment] = review(
-      plan({ ...ROUND, findings: [finding({ sibling: 3843575153 })] }, CONTEXT),
-    ).body.comments;
-    assert.match(
-      comment.body,
-      /Same problem as https:\/\/github\.com\/john-t-white\/Ludium\/pull\/33#discussion_r3843575153$/,
-    );
-  });
-
   test('with no line of its own is a file-level comment, said so in the tag', () => {
     const steps = plan(
       { ...ROUND, findings: [finding({ line: undefined, fileLevel: true })] },
@@ -142,20 +132,6 @@ describe('a finding', () => {
 
   test('is rejected with a line number no diff can have', () => {
     assert.throws(() => plan({ ...ROUND, findings: [finding({ line: 0 })] }, CONTEXT), /line/);
-  });
-
-  test('is rejected with a sibling that would not render as a link', () => {
-    // #discussion_rnull matches nothing state.mjs reads, so the two threads on
-    // one problem would be reported separately with no error anywhere — the
-    // failure the sibling field exists to prevent.
-    assert.throws(
-      () => plan({ ...ROUND, findings: [finding({ sibling: null })] }, CONTEXT),
-      /sibling/,
-    );
-    assert.throws(
-      () => plan({ ...ROUND, findings: [finding({ sibling: 'r123' })] }, CONTEXT),
-      /sibling/,
-    );
   });
 
   test('is rejected with a severity the check cannot read', () => {

@@ -98,9 +98,7 @@ open, who owns each, and who owes a verdict. **Do not re-derive any of it by
 reading the pull request** — that is the work this step exists to replace, and
 an agent working it out costs several calls a round and can get it wrong.
 
-Beyond that one lookup, read the report and nothing else at this stage. It
-also groups threads two agents raised on the same problem, so a pair is handled
-as a pair.
+Beyond that one lookup, read the report and nothing else at this stage.
 
 ## 2. Dispatch the four agents
 
@@ -158,11 +156,10 @@ round passed, which is the whole of what step 1 exists to prevent.
 
 The report is what step 4 reads. The check exits 0, or exits non-zero naming
 what broke — an agent that did not post, a thread its owner left unverdicted, a
-round not posted through `tools/review-post/`, a finding with no anchor, two
-agents on one line with no link between their threads, a round over the
-minor-findings cap, a minor finding raised after round one. **Do not judge any
-of that by reading the pull request** yourself; that is what this step exists
-to replace.
+round not posted through `tools/review-post/`, a finding with no anchor, a
+round over the minor-findings cap, a minor finding raised after round one.
+**Do not judge any of that by reading the pull request** yourself; that is what
+this step exists to replace.
 
 `--dispatched` is the agents you actually dispatched and the round number you
 gave each. An agent you left out of the round is left out here, which is what
@@ -186,8 +183,7 @@ spec if its earlier round did post.
 From the final state report, tell the human:
 
 - Which threads are still open, who owns each, and what each owner is waiting
-  for. Threads on one problem are reported together, as the state command
-  groups them.
+  for.
 - Which verdicts are still owed, and by whom.
 - What this round found overall, and anything an agent flagged that has no
   thread of its own.

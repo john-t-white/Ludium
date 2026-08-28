@@ -112,15 +112,12 @@ who owns a thread, which are unresolved, who still owes a verdict, what round
 each agent is on — are settled by [tools/review-state/](tools/review-state/)
 before any agent runs, because an agent working them out spends calls on it
 every round and can get it wrong, while a check returns the same answer every
-time. A thread that a second agent opened on a problem already raised is
-reported together with the first, so a human reading one is shown the other
-rather than having to notice the connection. What the round then owed is
-checked by that same tool rather than read for: an agent that did not post, a
-thread its owner left unverdicted, a finding with no anchor, a sibling thread
-left unlinked, a round over the minor-findings cap, and a minor finding raised
-after round one each fail a check that exits non-zero. Every one of those was
-a rule that lived in prose and was broken while it did. As with the agent
-files, this document says why; the skill is what runs.
+time. What the round then owed is checked by that same tool rather than read
+for: an agent that did not post, a thread its owner left unverdicted, a
+finding with no anchor, a round over the minor-findings cap, and a minor
+finding raised after round one each fail a check that exits non-zero. Every
+one of those was a rule that lived in prose and was broken while it did. As
+with the agent files, this document says why; the skill is what runs.
 
 **A finding gets one thread.** A finding stays on the thread it was first
 raised on, from that first raise until it is resolved. A follow-up about
@@ -129,13 +126,13 @@ question about the problem the thread already holds — is a reply on that
 thread, not a new one; a separate problem the fix introduced is a finding in
 its own right, and gets its own thread. An agent that independently finds a
 problem another agent has already raised files its own thread for it —
-naming the thread already open on that problem, saying what it found and
-what would satisfy it — rather than letting its concern be settled by
-another agent's verdict: two agents often care about the same problem for
-different reasons, and each reason has its own test for "fixed". Two threads
-on one problem is the cost of keeping each concern independently answerable:
-every thread has exactly one owning agent, and a fix that satisfies one
-agent's thread leaves the other's open until that agent says so itself. This
+saying what it found and what would satisfy it — rather than letting its
+concern be settled by another agent's verdict: two agents often care about the
+same problem for different reasons, and each reason has its own test for
+"fixed". Two threads on one problem is the cost of keeping each concern
+independently answerable: every thread has exactly one owning agent, and a fix
+that satisfies one agent's thread leaves the other's open until that agent says
+so itself. This
 decides whose thread a concern goes on, not whether the concern clears the
 bar of the round it is found in — one that does not clear that bar is not
 raised by anyone, which is the bar working rather than an agent deferring.

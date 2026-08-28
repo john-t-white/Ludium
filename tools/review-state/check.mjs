@@ -1,15 +1,15 @@
 // Asserts that a completed round obeyed the rules, where state.mjs only
 // reports what happened. Every rule below was prose in the four agent files
 // first, and every one of them was broken at least once while it was: an
-// agent that returned findings and never posted them, a thread its owner
-// never rendered a verdict on, a sibling named as text rather than linked.
+// agent that returned findings and never posted them, and a thread its owner
+// never rendered a verdict on.
 // A rule the tooling can observe is a rule that holds, so these exit non-zero
 // rather than printing something a reader has to notice.
 //
 // Pure: everything below reads the GraphQL payload it is handed and the
 // dispatch it was told about, and nothing else.
 
-import { anchor, linkedGroups, parseRoundRecord, postedBy, reviewState } from './state.mjs';
+import { anchor, parseRoundRecord, postedBy, reviewState } from './state.mjs';
 
 // REVIEW.md's cap on one round's minor findings. Beyond it an agent
 // summarizes the rest as "plus N similar" in the round body; held back or
@@ -46,7 +46,6 @@ export function checkRound(payload, dispatched) {
 
   failures.push(...unverdicted(state, dispatched, reviews, raised));
   failures.push(...malformed(state, raised));
-  failures.push(...unlinkedSiblings(state));
   return failures;
 }
 
@@ -200,60 +199,6 @@ function malformed(state, raised) {
   return failures;
 }
 
-/**
- * Where a thread sits, or null for one that pairs with nothing.
- *
- * A file-level finding has no line, and #32 pairs threads "sharing another's
- * file and line" — two agents with unrelated things to say about one file are
- * not one problem, and have nothing to link.
- *
- * The rest key on the coordinate they still have, and the kind is part of the
- * key: `line` is where a thread sits now, `originalLine` where it was raised,
- * and comparing one against the other pairs threads that were never in the
- * same place on nothing more than a coincidence of numbering. Two threads a
- * round apart can therefore go unpaired — a detection this cannot make
- * reliably, and the cheaper failure than one nobody can act on.
- */
-function spotOf(thread) {
-  if (thread.subjectType === 'FILE') return null;
-  if (thread.line !== null) return `at ${thread.path}:${thread.line}`;
-  if (thread.originalLine !== null) return `raised at ${thread.path}:${thread.originalLine}`;
-  return null;
-}
-
-/**
- * Two agents on one problem file two threads by design, and the second names
- * the first by linking its comment. Written as bare text the link does not
- * join them, and the two get reported apart — which is what happened on #30.
- * Two open threads at one spot, owned by different agents and in different
- * groups, is that failure.
- */
-function unlinkedSiblings(state) {
-  const group = new Map();
-  linkedGroups(state.threads).forEach((threads, index) => {
-    for (const thread of threads) group.set(thread.id, index);
-  });
-
-  const open = state.threads.filter((thread) => !thread.isResolved && thread.owner !== null);
-  const failures = [];
-  for (let i = 0; i < open.length; i += 1) {
-    for (let j = i + 1; j < open.length; j += 1) {
-      const [one, other] = [open[i], open[j]];
-      if (spotOf(one) === null || spotOf(one) !== spotOf(other)) continue;
-      if (one.owner === other.owner) continue;
-      if (group.get(one.id) === group.get(other.id)) continue;
-      failures.push({
-        kind: 'unlinked-sibling',
-        agent: other.owner,
-        detail:
-          `${anchor(one)} — ${one.owner} and ${other.owner} raised it on separate ` +
-          'threads with no link between them',
-      });
-    }
-  }
-  return failures;
-}
-
 // One line per kind, saying what that kind and only that kind means. A label
 // covering two failures states something untrue about one of them.
 const LABEL = {
@@ -264,7 +209,6 @@ const LABEL = {
   'owes-verdict': 'left a thread it owns unverdicted',
   untagged: 'posted a finding with no severity tag',
   unanchored: 'posted a finding with no anchor and no file-level marker',
-  'unlinked-sibling': 'left a sibling thread unlinked',
   'over-cap': 'went over the minor-findings cap',
   'minor-after-round-one': 'raised a minor finding after round one',
 };

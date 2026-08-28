@@ -43,9 +43,7 @@ round that omits one:
         "severity":  "${SEVERITIES.join('" | "')}",   // only "blocking" after round 1
         "wrong":     "what is wrong",
         "causes":    "what it causes, with an example where one clarifies it",
-        "recommend": "what to do about it",
-        "sibling":   3843575153           // optional: comment id of the thread
-                                          // another agent already opened on this problem
+        "recommend": "what to do about it"
       }
     ],
     "replies":  [{"comment": 123456, "body": "follow-up on a thread you own"}],
@@ -53,12 +51,11 @@ round that omits one:
                   "verdict": "RESOLVE" | "DON'T RESOLVE", "because": "one line"}]
   }
 
-The command adds your name prefix and the severity tag, renders the sibling
-link, and resolves a thread you RESOLVE. From round two it takes only blocking
-findings, on every material the round sees — a minor one, posted or held back,
-is a round it refuses. Ids are checked for shape, not just presence. Findings
-post as one review, so a line outside the diff rejects the round: fix the
-anchor and run it again.`;
+The command adds your name prefix and the severity tag, and resolves a thread
+you RESOLVE. From round two it takes only blocking findings, on every material
+the round sees — a minor one, posted or held back, is a round it refuses. Ids
+are checked for shape, not just presence. Findings post as one review, so a
+line outside the diff rejects the round: fix the anchor and run it again.`;
 
 const argv = process.argv.slice(2);
 
