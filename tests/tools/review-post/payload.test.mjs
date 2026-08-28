@@ -41,6 +41,9 @@ describe('the round review', () => {
     assert.equal(review(steps).body.event, 'COMMENT');
   });
 
+  // The body is asserted whole rather than matched against, so a round record
+  // that grew a segment back — the definition provenance #41 removed, say —
+  // fails here rather than passing a looser check.
   test('carries the name prefix, the round, and what the round found', () => {
     const steps = plan(
       { ...ROUND, findings: [finding(), finding({ line: 7, severity: 'minor' })] },
@@ -267,10 +270,6 @@ describe('the round itself', () => {
 
   test('is rejected without a summary, since the body is the record the round ran', () => {
     assert.throws(() => plan({ ...ROUND, summary: '' }, CONTEXT), /summary/);
-  });
-
-  test('records nothing about which copy of its definition the agent ran', () => {
-    assert.doesNotMatch(review(plan(ROUND, CONTEXT)).body.body, /definition/);
   });
 
   test('is rejected without a round number', () => {
