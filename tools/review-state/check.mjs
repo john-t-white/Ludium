@@ -137,47 +137,54 @@ function checkRoundRecord(agent, reviews, reviewAccount, headOid, failures) {
     return;
   }
 
-  const record = parseRoundRecord(round.at(-1).body);
-  if (record === null) {
-    failures.push({
-      kind: 'hand-posted',
-      agent,
-      detail: 'the round record is not the form tools/review-post/ writes',
-    });
-    return;
-  }
+  // Every record this round left, not only the last: a round that broke the
+  // bar and then posted a clean one would otherwise close on the clean one,
+  // with the record that broke it standing unreported. Bounded to this head,
+  // so an earlier round's failure cannot fail the review for ever.
+  for (const review of round) {
+    const record = parseRoundRecord(review.body);
+    if (record === null) {
+      failures.push({
+        kind: 'hand-posted',
+        agent,
+        detail: 'the round record is not the form tools/review-post/ writes',
+      });
+      continue;
+    }
 
-  // Whether this was a re-review, read off the pull request rather than taken
-  // from what the agent asserted: any record but this one is a look this is
-  // not the first of. A reviewer asked to look again at a head it has already
-  // answered for is why this counts records rather than commits.
-  //
-  // A round record posted twice therefore reads as a re-review. That is the
-  // safe direction — it can only refuse minor findings, loudly, on a round
-  // that duplicated itself; the other reading would let one through on a
-  // genuine second look, silently. #41 accepts the duplicate as noise on the
-  // record, which is what leaves this the cheaper of the two errors.
-  //
-  // The counts are the command's own, written from the findings it posted, and
-  // the check above is what says the command wrote it. A held-back finding
-  // counts as raised here: it reached the round record, which is where a
-  // reader meets it.
-  const again = posted.length > 1;
-  const { minor, held } = record;
-  if (again && minor + held > 0) {
-    // Not also reported as over-cap: on a re-review the cap is beside the
-    // point, because the bar is nothing minor at all.
-    failures.push({
-      kind: 'minor-on-re-review',
-      agent,
-      detail: `${minor + held} minor findings on a re-review, which takes only blocking ones`,
-    });
-  } else if (minor > MINOR_CAP) {
-    failures.push({
-      kind: 'over-cap',
-      agent,
-      detail: `${minor} minor findings in one round, cap is ${MINOR_CAP}`,
-    });
+    // Whether this record is a look this agent is not the first of, read off
+    // the pull request rather than taken from what the agent asserted. A
+    // reviewer asked to look again at a head it has already answered for is
+    // why this is the record's own place in the order rather than the commit.
+    //
+    // A round record posted twice therefore has its second copy read as a
+    // re-review. That is the safe direction — it can only refuse minor
+    // findings, loudly, on a round that duplicated itself; the other reading
+    // would let one through on a genuine second look, silently. #41 accepts
+    // the duplicate as noise on the record, which is what leaves this the
+    // cheaper of the two errors.
+    //
+    // The counts are the command's own, written from the findings it posted,
+    // and the check above is what says the command wrote it. A held-back
+    // finding counts as raised here: it reached the round record, which is
+    // where a reader meets it.
+    const again = posted.indexOf(review) > 0;
+    const { minor, held } = record;
+    if (again && minor + held > 0) {
+      // Not also reported as over-cap: on a re-review the cap is beside the
+      // point, because the bar is nothing minor at all.
+      failures.push({
+        kind: 'minor-on-re-review',
+        agent,
+        detail: `${minor + held} minor findings on a re-review, which takes only blocking ones`,
+      });
+    } else if (minor > MINOR_CAP) {
+      failures.push({
+        kind: 'over-cap',
+        agent,
+        detail: `${minor} minor findings in one round, cap is ${MINOR_CAP}`,
+      });
+    }
   }
 }
 

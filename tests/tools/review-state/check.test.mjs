@@ -257,11 +257,11 @@ describe('a round not posted by tools/review-post/', () => {
   });
 
   test('checks the round the agent just posted, not the ones before it', () => {
-    // An earlier round predating the command is history, not this round. The
-    // round being checked is the agent's latest, which is what it just ran.
+    // An earlier round predating the command is history, not this round: it
+    // answered a commit this round is not looking at.
     const state = payload({
       reviews: [
-        review('**review-code** — round 1. Two findings.'),
+        review('**review-code** — round 1. Two findings.', { oid: EARLIER_OID }),
         review(roundBody('review-code')),
       ],
     });
@@ -394,6 +394,21 @@ describe('a minor finding raised on a re-review', () => {
       reviews: [
         review(roundBody('review-code')),
         review(roundBody('review-code', { similar: 2 })),
+      ],
+    });
+    assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['minor-on-re-review']);
+  });
+
+  test('is a failure in a record a later clean one was posted after', () => {
+    // Every record this round left is checked, not just the last. Otherwise a
+    // round that broke the bar closes by posting a clean record after it: the
+    // check reads the later one, counts nothing minor, and exits 0 while the
+    // record that broke the bar stands unreported.
+    const state = payload({
+      reviews: [
+        review(roundBody('review-code', { minor: 2 })),
+        review(roundBody('review-code', { minor: 2 })),
+        review(roundBody('review-code')),
       ],
     });
     assert.deepEqual(kinds(checkRound(state, ['review-code'])), ['minor-on-re-review']);
