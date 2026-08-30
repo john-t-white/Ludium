@@ -2,12 +2,13 @@
 // Posts one review round to a pull request. See payload.mjs for what is
 // applied to a round on the way out and why it is applied here.
 //
-//   cat round.json | node tools/review-post/review-post.mjs round --pr <n> //     --agent <name> [--first-look]
+//   printf '%s' '{ ... }' > round.json
+//   node tools/review-post/review-post.mjs round --pr <n> --agent <name> < round.json
 //
-// The round comes in on stdin as JSON — finding bodies are multi-line and
-// quote material containing apostrophes, which no shell argument survives. An
-// agent writes that file with a heredoc and pipes it in, because its worktree
-// refuses a heredoc on the same command as this tool.
+// The round comes in on stdin as JSON. An agent's worktree refuses a heredoc,
+// so the round is written as one line through printf and redirected in;
+// finding bodies carry their line breaks and apostrophes as \n and \u0027,
+// since a literal apostrophe would end the quoted argument.
 // Run with --help for the fields, or --dry-run to print the calls unsent.
 
 import { execFileSync } from 'node:child_process';
@@ -18,8 +19,8 @@ import { post } from './post.mjs';
 
 const USAGE = `Post one review round.
 
-  cat round.json |
-    node tools/review-post/review-post.mjs round --pr <n> --agent <name> [--first-look]
+  printf '%s' '{ ... }' > round.json
+  node tools/review-post/review-post.mjs round --pr <n> --agent <name> [--first-look] < round.json
 
   --pr <n>       pull request number
   --agent <a>    ${AGENTS.join(' | ')}
@@ -28,9 +29,8 @@ const USAGE = `Post one review round.
                  only
   --dry-run      print the calls instead of making them
 
-The round is one JSON object on stdin. Every
-field below that is not marked optional is required, and the command refuses a
-round that omits one:
+The round is one JSON object on stdin. Every field below that is not marked
+optional is required, and the command refuses a round that omits one:
 
   {
     "summary":  "what this round looked at and concluded — posted as the round

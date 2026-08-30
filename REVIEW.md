@@ -67,21 +67,20 @@ not post the finding.
 ## How a finding is filed
 
 - Post with `tools/review-post/review-post.mjs`, one call per round, the round
-  as JSON on stdin. Your worktree refuses a heredoc on the same command as the
-  tool, so write the JSON first and pipe it in; a failed post leaves the file
-  to retry from:
+  as JSON on stdin. Your worktree refuses a heredoc — with a redirect, a pipe,
+  or anything else on the command — so the round goes in as one line through
+  `printf`, and the file it leaves is what a failed post retries from:
 
-      cat <<'JSON' > round.json
-      { ... }
-      JSON
-      cat round.json |
-        node tools/review-post/review-post.mjs round --pr <n> --agent <you> &&
-        rm round.json
+      printf '%s' '{ ... }' > round.json
+      node tools/review-post/review-post.mjs round --pr <n> --agent <you> < round.json
 
-  Add `--first-look` only when your dispatch said (first look). It adds your
-  name prefix and the severity tag, requires an anchor rather than inventing
-  one, and resolves what you RESOLVE. Run it with `--help` for the fields.
-  Never build a `gh api` call yourself.
+  Write every apostrophe in the JSON as `\u0027` and every line break as `\n`.
+  A literal apostrophe ends the quoted argument, and the round that reaches the
+  pull request is silently mangled rather than refused. Remove `round.json`
+  once the post succeeds. Add `--first-look` only when your dispatch said
+  (first look). It adds your name prefix and the severity tag, requires an
+  anchor rather than inventing one, and resolves what you RESOLVE. Run it with
+  `--help` for the fields. Never post by building a `gh api` call yourself.
 - Post every round, including one that found nothing and one whose only work
   was verdicts. A round that did not post is indistinguishable from a round
   that found nothing.

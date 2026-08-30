@@ -27,12 +27,19 @@ nothing outside it is yours.
 
 ## Read
 
-- `gh pr diff <n>` — the diff — and the pull request description.
-- `gh issue view <n>` — the linked issue, including its Developer Notes.
+- `gh pr diff <n>` — the diff.
+- `gh api repos/{owner}/{repo}/pulls/<n> -q .body` — the pull request
+  description.
+- `gh api repos/{owner}/{repo}/issues/<n> -q .body` — the linked issue,
+  including its Developer Notes.
 - `CLAUDE.md` and `CONVENTIONS.md` — this repository's stated rules.
 - `REVIEW.md` — what to flag, at what severity, how much, and how to file it.
 - On a re-review, the threads you own — your dispatch names each one and
   what it was about.
+
+Read the description and the issue with `gh api` as above, not `gh pr view` or
+`gh issue view`: those need a `read:project` scope the review account may not
+carry, and they fail by returning nothing rather than by erroring.
 
 Read further only when a finding you are already chasing needs it — the caller
 of a changed function, the helper you suspect this duplicates, the file whose
@@ -71,10 +78,12 @@ the diff merely touches.
 
 `REVIEW.md`'s "How a finding is filed" governs. One command per round:
 
-    node tools/review-post/review-post.mjs round --pr <n> \
-      --agent review-code [--first-look] <<'JSON'
-    {"summary": "...", "findings": [...], "replies": [...], "verdicts": [...]}
-    JSON
+Write the round, then post it. Your worktree refuses a heredoc, so the JSON
+goes in as one line through `printf`:
 
-The heredoc must be quoted, and nothing inside it is interpreted. Nothing you
-have writes a file, so do not redirect one in.
+    printf '%s' '{"summary": "...", "findings": [...], "replies": [...], "verdicts": [...]}' > round.json
+    node tools/review-post/review-post.mjs round --pr <n> --agent review-code [--first-look] < round.json
+
+Write every apostrophe in the JSON as `\u0027` — a literal one ends the
+quoted argument and corrupts the round — and every line break as `\n`.
+Remove `round.json` once the post succeeds; keep it if it failed.

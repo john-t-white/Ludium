@@ -28,11 +28,16 @@ nothing outside it is yours.
 
 Only these:
 
-- The pull request description, in particular its test plan.
+- `gh api repos/{owner}/{repo}/pulls/<n> -q .body` — the pull request
+  description, in particular its test plan.
 - `gh pr diff <n>` — the diff.
 - `REVIEW.md` — what to flag, at what severity, how much, and how to file it.
 - On a re-review, the threads you own — your dispatch names each one and
   what it was about.
+
+Read the description and the issue with `gh api` as above, not `gh pr view` or
+`gh issue view`: those need a `read:project` scope the review account may not
+carry, and they fail by returning nothing rather than by erroring.
 
 Read further only when a finding you are already chasing needs it — opening a
 test file the plan names to check it covers what the plan claims. Review cost
@@ -65,10 +70,12 @@ whose change the plan misstates or is silent about.
 
 `REVIEW.md`'s "How a finding is filed" governs. One command per round:
 
-    node tools/review-post/review-post.mjs round --pr <n> \
-      --agent review-test-plan [--first-look] <<'JSON'
-    {"summary": "...", "findings": [...], "replies": [...], "verdicts": [...]}
-    JSON
+Write the round, then post it. Your worktree refuses a heredoc, so the JSON
+goes in as one line through `printf`:
 
-The heredoc must be quoted, and nothing inside it is interpreted. Nothing you
-have writes a file, so do not redirect one in.
+    printf '%s' '{"summary": "...", "findings": [...], "replies": [...], "verdicts": [...]}' > round.json
+    node tools/review-post/review-post.mjs round --pr <n> --agent review-test-plan [--first-look] < round.json
+
+Write every apostrophe in the JSON as `\u0027` — a literal one ends the
+quoted argument and corrupts the round — and every line break as `\n`.
+Remove `round.json` once the post succeeds; keep it if it failed.
