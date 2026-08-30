@@ -5,8 +5,8 @@
 //
 // Pure: this decides what to post. review-post.mjs posts it.
 
-// The same four the state tool counts rounds for. Kept in one place: a list
-// that drifted would have review-post refusing a round review-state counts.
+// The same four the state tool reads rounds for. Kept in one place: a list
+// that drifted would have review-post refusing a round review-state reads.
 import { AGENTS } from '../review-state/state.mjs';
 
 export { AGENTS };
@@ -68,7 +68,7 @@ function roundBody(round, findings) {
         )})`;
   return prefixed(
     round.agent,
-    `round ${round.round} · ${count('blocking')} blocking, ${count('minor')} minor` +
+    `${count('blocking')} blocking, ${count('minor')} minor` +
       `${held}. ${required(round.summary, 'summary')}`,
   );
 }
@@ -78,15 +78,12 @@ function roundBody(round, findings) {
  * own review first, then anything answering a thread that already exists.
  *
  * The review is one call carrying every anchored finding, because GitHub
- * validates a review's comments together and tools/review-state/ counts one
+ * validates a review's comments together and tools/review-state/ reads one
  * prefixed review per round — several reviews would read as several rounds.
  */
 export function plan(round, context) {
   if (!AGENTS.includes(round.agent)) {
     throw new Error(`agent must be one of ${AGENTS.join(', ')}`);
-  }
-  if (!Number.isInteger(round.round) || round.round < 1) {
-    throw new Error('round must be a whole number from 1');
   }
 
   const { owner, repo, pr } = context;
@@ -94,17 +91,22 @@ export function plan(round, context) {
   const findings = round.findings ?? [];
   const steps = [];
 
-  // From round two the bar is blocking-only, on every material the round sees,
-  // fixes included. Exempting what a fix newly added is what turned #31 into
-  // seven rounds: every fix is new material, so every fix earned a fresh nit
-  // and the loop started again. REVIEW.md states the bar; this is what holds
-  // it, before anything reaches the pull request.
-  if (round.round > 1) {
+  // From the second look on the bar is blocking-only, on every material the
+  // round sees, fixes included. Exempting what a fix newly added is what turned
+  // #31 into seven rounds: every fix is new material, so every fix earned a
+  // fresh nit and the loop started again. REVIEW.md states the bar; this is
+  // what holds it, before anything reaches the pull request.
+  //
+  // A round that does not say it is a first look is treated as a re-review.
+  // The permissive case is the one that has to be asserted, so forgetting the
+  // flag refuses a minor finding the round was entitled to raise rather than
+  // letting one through on a re-review, where nothing would say so.
+  if (round.firstLook !== true) {
     if (findings.some((finding) => finding.severity === 'minor')) {
-      throw new Error('a minor finding cannot be raised after round one');
+      throw new Error('a minor finding cannot be raised on a re-review');
     }
     if (round.similar !== undefined) {
-      throw new Error('findings held back are minor, so similar cannot be raised after round one');
+      throw new Error('findings held back are minor, so similar cannot be raised on a re-review');
     }
   }
 
@@ -125,7 +127,7 @@ export function plan(round, context) {
 
   steps.push({
     kind: 'review',
-    label: `round ${round.round} review (${anchored.length} anchored)`,
+    label: `round review (${anchored.length} anchored)`,
     endpoint: `${pulls}/reviews`,
     body: { event: 'COMMENT', body: roundBody(round, findings), comments: anchored },
   });

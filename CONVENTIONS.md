@@ -103,22 +103,23 @@ to act on, and makes the merge call.
 **A round runs as one command.** The loop the review runs — who looks, in what
 order, and what has to happen before a reviewer is asked again — is stated in
 [.claude/skills/pr-review/](.claude/skills/pr-review/), which is also what
-runs it: dispatching the agents, telling each what round it is on and which of
-its threads are open, checking that each round actually posted, and reporting
-what is left. Running that command is what a review round is. Assembling that
-loop by hand each time made two runs of "the same" review not the same review,
-which is the problem the checked-in agent definitions already solved for the
-agents themselves. The parts of a round that are facts rather than judgments —
-who owns a thread, which are unresolved, who still owes a verdict, what round
-each agent is on — are settled by [tools/review-state/](tools/review-state/)
-before any agent runs, because an agent working them out spends calls on it
-every round and can get it wrong, while a check returns the same answer every
-time. What the round then owed is checked by that same tool rather than read
-for: an agent that did not post, a thread its owner left unverdicted, a
-finding with no anchor, a round over the minor-findings cap, and a minor
-finding raised after round one each fail a check that exits non-zero. Every
-one of those was a rule that lived in prose and was broken while it did. As
-with the agent files, this document says why; the skill is what runs.
+runs it: dispatching the agents, telling each whether this is its first look
+and which of its threads are open, checking that each round actually posted,
+and reporting what is left. Running that command is what a review round is.
+Assembling that loop by hand each time made two runs of "the same" review not
+the same review, which is the problem the checked-in agent definitions already
+solved for the agents themselves. The parts of a round that are facts rather
+than judgments — who owns a thread, which are unresolved, who still owes a
+verdict, which agents have looked before — are settled by
+[tools/review-state/](tools/review-state/) before any agent runs, because an
+agent working them out spends calls on it every round and can get it wrong,
+while a check returns the same answer every time. What the round then owed is
+checked by that same tool rather than read for: an agent that did not post, a
+thread its owner left unverdicted, a finding with no anchor, a round over the
+minor-findings cap, and a minor finding raised on a re-review each fail a check
+that exits non-zero. Every one of those was a rule that lived in prose and was
+broken while it did. As with the agent files, this document says why; the skill
+is what runs.
 
 **A finding gets one thread.** A finding stays on the thread it was first
 raised on, from that first raise until it is resolved. A follow-up about
@@ -154,7 +155,7 @@ round sees, including material a fix newly added, so a fix cannot pull the
 review back into a fresh round of minor findings. Exempting new material is
 what made that bar unenforceable: every fix is new material, so every fix
 earned a fresh round of nits, which is how a 280-line change reached round
-seven. The posting command now refuses a minor finding after round one, so the
+seven. The posting command now refuses a minor finding on a re-review, so the
 bar holds without being remembered. That a fix falls short of the finding its
 thread already holds is always said, but it keeps the thread open only if the
 shortfall would itself block merging. A thread can also close without a

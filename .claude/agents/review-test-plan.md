@@ -53,7 +53,7 @@ whose change the plan misstates or is silent about.
 `REVIEW.md`'s "How a finding is filed" governs. One command per round:
 
     node tools/review-post/review-post.mjs round --pr <n> \
-      --agent review-test-plan --round <r> <<'JSON'
+      --agent review-test-plan [--first-look] <<'JSON'
     {"summary": "...", "findings": [...], "replies": [...], "verdicts": [...]}
     JSON
 

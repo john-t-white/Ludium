@@ -61,7 +61,7 @@ confirm it, rather than asserting a vulnerability you have not traced.
 `REVIEW.md`'s "How a finding is filed" governs. One command per round:
 
     node tools/review-post/review-post.mjs round --pr <n> \
-      --agent review-security --round <r> <<'JSON'
+      --agent review-security [--first-look] <<'JSON'
     {"summary": "...", "findings": [...], "replies": [...], "verdicts": [...]}
     JSON
 

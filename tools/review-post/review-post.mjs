@@ -2,7 +2,7 @@
 // Posts one review round to a pull request. See payload.mjs for what is
 // applied to a round on the way out and why it is applied here.
 //
-//   node tools/review-post/review-post.mjs round --pr <n> --agent <name> --round <r> <<'JSON'
+//   node tools/review-post/review-post.mjs round --pr <n> --agent <name> [--first-look] <<'JSON'
 //
 // The round comes in on stdin as JSON, from a quoted heredoc — finding bodies
 // are multi-line and quote material containing apostrophes, which no shell
@@ -17,11 +17,13 @@ import { post } from './post.mjs';
 
 const USAGE = `Post one review round.
 
-  node tools/review-post/review-post.mjs round --pr <n> --agent <name> --round <r> <<'JSON'
+  node tools/review-post/review-post.mjs round --pr <n> --agent <name> [--first-look] <<'JSON'
 
   --pr <n>       pull request number
   --agent <a>    ${AGENTS.join(' | ')}
-  --round <r>    the round you were dispatched to run, from the state report
+  --first-look   pass this only when the state report said (first look); a
+                 round without it is a re-review and takes blocking findings
+                 only
   --dry-run      print the calls instead of making them
 
 The round is one JSON object on stdin, ended by a line reading JSON. Every
@@ -31,7 +33,7 @@ round that omits one:
   {
     "summary":  "what this round looked at and concluded — posted as the round
                  record, which is what proves the round reached the pull request",
-    "similar":  {"count": 3, "about": "one line"},        // optional, round 1
+    "similar":  {"count": 3, "about": "one line"},        // optional, first look
                                                           // only: minor findings
                                                           // the cap held back
     "findings": [
@@ -40,7 +42,7 @@ round that omits one:
         "line":      42,                  // omit only with "fileLevel": true
         "fileLevel": true,                // optional: a finding with no line to
                                           // anchor to, e.g. about the PR description
-        "severity":  "${SEVERITIES.join('" | "')}",   // only "blocking" after round 1
+        "severity":  "${SEVERITIES.join('" | "')}",   // only "blocking" on a re-review
         "wrong":     "what is wrong",
         "causes":    "what it causes, with an example where one clarifies it",
         "recommend": "what to do about it"
@@ -52,10 +54,11 @@ round that omits one:
   }
 
 The command adds your name prefix and the severity tag, and resolves a thread
-you RESOLVE. From round two it takes only blocking findings, on every material
-the round sees — a minor one, posted or held back, is a round it refuses. Ids
-are checked for shape, not just presence. Findings post as one review, so a
-line outside the diff rejects the round: fix the anchor and run it again.`;
+you RESOLVE. Without --first-look it takes only blocking findings, on every
+material the round sees — a minor one, posted or held back, is a round it
+refuses. Ids are checked for shape, not just presence. Findings post as one
+review, so a line outside the diff rejects the round: fix the anchor and run it
+again.`;
 
 const argv = process.argv.slice(2);
 
@@ -85,7 +88,7 @@ if (!Number.isInteger(pr)) {
 const round = {
   ...JSON.parse(readFileSync(0, 'utf8')),
   agent: flag('agent'),
-  round: Number(flag('round')),
+  firstLook: argv.includes('--first-look'),
 };
 
 const { owner, name } = JSON.parse(gh('repo', 'view', '--json', 'owner,name'));

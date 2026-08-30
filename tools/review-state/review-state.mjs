@@ -4,15 +4,14 @@
 // here rather than by an agent, and check.mjs for what a round has to obey.
 //
 //   node tools/review-state/review-state.mjs [--pr <number>]
-//   node tools/review-state/review-state.mjs check --pr <n> --dispatched <spec>
+//   node tools/review-state/review-state.mjs check --pr <n> --dispatched <agents>
 //
 // Without --pr, the pull request for the current branch is used. The check
 // exits 1 on a round that broke a rule and 0 on one that did not, so a round
 // that went wrong stops the review rather than being read past.
 //
-// <spec> is the agents the round actually ran and the round each was
-// dispatched to run: review-code=2,review-security=2. An agent left out of
-// the round on purpose is left out of the spec.
+// <agents> is the agents the round actually ran: review-code,review-security.
+// An agent left out of the round on purpose is left out of the list.
 
 import { execFileSync } from 'node:child_process';
 
@@ -43,26 +42,24 @@ function prNumber() {
   return JSON.parse(gh('pr', 'view', '--json', 'number')).number;
 }
 
-/** The --dispatched spec as {agent: round}, or an exit explaining why not. */
+/** The --dispatched agents, or an exit explaining why not. */
 function dispatched() {
   const flag = process.argv.indexOf('--dispatched');
-  const spec = flag === -1 ? undefined : process.argv[flag + 1];
-  if (spec === undefined) {
-    console.error(`check needs --dispatched <agent>=<round>[,...] — ${AGENTS.join(', ')}`);
+  const list = flag === -1 ? undefined : process.argv[flag + 1];
+  if (list === undefined) {
+    console.error(`check needs --dispatched <agent>[,...] — ${AGENTS.join(', ')}`);
     process.exit(2);
   }
-  const entries = spec.split(',').map((pair) => {
-    const [agent, round] = pair.split('=');
-    if (!AGENTS.includes(agent) || !/^[1-9][0-9]*$/.test(round ?? '')) {
-      console.error(`"${pair}" is not <agent>=<round>. Agents: ${AGENTS.join(', ')}`);
+  return list.split(',').map((agent) => {
+    if (!AGENTS.includes(agent)) {
+      console.error(`"${agent}" is not an agent. Agents: ${AGENTS.join(', ')}`);
       process.exit(2);
     }
-    return [agent, Number(round)];
+    return agent;
   });
-  return Object.fromEntries(entries);
 }
 
-// Read before anything is fetched, so a mistyped spec costs no API calls.
+// Read before anything is fetched, so a mistyped list costs no API calls.
 const checking = process.argv[2] === 'check';
 const agents = checking ? dispatched() : null;
 
