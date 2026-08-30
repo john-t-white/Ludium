@@ -35,9 +35,9 @@ Only these:
 - On a re-review, the threads you own — your dispatch names each one and
   what it was about.
 
-Read the description and the issue with `gh api` as above, not `gh pr view` or
-`gh issue view`: those need a `read:project` scope the review account may not
-carry, and they fail by returning nothing rather than by erroring.
+Read the description with `gh api` as above, not `gh pr view`: that needs a
+`read:project` scope the review account may not carry, and it fails by
+returning nothing rather than by erroring.
 
 Read further only when a finding you are already chasing needs it — opening a
 test file the plan names to check it covers what the plan claims. Review cost
@@ -68,14 +68,5 @@ whose change the plan misstates or is silent about.
 
 ## File it
 
-`REVIEW.md`'s "How a finding is filed" governs. One command per round:
-
-Write the round, then post it. Your worktree refuses a heredoc, so the JSON
-goes in as one line through `printf`:
-
-    printf '%s' '{"summary": "...", "findings": [...], "replies": [...], "verdicts": [...]}' > round.json
-    node tools/review-post/review-post.mjs round --pr <n> --agent review-test-plan [--first-look] < round.json
-
-Write every apostrophe in the JSON as `\u0027` — a literal one ends the
-quoted argument and corrupts the round — and every line break as `\n`.
-Remove `round.json` once the post succeeds; keep it if it failed.
+`REVIEW.md`'s "How a finding is filed" governs, including how the round
+reaches the tool. Follow it as written; you are `review-test-plan`.

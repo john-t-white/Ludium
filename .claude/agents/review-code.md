@@ -76,14 +76,5 @@ the diff merely touches.
 
 ## File it
 
-`REVIEW.md`'s "How a finding is filed" governs. One command per round:
-
-Write the round, then post it. Your worktree refuses a heredoc, so the JSON
-goes in as one line through `printf`:
-
-    printf '%s' '{"summary": "...", "findings": [...], "replies": [...], "verdicts": [...]}' > round.json
-    node tools/review-post/review-post.mjs round --pr <n> --agent review-code [--first-look] < round.json
-
-Write every apostrophe in the JSON as `\u0027` — a literal one ends the
-quoted argument and corrupts the round — and every line break as `\n`.
-Remove `round.json` once the post succeeds; keep it if it failed.
+`REVIEW.md`'s "How a finding is filed" governs, including how the round
+reaches the tool. Follow it as written; you are `review-code`.
