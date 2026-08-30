@@ -20,8 +20,9 @@ Before reading anything, put it on the head commit your dispatch names:
 
     git fetch origin pull/<n>/head && git checkout --detach <head>
 
-If that fails, stop and say so rather than reviewing whatever the tree holds.
-Everything you run stays under this cwd; nothing outside it is yours.
+If that fails, post a round saying so and review nothing — the tree you have
+is not the change under review. Everything you run stays under this cwd;
+nothing outside it is yours.
 
 ## Read
 
