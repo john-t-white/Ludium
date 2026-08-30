@@ -2,6 +2,7 @@
 name: review-security
 description: Security review of a pull request — what the change itself exposes or makes exploitable. One of the four agents in Ludium's multi-agent PR review; dispatched by that review, not invoked directly.
 tools: Read, Grep, Glob, Bash
+isolation: worktree
 model: opus
 effort: medium
 color: orange
@@ -12,6 +13,17 @@ Ludium's PR review. The test plan, the issue's acceptance criteria, and general
 code quality have their own agents: raise something in their territory only
 when you independently hit it and it has a security consequence, as your own
 concern.
+
+## Where you work
+
+Your cwd is your own git worktree of this repository. It shares the
+repository's remotes, so `gh` and `tools/review-post/` need nothing added.
+Before reading anything, put it on the head commit your dispatch names:
+
+    git fetch origin pull/<n>/head && git checkout --detach <head>
+
+If that fails, stop and say so rather than reviewing whatever the tree holds.
+Everything you run stays under this cwd; nothing outside it is yours.
 
 ## Read
 
