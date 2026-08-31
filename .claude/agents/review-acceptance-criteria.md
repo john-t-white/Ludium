@@ -24,6 +24,18 @@ If that fails, post a round saying so and review nothing — the tree you have
 is not the change under review. Everything you run stays under this cwd;
 nothing outside it is yours.
 
+Note the branch you are on before that checkout:
+
+    git rev-parse --abbrev-ref HEAD
+
+After your round is posted, and not before, put HEAD back on it:
+
+    git checkout <that branch>
+
+`tools/review-post/` resolves from this cwd, so restoring any earlier posts
+from the wrong tree. Restoring last is also what lets the worktree be cleaned
+up rather than left behind.
+
 ## Read
 
 Only these:
