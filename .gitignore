@@ -40,3 +40,6 @@ src/api/appsettings.*.local.json
 !.vscode/*.code-snippets
 .history/
 *.vsix
+
+# Review rounds, written in an agent worktree and removed after posting
+round.json

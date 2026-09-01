@@ -2,11 +2,13 @@
 // Posts one review round to a pull request. See payload.mjs for what is
 // applied to a round on the way out and why it is applied here.
 //
-//   node tools/review-post/review-post.mjs round --pr <n> --agent <name> [--first-look] <<'JSON'
+//   printf '%s' '{ ... }' > round.json
+//   node tools/review-post/review-post.mjs round --pr <n> --agent <name> < round.json
 //
-// The round comes in on stdin as JSON, from a quoted heredoc — finding bodies
-// are multi-line and quote material containing apostrophes, which no shell
-// argument survives, and the agents have no tool that writes a file.
+// The round comes in on stdin as JSON. An agent's worktree refuses a heredoc,
+// so the round is written as one line through printf and redirected in;
+// finding bodies carry their line breaks and apostrophes as \n and \u0027,
+// since a literal apostrophe would end the quoted argument.
 // Run with --help for the fields, or --dry-run to print the calls unsent.
 
 import { execFileSync } from 'node:child_process';
@@ -17,7 +19,8 @@ import { post } from './post.mjs';
 
 const USAGE = `Post one review round.
 
-  node tools/review-post/review-post.mjs round --pr <n> --agent <name> [--first-look] <<'JSON'
+  printf '%s' '{ ... }' > round.json
+  node tools/review-post/review-post.mjs round --pr <n> --agent <name> [--first-look] < round.json
 
   --pr <n>       pull request number
   --agent <a>    ${AGENTS.join(' | ')}
@@ -26,9 +29,8 @@ const USAGE = `Post one review round.
                  only
   --dry-run      print the calls instead of making them
 
-The round is one JSON object on stdin, ended by a line reading JSON. Every
-field below that is not marked optional is required, and the command refuses a
-round that omits one:
+The round is one JSON object on stdin. Every field below that is not marked
+optional is required, and the command refuses a round that omits one:
 
   {
     "summary":  "what this round looked at and concluded — posted as the round

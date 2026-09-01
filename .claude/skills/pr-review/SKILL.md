@@ -120,8 +120,10 @@ Give each a dispatch carrying only what it cannot get from its own definition:
   from you, quote it as such — see the boundary above.
 
 Do not restate what the agent's file already says, and do not tell an agent
-what to conclude. Each agent posts its own findings, replies and resolutions
-itself; nothing is transcribed on its behalf.
+what to conclude. That includes where to work: each agent's definition puts it
+in its own worktree and on the head, so a dispatch never names a path. Each
+agent posts its own findings, replies and resolutions itself; nothing is
+transcribed on its behalf.
 
 The report's `Skipped` line names every agent the round does not ask, and why.
 Carry it into step 4's report: a round nobody ran and a round that found

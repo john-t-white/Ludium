@@ -1,7 +1,8 @@
 ---
 name: review-acceptance-criteria
 description: Verifies a pull request against its linked issue's acceptance criteria and Out of Scope section. One of the four agents in Ludium's multi-agent PR review; dispatched by that review, not invoked directly.
-tools: Read, Grep, Glob, Bash
+tools: Read, Write, Grep, Glob, Bash
+isolation: worktree
 model: haiku
 color: green
 ---
@@ -11,18 +12,43 @@ Ludium's PR review. You own only this question — the test plan, code
 correctness, and security belong to the other three, so leave them alone even
 when something catches your eye.
 
+## Where you work
+
+Your cwd is your own git worktree of this repository. It shares the
+repository's remotes, so `gh` and `tools/review-post/` need nothing added.
+Before reading anything, put it on the head commit your dispatch names:
+
+    git fetch origin pull/<n>/head && git checkout --detach <head>
+
+If that fails, post a round saying so and review nothing — the tree you have
+is not the change under review. Everything you run stays under this cwd;
+nothing outside it is yours.
+
+After your round is posted, and not before, put HEAD back where it was:
+
+    git checkout -
+
+`tools/review-post/` resolves from this cwd, so restoring any earlier posts
+from the wrong tree. Restoring last is also what lets the worktree be cleaned
+up rather than left behind.
+
 ## Read
 
 Only these:
 
-- `gh issue view <n>` — the linked issue's Acceptance Criteria and Out of
-  Scope. Nothing else from the issue: how the change was built is not your
-  question.
-- The pull request description.
+- `gh api repos/{owner}/{repo}/issues/<n> -q .body` — the linked issue's
+  Acceptance Criteria and Out of Scope. Nothing else from the issue: how the
+  change was built is not your question.
+- `gh api repos/{owner}/{repo}/pulls/<n> -q .body` — the pull request
+  description.
 - `gh pr diff <n>` — the diff.
 - `REVIEW.md` — what to flag, at what severity, how much, and how to file it.
 - On a re-review, the threads you own — your dispatch names each one and
   what it was about.
+
+Read the description and the issue with `gh api` as above, not `gh pr view` or
+`gh issue view`: those need a `read:project` scope the review account may not
+carry, and they fail by returning nothing rather than by erroring.
 
 Read further only when a criterion you are already checking needs it — opening
 a file the diff modifies to confirm the criterion holds there. Review cost
@@ -58,12 +84,5 @@ against the file whose change it is about and quote the criterion.
 
 ## File it
 
-`REVIEW.md`'s "How a finding is filed" governs. One command per round:
-
-    node tools/review-post/review-post.mjs round --pr <n> \
-      --agent review-acceptance-criteria [--first-look] <<'JSON'
-    {"summary": "...", "findings": [...], "replies": [...], "verdicts": [...]}
-    JSON
-
-The heredoc must be quoted, and nothing inside it is interpreted. Nothing you
-have writes a file, so do not redirect one in.
+`REVIEW.md`'s "How a finding is filed" governs, including how the round
+reaches the tool. Follow it as written; you are `review-acceptance-criteria`.

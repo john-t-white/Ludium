@@ -81,9 +81,10 @@ mean anything while the code is still moving. Each posts its own findings as
 inline PR comments under its own name, so a finding reads as the agent that
 raised it wrote it. The four run as subagents spawned for the purpose, from
 checked-in definitions in [.claude/agents/](.claude/agents/) — one file per
-agent, and the source of truth for what each reads and what it looks for,
-within the calibration `REVIEW.md` sets. An agent file holds that judgment and
-nothing else: how a finding is filed is the same for all four, so it is written
+agent, and the source of truth for what each reads, what it looks for, and
+where it runs, within the calibration `REVIEW.md` sets. An agent file holds
+that judgment and nothing else: how a finding is filed is the same for all
+four, so it is written
 once in `REVIEW.md` and enforced by [tools/review-post/](tools/review-post/),
 the one command an agent posts a round with. The name prefix and the severity
 tag are written by that command, and it refuses a finding with no anchor,

@@ -66,12 +66,19 @@ not post the finding.
 
 ## How a finding is filed
 
-- Post with `node tools/review-post/review-post.mjs round --pr <n> --agent
-  <you>`, one call per round, the round as JSON on stdin from a quoted
-  heredoc — nothing you have writes a file. Add `--first-look` only when your
-  dispatch said (first look). It adds your name prefix and the severity tag,
-  requires an anchor rather than inventing one, and resolves what you RESOLVE.
-  Run it with `--help` for the fields. Never build a `gh api` call yourself.
+- Post with `tools/review-post/review-post.mjs`, one call per round, the round
+  as JSON on stdin. Write the JSON to `round.json` in your worktree with the
+  Write tool — never build it on a command line, where a finding quoting an
+  apostrophe out of the diff would end the argument and mangle the round
+  silently. The file is also what a failed post retries from:
+
+      node tools/review-post/review-post.mjs round --pr <n> --agent <you> < round.json
+
+  Write every line break inside a JSON string as `\n`. Remove `round.json`
+  once the post succeeds. Add `--first-look` only when your dispatch said
+  (first look). It adds your name prefix and the severity tag, requires an
+  anchor rather than inventing one, and resolves what you RESOLVE. Run it with
+  `--help` for the fields. Never post by building a `gh api` call yourself.
 - Post every round, including one that found nothing and one whose only work
   was verdicts. A round that did not post is indistinguishable from a round
   that found nothing.
