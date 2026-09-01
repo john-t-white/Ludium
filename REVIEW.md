@@ -67,16 +67,14 @@ not post the finding.
 ## How a finding is filed
 
 - Post with `tools/review-post/review-post.mjs`, one call per round, the round
-  as JSON on stdin. Your worktree refuses a heredoc — with a redirect, a pipe,
-  or anything else on the command — so the round goes in as one line through
-  `printf`, and the file it leaves is what a failed post retries from:
+  as JSON on stdin. Write the JSON to `round.json` in your worktree with the
+  Write tool — never build it on a command line, where a finding quoting an
+  apostrophe out of the diff would end the argument and mangle the round
+  silently. The file is also what a failed post retries from:
 
-      printf '%s' '{ ... }' > round.json
       node tools/review-post/review-post.mjs round --pr <n> --agent <you> < round.json
 
-  Write every apostrophe in the JSON as `\u0027` and every line break as `\n`.
-  A literal apostrophe ends the quoted argument, and the round that reaches the
-  pull request is silently mangled rather than refused. Remove `round.json`
+  Write every line break inside a JSON string as `\n`. Remove `round.json`
   once the post succeeds. Add `--first-look` only when your dispatch said
   (first look). It adds your name prefix and the severity tag, requires an
   anchor rather than inventing one, and resolves what you RESOLVE. Run it with

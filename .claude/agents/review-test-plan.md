@@ -1,7 +1,7 @@
 ---
 name: review-test-plan
 description: Verifies a pull request's test plan against the working conventions and the diff. One of the four agents in Ludium's multi-agent PR review; dispatched by that review, not invoked directly.
-tools: Read, Grep, Glob, Bash
+tools: Read, Write, Grep, Glob, Bash
 isolation: worktree
 model: haiku
 color: green

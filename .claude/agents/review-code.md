@@ -1,7 +1,7 @@
 ---
 name: review-code
 description: General code review of a pull request — correctness, reuse and simplification, and adherence to Ludium's stated conventions. One of the four agents in Ludium's multi-agent PR review; dispatched by that review, not invoked directly.
-tools: Read, Grep, Glob, Bash
+tools: Read, Write, Grep, Glob, Bash
 isolation: worktree
 model: opus
 effort: high

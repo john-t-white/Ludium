@@ -1,7 +1,7 @@
 ---
 name: review-acceptance-criteria
 description: Verifies a pull request against its linked issue's acceptance criteria and Out of Scope section. One of the four agents in Ludium's multi-agent PR review; dispatched by that review, not invoked directly.
-tools: Read, Grep, Glob, Bash
+tools: Read, Write, Grep, Glob, Bash
 isolation: worktree
 model: haiku
 color: green
